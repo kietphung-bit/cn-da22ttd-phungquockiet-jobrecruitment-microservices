@@ -8,19 +8,36 @@ import com.jobrecruitment.backend.entities.User;
 import lombok.RequiredArgsConstructor;
 
 /**
- * User Mapper
- * Converts User Entity <-> DTO
- * Excludes password for security
+ * UserMapper - Mapper cho User entity
+ * 
+ * Mô tả:
+ * - Chuyển đổi giữa User entity và UserResponse DTO
+ * - Bảo mật: Loại bỏ password khi trả về response
+ * - Nested mapping: Sử dụng RoleMapper cho Role
+ * 
+ * Chiến lược mapping:
+ * - Entity -> DTO: Chỉ map các field công khai, bỏ password và locked
+ * - Null-safe: Kiểm tra null trước khi map
  */
 @Component
 @RequiredArgsConstructor
 public class UserMapper {
     
+    /**
+     * RoleMapper: Để map nested Role object
+     */
     private final RoleMapper roleMapper;
     
     /**
-     * Convert User entity to UserResponse DTO
-     * Excludes password for security
+     * Chuyển đổi từ User entity sang UserResponse DTO
+     * 
+     * Chiến lược:
+     * - Loại bỏ password (ẩn thông tin nhạy cảm)
+     * - Loại bỏ locked (ẩn trạng thái khóa)
+     * - Map nested Role qua RoleMapper
+     * 
+     * @param user User entity
+     * @return UserResponse DTO (null nếu input null)
      */
     public UserResponse toResponse(User user) {
         if (user == null) {

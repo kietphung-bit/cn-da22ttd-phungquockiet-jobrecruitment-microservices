@@ -1,0 +1,441 @@
+package com.jobrecruitment.backend.controllers;
+
+import com.jobrecruitment.backend.dtos.response.ApiResponse;
+import com.jobrecruitment.backend.dtos.response.DashboardStatsResponse;
+import com.jobrecruitment.backend.dtos.response.UserResponse;
+import com.jobrecruitment.backend.enums.CompanyStatus;
+import com.jobrecruitment.backend.enums.JobStatus;
+import com.jobrecruitment.backend.services.AdminServiceV1;
+import io.swagger.v3.oas.annotations.Operation;
+import io.swagger.v3.oas.annotations.Parameter;
+import io.swagger.v3.oas.annotations.media.Content;
+import io.swagger.v3.oas.annotations.media.Schema;
+import io.swagger.v3.oas.annotations.responses.ApiResponses;
+import io.swagger.v3.oas.annotations.security.SecurityRequirement;
+import io.swagger.v3.oas.annotations.tags.Tag;
+import lombok.RequiredArgsConstructor;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
+import org.springframework.http.ResponseEntity;
+import org.springframework.security.access.prepost.PreAuthorize;
+import org.springframework.web.bind.annotation.*;
+
+/**
+ * AdminControllerV1 - RESTful API Controller quản trị hệ thống
+ * 
+ * Base URL: /api/v1/admin
+ * 
+ * Danh sách endpoint (Tất cả yêu cầu vai trò ADM):
+ * 1. GET /dashboard/stats           - Thống kê tổng quan hệ thống
+ * 2. GET /users                     - Danh sách người dùng (phân trang, lọc theo vai trò)
+ * 3. PATCH /users/{id}/lock         - Khóa tài khoản người dùng
+ * 4. PATCH /users/{id}/unlock       - Mở khóa tài khoản người dùng
+ * 5. PATCH /companies/{id}/status   - Thay đổi trạng thái doanh nghiệp (kiểm duyệt)
+ * 6. PATCH /jobs/{id}/status        - Thay đổi trạng thái công việc (kiểm duyệt)
+ * 
+ * Bảo mật:
+ * - Tất cả endpoint yêu cầu JWT Authentication (Bearer Token)
+ * - Chỉ người dùng có vai trò ADM (Admin) mới truy cập được
+ * - Áp dụng @PreAuthorize("hasAuthority('ROLE_ADM')") ở class-level
+ * 
+ * Chức năng chính:
+ * - Thống kê dashboard: Người dùng, công việc, đơn ứng tuyển
+ * - Quản lý người dùng: Xem danh sách, khóa/mở khóa
+ * - Kiểm duyệt: Duyệt doanh nghiệp, duyệt tin tuyển dụng
+ * 
+ * Phụ thuộc:
+ * - AdminServiceV1: Xử lý business logic cho tất cả chức năng Admin
+ */
+@RestController
+@RequestMapping("/api/v1/admin")
+@RequiredArgsConstructor
+@Tag(name = "Admin Management V1", description = "RESTful API for admin operations")
+@SecurityRequirement(name = "bearerAuth")
+@PreAuthorize("hasAuthority('ROLE_ADM')")
+public class AdminControllerV1 {
+
+    private final AdminServiceV1 adminServiceV1;
+
+    /**
+     * Lấy thống kê tổng quan dashboard
+     * 
+     * Endpoint dành cho Admin - Trả về thống kê toàn hệ thống bao gồm:
+     * - Số lượng người dùng: Tổng số, ứng viên, nhà tuyển dụng (theo trạng thái)
+     * - Số lượng công việc: Tổng số, theo trạng thái (ACTIVE/PENDING/CLOSED/HIDDEN)
+     * - Số lượng đơn ứng tuyển: Tổng số, hôm nay, tháng này
+     * 
+     * HTTP Method: GET /api/v1/admin/dashboard/stats
+     * 
+     * Bảo mật: Yêu cầu JWT + Vai trò ADM
+     * 
+     * @return ResponseEntity<ApiResponse<DashboardStatsResponse>> - Thống kê hệ thống
+     */
+    @GetMapping("/dashboard/stats")
+    @Operation(
+            summary = "Get dashboard statistics",
+            description = "Admin-only endpoint. Returns comprehensive system statistics including:" +
+                    "\n- User counts (total, candidates, employers by status)" +
+                    "\n- Job statistics (total, by status)" +
+                    "\n- Application metrics (total, today, this month)"
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Statistics retrieved successfully",
+                    content = @Content(schema = @Schema(implementation = DashboardStatsResponse.class))
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication required",
+                    content = @Content
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - Admin role required",
+                    content = @Content
+            )
+    })
+    public ResponseEntity<ApiResponse<DashboardStatsResponse>> getDashboardStats() {
+        DashboardStatsResponse stats = adminServiceV1.getDashboardStats();
+        
+        return ResponseEntity.ok(
+                ApiResponse.<DashboardStatsResponse>builder()
+                        .status(200)
+                        .message("Dashboard statistics retrieved successfully")
+                        .data(stats)
+                        .build()
+        );
+    }
+
+    /**
+     * Lấy danh sách người dùng (phân trang và lọc theo vai trò)
+     * 
+     * Endpoint dành cho Admin - Trả về danh sách người dùng có phân trang
+     * 
+     * Tham số lọc:
+     * - roleCode (optional): Lọc theo vai trò (ADM, DN, UV)
+     * 
+     * Tham số phân trang:
+     * - page: Số trang (bắt đầu từ 0)
+     * - size: Kích thước trang (mặc định: 20)
+     * - sort: Sắp xếp theo trường (ví dụ: 'username,asc')
+     * 
+     * HTTP Method: GET /api/v1/admin/users?roleCode=UV&page=0&size=20
+     * 
+     * Bảo mật: Yêu cầu JWT + Vai trò ADM
+     * 
+     * @param pageable Tham số phân trang và sắp xếp
+     * @param roleCode Mã vai trò lọc (ADM, DN, UV) - Tùy chọn
+     * @return ResponseEntity<ApiResponse<Page<UserResponse>>> - Danh sách người dùng phân trang
+     */
+    @GetMapping("/users")
+    @Operation(
+            summary = "Get all users",
+            description = "Admin-only endpoint. Returns paginated list of users. " +
+                    "\n\nOptional Filters:" +
+                    "\n- roleCode: Filter by role (ADM, DN, UV)" +
+                    "\n\nPagination Parameters:" +
+                    "\n- page: Page number (0-indexed)" +
+                    "\n- size: Page size (default: 20)" +
+                    "\n- sort: Sort by field (e.g., 'username,asc')"
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Users retrieved successfully",
+                    content = @Content(schema = @Schema(implementation = Page.class))
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication required",
+                    content = @Content
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - Admin role required",
+                    content = @Content
+            )
+    })
+    public ResponseEntity<ApiResponse<Page<UserResponse>>> getAllUsers(
+            @Parameter(description = "Pagination and sorting parameters. Valid sort fields: 'userId', 'username', 'email', 'roleCode'. Example: 'userId,asc'",
+                      schema = @Schema(type = "string", example = "userId,asc"))
+            @PageableDefault(size = 20) Pageable pageable,
+            @Parameter(description = "Optional role code filter (ADM, DN, UV)", example = "UV")
+            @RequestParam(required = false) String roleCode
+    ) {
+        Page<UserResponse> users = adminServiceV1.getAllUsers(pageable, roleCode);
+        
+        return ResponseEntity.ok(
+                ApiResponse.<Page<UserResponse>>builder()
+                        .status(200)
+                        .message("Users retrieved successfully")
+                        .data(users)
+                        .build()
+        );
+    }
+
+    /**
+     * Khóa tài khoản người dùng (chặn đăng nhập)
+     * 
+     * Endpoint dành cho Admin - Khóa tài khoản người dùng, ngăn chặn đăng nhập
+     * 
+     * Chức năng:
+     * - Đặt User.locked = true
+     * - Người dùng bị khóa không thể đăng nhập vào hệ thống
+     * - Không thể khóa lại tài khoản đã bị khóa (ném IllegalStateException)
+     * 
+     * HTTP Method: PATCH /api/v1/admin/users/{userId}/lock
+     * 
+     * Bảo mật: Yêu cầu JWT + Vai trò ADM
+     * 
+     * @param userId ID người dùng cần khóa
+     * @return ResponseEntity<ApiResponse<String>> - Thông báo khóa thành công
+     */
+    @PatchMapping("/users/{userId}/lock")
+    @Operation(
+            summary = "Lock user account",
+            description = "Admin-only endpoint. Lock/ban a user account, preventing login."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "User locked successfully",
+                    content = @Content
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "Bad Request - User already locked",
+                    content = @Content
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication required",
+                    content = @Content
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - Admin role required",
+                    content = @Content
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "User not found",
+                    content = @Content
+            )
+    })
+    public ResponseEntity<ApiResponse<String>> lockUser(
+            @Parameter(description = "User ID", example = "1")
+            @PathVariable Long userId
+    ) {
+        String message = adminServiceV1.lockUser(userId);
+        
+        return ResponseEntity.ok(
+                ApiResponse.<String>builder()
+                        .status(200)
+                        .message(message)
+                        .data(null)
+                        .build()
+        );
+    }
+
+    /**
+     * Mở khóa tài khoản người dùng (cho phép đăng nhập)
+     * 
+     * Endpoint dành cho Admin - Mở khóa tài khoản người dùng, cho phép đăng nhập lại
+     * 
+     * Chức năng:
+     * - Đặt User.locked = false
+     * - Người dùng có thể đăng nhập vào hệ thống trở lại
+     * - Không thể mở khóa tài khoản chưa bị khóa (ném IllegalStateException)
+     * 
+     * HTTP Method: PATCH /api/v1/admin/users/{userId}/unlock
+     * 
+     * Bảo mật: Yêu cầu JWT + Vai trò ADM
+     * 
+     * @param userId ID người dùng cần mở khóa
+     * @return ResponseEntity<ApiResponse<String>> - Thông báo mở khóa thành công
+     */
+    @PatchMapping("/users/{userId}/unlock")
+    @Operation(
+            summary = "Unlock user account",
+            description = "Admin-only endpoint. Unlock/unban a user account, allowing login."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "User unlocked successfully",
+                    content = @Content
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "Bad Request - User not locked",
+                    content = @Content
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication required",
+                    content = @Content
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - Admin role required",
+                    content = @Content
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "User not found",
+                    content = @Content
+            )
+    })
+    public ResponseEntity<ApiResponse<String>> unlockUser(
+            @Parameter(description = "User ID", example = "1")
+            @PathVariable Long userId
+    ) {
+        String message = adminServiceV1.unlockUser(userId);
+        
+        return ResponseEntity.ok(
+                ApiResponse.<String>builder()
+                        .status(200)
+                        .message(message)
+                        .data(null)
+                        .build()
+        );
+    }
+
+    /**
+     * Thay đổi trạng thái doanh nghiệp (kiểm duyệt)
+     * 
+     * Endpoint dành cho Admin - Kiểm duyệt và thay đổi trạng thái doanh nghiệp
+     * 
+     * Các trạng thái:
+     * - PENDING: Chờ xét duyệt (mới đăng ký)
+     * - ACTIVE: Đã duyệt, đang hoạt động (có thể đăng tin tuyển dụng)
+     * - BLOCKED: Bị khóa (không thể đăng tin tuyển dụng)
+     * 
+     * HTTP Method: PATCH /api/v1/admin/companies/{companyId}/status?newStatus=ACTIVE
+     * 
+     * Bảo mật: Yêu cầu JWT + Vai trò ADM
+     * 
+     * @param companyId ID doanh nghiệp cần thay đổi trạng thái
+     * @param newStatus Trạng thái mới (PENDING/ACTIVE/BLOCKED)
+     * @return ResponseEntity<ApiResponse<String>> - Thông báo thay đổi thành công
+     */
+    @PatchMapping("/companies/{companyId}/status")
+    @Operation(
+            summary = "Moderate company status",
+            description = "Admin-only endpoint. Change company status for moderation workflow. " +
+                    "\n\nStatus Options:" +
+                    "\n- PENDING: Awaiting approval" +
+                    "\n- ACTIVE: Approved and active" +
+                    "\n- BLOCKED: Blocked from posting jobs"
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Company status updated successfully",
+                    content = @Content
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication required",
+                    content = @Content
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - Admin role required",
+                    content = @Content
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "Company not found",
+                    content = @Content
+            )
+    })
+    public ResponseEntity<ApiResponse<String>> changeCompanyStatus(
+            @Parameter(description = "Company ID", example = "1")
+            @PathVariable Long companyId,
+            @Parameter(description = "New company status", example = "ACTIVE")
+            @RequestParam CompanyStatus newStatus
+    ) {
+        String message = adminServiceV1.changeCompanyStatus(companyId, newStatus);
+        
+        return ResponseEntity.ok(
+                ApiResponse.<String>builder()
+                        .status(200)
+                        .message(message)
+                        .data(null)
+                        .build()
+        );
+    }
+
+    /**
+     * Thay đổi trạng thái công việc (kiểm duyệt)
+     * 
+     * Endpoint dành cho Admin - Kiểm duyệt và thay đổi trạng thái tin tuyển dụng
+     * 
+     * Các trạng thái:
+     * - PENDING: Chờ xét duyệt (mới đăng)
+     * - ACTIVE: Đã duyệt, đang mở (ứng viên có thể ứng tuyển)
+     * - REJECTED: Bị từ chối bởi Admin (không đủ tiêu chuẩn)
+     * - CLOSED: Đã đóng (đủ ứng viên hoặc hết hạn)
+     * - HIDDEN: Tạm ẩn (không hiển thị công khai)
+     * 
+     * HTTP Method: PATCH /api/v1/admin/jobs/{jobId}/status?newStatus=ACTIVE
+     * 
+     * Bảo mật: Yêu cầu JWT + Vai trò ADM
+     * 
+     * @param jobId ID công việc cần thay đổi trạng thái
+     * @param newStatus Trạng thái mới (PENDING/ACTIVE/REJECTED/CLOSED/HIDDEN)
+     * @return ResponseEntity<ApiResponse<String>> - Thông báo thay đổi thành công
+     */
+    @PatchMapping("/jobs/{jobId}/status")
+    @Operation(
+            summary = "Moderate job status",
+            description = "Admin-only endpoint. Change job status for moderation workflow. " +
+                    "\n\nStatus Options:" +
+                    "\n- PENDING: Awaiting approval" +
+                    "\n- ACTIVE: Approved and visible" +
+                    "\n- REJECTED: Rejected by admin" +
+                    "\n- CLOSED: Position filled" +
+                    "\n- HIDDEN: Hidden from public view"
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Job status updated successfully",
+                    content = @Content
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication required",
+                    content = @Content
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - Admin role required",
+                    content = @Content
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "Job not found",
+                    content = @Content
+            )
+    })
+    public ResponseEntity<ApiResponse<String>> changeJobStatus(
+            @Parameter(description = "Job ID", example = "1")
+            @PathVariable Long jobId,
+            @Parameter(description = "New job status", example = "ACTIVE")
+            @RequestParam JobStatus newStatus
+    ) {
+        String message = adminServiceV1.changeJobStatus(jobId, newStatus);
+        
+        return ResponseEntity.ok(
+                ApiResponse.<String>builder()
+                        .status(200)
+                        .message(message)
+                        .data(null)
+                        .build()
+        );
+    }
+}

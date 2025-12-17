@@ -1,0 +1,68 @@
+# ============================================
+# CẤU HÌNH PROD (Docker/VPS Deployment)
+# ============================================
+# Mục tiêu: Chạy bên trong Docker Container hoặc VPS
+# Bảo mật: Tất cả dữ liệu nhạy cảm lấy từ Biến Môi Trường
+# Hiệu suất: Tối ưu cho khối lượng công việc sản xuất
+# ============================================
+# KẾT NỐI CƠ SỞ DỮ LIỆU (Biến Môi Trường)
+# ============================================
+# Đặt các biến này qua Docker Compose hoặc Biến Môi Trường Hệ Thống:
+# - DB_HOST: Tên máy chủ container PostgreSQL (ví dụ: postgres hoặc localhost)
+# - DB_PORT: Cổng PostgreSQL (mặc định: 5432)
+# - DB_NAME: Tên cơ sở dữ liệu
+# - DB_USERNAME: Người dùng cơ sở dữ liệu
+# - DB_PASSWORD: Mật khẩu cơ sở dữ liệu
+spring.datasource.url=jdbc:postgresql://${DB_HOST:localhost}:${DB_PORT:5432}/${DB_NAME:jobrecruitment_db}
+spring.datasource.username=${DB_USERNAME:postgres}
+spring.datasource.password=${DB_PASSWORD}
+
+# ============================================
+# CONNECTION POOL (Tối ưu hóa cho Production)
+# ============================================
+spring.datasource.hikari.maximum-pool-size=20
+spring.datasource.hikari.minimum-idle=5
+spring.datasource.hikari.connection-timeout=30000
+spring.datasource.hikari.idle-timeout=600000
+spring.datasource.hikari.max-lifetime=1800000
+
+# ============================================
+# CẤU HÌNH JPA/HIBERNATE (Production)
+# ============================================
+# Dialect được tự động phát hiện bởi Hibernate 6+ (không cần chỉ định rõ ràng)
+# QUAN TRỌNG: Sử dụng 'validate' hoặc 'none' trong môi trường production để ngăn chặn thay đổi schema
+spring.jpa.hibernate.ddl-auto=validate
+spring.jpa.show-sql=false
+spring.jpa.properties.hibernate.format_sql=false
+spring.jpa.properties.hibernate.jdbc.batch_size=20
+spring.jpa.properties.hibernate.order_inserts=true
+spring.jpa.properties.hibernate.order_updates=true
+
+# ============================================
+# CẤU HÌNH JWT (Biến Môi Trường)
+# ============================================
+# QUAN TRỌNG: Đặt JWT_SECRET qua biến môi trường để bảo mật
+# Tạo một secret mạnh: openssl rand -base64 64
+app.jwt.secret=${JWT_SECRET}
+app.jwt.expiration=${JWT_EXPIRATION:86400000}
+
+# ============================================
+# CẤU HÌNH LOGGING (Production - Minimal)
+# ============================================
+logging.level.org.springframework.web=INFO
+logging.level.org.hibernate.SQL=WARN
+logging.level.com.jobrecruitment.backend=INFO
+logging.pattern.console=%d{yyyy-MM-dd HH:mm:ss} - %msg%n
+
+# ============================================
+# SWAGGER/OPENAPI (Production - Có thể truy cập trong Docker/VPS)
+# ============================================
+# Khả năng truy cập Swagger UI trong Docker/VPS (đặt thành false trong production công khai)
+springdoc.swagger-ui.enabled=${SWAGGER_ENABLED:true}
+springdoc.swagger-ui.disable-swagger-default-url=true
+
+# ============================================
+# DATA SEEDING (Vô hiệu hóa trong Production)
+# ============================================
+# Đặt thành false nếu cơ sở dữ liệu đã được khởi tạo
+app.seed-data-on-startup=${SEED_DATA:false}

@@ -24,6 +24,9 @@ public class CustomUserDetailsService implements UserDetailsService {
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new UsernameNotFoundException("User not found with username: " + username));
 
+        // Kiểm tra trạng thái khóa tài khoản từ database
+        boolean isLocked = user.getLocked() != null && user.getLocked();
+
         Set<GrantedAuthority> authorities = Collections.singleton(
                 new SimpleGrantedAuthority("ROLE_" + user.getRole().getRoleCode())
         );
@@ -33,7 +36,7 @@ public class CustomUserDetailsService implements UserDetailsService {
                 .password(user.getPassword())
                 .authorities(authorities)
                 .accountExpired(false)
-                .accountLocked(false)
+                .accountLocked(isLocked) // Sử dụng trạng thái khóa từ database
                 .credentialsExpired(false)
                 .disabled(false)
                 .build();

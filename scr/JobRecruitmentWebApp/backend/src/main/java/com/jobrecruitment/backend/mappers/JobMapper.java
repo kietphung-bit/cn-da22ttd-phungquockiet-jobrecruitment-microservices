@@ -7,14 +7,33 @@ import com.jobrecruitment.backend.dtos.response.JobResponse;
 import com.jobrecruitment.backend.entities.Job;
 
 /**
- * Job Mapper
- * Converts Job Entity <-> DTO
+ * JobMapper - Mapper cho Job entity
+ * 
+ * Mô tả:
+ * - Chuyển đổi giữa Job entity và Job DTO
+ * - 2 chiều: Entity -> Response DTO, Request DTO -> Entity (update)
+ * - Flatten: Lấy companyName từ Company, jcName từ JobCategory
+ * 
+ * Chiến lược mapping:
+ * - toResponse: Map tất cả field từ Job + flatten nested Company, JobCategory
+ * - updateEntityFromRequest: Chỉ update các field khác null (partial update)
+ * - Nested entities: Extract các field quan trọng (companyId, companyName, jcId, jcName)
  */
 @Component
 public class JobMapper {
     
     /**
-     * Convert Job entity to JobResponse DTO
+     * Chuyển đổi từ Job entity sang JobResponse DTO
+     * 
+     * Chiến lược:
+     * - Map tất cả field của Job (title, description, salary, location, status...)
+     * - Flatten nested Company: Lấy companyId + companyName (để hiển thị tên công ty)
+     * - Flatten nested JobCategory: Lấy jcId + jcName (để hiển thị ngành nghề)
+     * - Null-safe: Kiểm tra company, jobCategory != null trước khi lấy field
+     * - Performance: Tránh N+1 query bằng cách JOIN FETCH trong repository
+     * 
+     * @param job Job entity
+     * @return JobResponse DTO (null nếu input null)
      */
     public JobResponse toResponse(Job job) {
         if (job == null) {
@@ -43,8 +62,19 @@ public class JobMapper {
     }
     
     /**
-     * Update Job entity from JobRequest
-     * Used for job updates
+     * Cập nhật Job entity từ JobRequest DTO
+     * 
+     * Sử dụng:
+     * - API PUT /api/v1/jobs/{jobId} (cập nhật thông tin tin tuyển dụng)
+     * 
+     * Chiến lược:
+     * - Partial update: Chỉ cập nhật các field khác null trong request
+     * - Preserve: Field nào null trong request thì giữ nguyên giá trị cũ
+     * - Không update: jobId, company, jobCode, jobStatus, createdAt (immutable)
+     * - JobCategory: Cập nhật qua jobCategoryId (không phải jobCategory object)
+     * 
+     * @param job Entity cần cập nhật (modified in-place)
+     * @param request DTO chứa dữ liệu mới
      */
     public void updateEntityFromRequest(Job job, JobRequest request) {
         if (request.getJobTitle() != null) {

@@ -1,0 +1,49 @@
+# ============================================
+# CẤU HÌNH DEV (Chạy JDK cục bộ)
+# ============================================
+# Mục tiêu: Chạy trên localhost với JDK trực tiếp
+# Cơ sở dữ liệu: PostgreSQL chạy trên localhost
+# Bảo mật: Thông tin đăng nhập yếu để thuận tiện (CHỈ DÙNG CHO PHÁT TRIỂN!)
+# ============================================
+# KẾT NỐI CƠ SỞ DỮ LIỆU
+# ============================================
+spring.datasource.url=jdbc:postgresql://localhost:5432/jobrecruitment_db
+spring.datasource.username=postgres
+spring.datasource.password=
+
+# ============================================
+# CẤU HÌNH JPA/HIBERNATE (DEV)
+# ============================================
+# Dialect được tự động phát hiện bởi Hibernate 6+ (không cần chỉ định rõ ràng)
+spring.jpa.hibernate.ddl-auto=update
+spring.jpa.show-sql=true
+spring.jpa.properties.hibernate.format_sql=true
+
+# ============================================
+# CẤU HÌNH JWT (CHỈ DÙNG CHO DEV - SECRET YẾU)
+# ============================================
+# CẢNH BÁO: Đây là secret yếu chỉ để thuận tiện cho phát triển!
+# KHÔNG BAO GIỜ sử dụng trong production!
+app.jwt.secret=DevSecretKeyForLocalTesting123456789DoNotUseInProduction
+app.jwt.expiration=86400000
+
+# ============================================
+# CẤU HÌNH LOGGING
+# ============================================
+logging.level.org.springframework.web=DEBUG
+logging.level.org.hibernate.SQL=DEBUG
+logging.level.org.hibernate.type.descriptor.sql.BasicBinder=TRACE
+logging.level.com.jobrecruitment.backend=DEBUG
+
+# ============================================
+# SWAGGER/OPENAPI (Có thể truy cập trong Docker)
+# ============================================
+# Cho phép truy cập từ bất kỳ host nào (cho mạng Docker nội bộ)
+springdoc.swagger-ui.disable-swagger-default-url=true
+springdoc.swagger-ui.use-root-path=false
+
+# ============================================
+# DATA SEEDING
+# ============================================
+# DataSeeder sẽ tự động chạy khi khởi động
+app.seed-data-on-startup=true

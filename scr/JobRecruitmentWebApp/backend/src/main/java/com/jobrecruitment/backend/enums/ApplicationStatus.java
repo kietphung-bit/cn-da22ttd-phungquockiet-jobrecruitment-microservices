@@ -1,5 +1,12 @@
 package com.jobrecruitment.backend.enums;
 
+/** Trạng thái của đơn ứng tuyển 
+ * Mô tả:
+ * - PENDING: Đang chờ (Ứng viên đã nộp đơn, chờ nhà tuyển dụng duyệt)
+ * - APPROVED: Đã duyệt (Nhà tuyển dụng đã chấp nhận đơn)
+ * - REJECTED: Đã từ chối (Nhà tuyển dụng đã từ chối đơn)
+*/
+
 public enum ApplicationStatus {
     PENDING("Đang chờ"),
     APPROVED("Đã duyệt"),

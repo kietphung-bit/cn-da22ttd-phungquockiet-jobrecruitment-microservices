@@ -17,39 +17,48 @@ import io.jsonwebtoken.io.Decoders;
 import io.jsonwebtoken.security.Keys;
 
 /**
- * JWT Utility Component - Modern JJWT 0.12.x+ Implementation
- * Handles JWT token generation and validation with latest security standards
+ * JWT Utility Component - Tiện ích xử lý JWT Token
  * 
- * Features:
- * - Uses modern JJWT API (0.12.5+)
- * - Proper SecretKey handling (no raw strings)
- * - Builder pattern for parsing and generation
- * - Thread-safe and secure
+ * Chức năng chính:
+ * - Tạo JWT token khi người dùng đăng nhập thành công
+ * - Xác thực và giải mã JWT token từ HTTP request
+ * - Trích xuất thông tin user (username, role, userCode) từ token
+ * - Kiểm tra thời hạn hiệu lực của token
  * 
- * Required Dependencies:
- * - io.jsonwebtoken:jjwt-api:0.12.5
- * - io.jsonwebtoken:jjwt-impl:0.12.5
- * - io.jsonwebtoken:jjwt-jackson:0.12.5
+ * Công nghệ sử dụng:
+ * - JJWT 0.12.x+ (Modern JWT Library)
+ * - HMAC-SHA256 signing algorithm (HS256)
+ * - BASE64-encoded secret key (256-bit minimum)
+ * - Builder pattern cho code dễ đọc và bảo trì
  * 
- * Configuration:
- * Set in application.properties:
- * jwt.secret=<BASE64-encoded 256-bit key>
- * jwt.expiration=86400000
+ * Cấu hình trong application.properties:
+ * - app.jwt.secret: Secret key đã mã hóa BASE64 (256-bit)
+ * - app.jwt.expiration: Thời gian sống của token (ms, mặc định 24h = 86400000)
+ * 
+ * Tích hợp với Spring Security:
+ * - JwtAuthenticationFilter sử dụng class này để xác thực request
+ * - SecurityConfig cấu hình JWT filter trong filter chain
+ * 
+ * @see JwtAuthenticationFilter
+ * @see SecurityConfig
  */
 @Component
 public class JwtUtils {
     
-    @Value("${jwt.secret:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}")
+    @Value("${app.jwt.secret:404E635266556A586E3272357538782F413F4428472B4B6250645367566B5970}")
     private String secretKey;
     
-    @Value("${jwt.expiration:86400000}") // Default: 24 hours in milliseconds
+    @Value("${app.jwt.expiration:86400000}") // Default: 24 hours in milliseconds
     private Long jwtExpiration;
     
     /**
-     * Get signing key for JWT operations
-     * Decodes BASE64 secret and creates HMAC-SHA256 key
+     * Lấy signing key để ký và xác thực JWT token.
      * 
-     * @return SecretKey for signing/verification
+     * Quy trình:
+     * 1. Giải mã secret key từ BASE64 string (lưu trong application.properties)
+     * 2. Tạo SecretKey object cho thuật toán HMAC-SHA256
+     * 
+     * @return SecretKey object dùng để ký và xác thực token
      */
     private SecretKey getSignInKey() {
         byte[] keyBytes = Decoders.BASE64.decode(secretKey);
@@ -57,31 +66,34 @@ public class JwtUtils {
     }
     
     /**
-     * Extract username from JWT token
+     * Trích xuất username (email) từ JWT token.
+     * Username được lưu trong claim "subject" của token.
      * 
-     * @param token JWT token
-     * @return Username (subject)
+     * @param token JWT token string (bỏ prefix "Bearer " nếu có)
+     * @return Username (email) của người dùng
      */
     public String extractUsername(String token) {
         return extractClaim(token, Claims::getSubject);
     }
     
     /**
-     * Extract expiration date from JWT token
+     * Trích xuất thời gian hết hạn từ JWT token.
      * 
-     * @param token JWT token
-     * @return Expiration date
+     * @param token JWT token string
+     * @return Thời điểm token hết hiệu lực (Date object)
      */
     public Date extractExpiration(String token) {
         return extractClaim(token, Claims::getExpiration);
     }
     
     /**
-     * Extract a specific claim from JWT token
+     * Trích xuất một claim cụ thể từ JWT token.
+     * Hàm generic cho phép trích xuất bất kỳ claim nào (username, role, userCode, exp, etc.)
      * 
-     * @param token JWT token
-     * @param claimsResolver Function to extract claim
-     * @return Extracted claim value
+     * @param <T> Kiểu dữ liệu của claim cần lấy
+     * @param token JWT token string
+     * @param claimsResolver Function để xử lý và trích xuất claim từ Claims object
+     * @return Giá trị claim đã được trích xuất
      */
     public <T> T extractClaim(String token, Function<Claims, T> claimsResolver) {
         final Claims claims = extractAllClaims(token);
@@ -89,11 +101,16 @@ public class JwtUtils {
     }
     
     /**
-     * Extract all claims from JWT token
-     * Uses modern JJWT 0.12.x parser API
+     * Trích xuất toàn bộ claims từ JWT token.
      * 
-     * @param token JWT token
-     * @return Claims payload
+     * Quy trình xử lý (JJWT 0.12.x+ API):
+     * 1. Tạo JWT parser với signing key
+     * 2. Parse và verify token signature
+     * 3. Trích xuất payload (claims)
+     * 
+     * @param token JWT token string
+     * @return Claims object chứa toàn bộ thông tin trong token
+     * @throws io.jsonwebtoken.JwtException Nếu token không hợp lệ, đã hết hạn, hoặc signature sai
      */
     private Claims extractAllClaims(String token) {
         return Jwts
@@ -105,22 +122,29 @@ public class JwtUtils {
     }
     
     /**
-     * Check if token is expired
+     * Kiểm tra token đã hết hạn chưa.
+     * So sánh thời gian expiration trong token với thời gian hiện tại.
      * 
-     * @param token JWT token
-     * @return true if expired, false otherwise
+     * @param token JWT token string
+     * @return true nếu token đã hết hạn, false nếu còn hiệu lực
      */
     private Boolean isTokenExpired(String token) {
         return extractExpiration(token).before(new Date());
     }
     
     /**
-     * Validate JWT token against UserDetails
-     * Checks username match and expiration
+     * Xác thực JWT token với thông tin user từ database.
      * 
-     * @param token JWT token
-     * @param userDetails User details from Spring Security
-     * @return true if valid, false otherwise
+     * Các bước kiểm tra:
+     * 1. Trích xuất username từ token
+     * 2. So sánh username trong token với username từ UserDetails
+     * 3. Kiểm tra token chưa hết hạn
+     * 
+     * Method này được gọi bởi JwtAuthenticationFilter để xác thực mỗi request.
+     * 
+     * @param token JWT token từ Authorization header
+     * @param userDetails Thông tin user đã load từ database (qua UserDetailsService)
+     * @return true nếu token hợp lệ, false nếu không hợp lệ
      */
     public Boolean validateToken(String token, UserDetails userDetails) {
         final String username = extractUsername(token);
@@ -128,10 +152,11 @@ public class JwtUtils {
     }
     
     /**
-     * Generate JWT token for user
+     * Tạo JWT token đơn giản chỉ với username.
+     * Không bao gồm custom claims (role, userCode).
      * 
-     * @param username Username to include in token
-     * @return JWT token string
+     * @param username Username (email) để lưu vào token subject
+     * @return JWT token string đã được ký
      */
     public String generateToken(String username) {
         Map<String, Object> claims = new HashMap<>();
@@ -139,24 +164,30 @@ public class JwtUtils {
     }
     
     /**
-     * Generate JWT token with custom claims
-     * Use this to include role, userCode, etc.
+     * Tạo JWT token với custom claims (role, userCode, userId, etc.).
      * 
-     * @param extraClaims Additional claims (role, userCode, etc.)
-     * @param username Username (subject)
-     * @return JWT token string
+     * Sử dụng khi muốn lưu thêm thông tin trong token để tránh query database.
+     * Ví dụ: extraClaims.put("role", "DN"); extraClaims.put("userCode", "DN12345678");
+     * 
+     * @param extraClaims Map chứa các claim bổ sung (role, userCode, userId, etc.)
+     * @param username Username (email) để lưu vào token subject
+     * @return JWT token string đã được ký
      */
     public String generateToken(Map<String, Object> extraClaims, String username) {
         return createToken(extraClaims, username);
     }
     
     /**
-     * Create JWT token with modern builder API
-     * Uses Jwts.SIG.HS256 for strongly-typed signature algorithm
+     * Tạo JWT token với JJWT Builder API (Modern approach).
      * 
-     * @param claims Token claims
-     * @param username Username (subject)
-     * @return JWT token string
+     * Token structure:
+     * - Header: Algorithm (HS256), Type (JWT)
+     * - Payload: Claims (subject, issuedAt, expiration, custom claims)
+     * - Signature: HMAC-SHA256(header + payload, secretKey)
+     * 
+     * @param claims Map chứa các claims cần thêm vào token
+     * @param username Username (email) làm subject của token
+     * @return JWT token string (compact format: header.payload.signature)
      */
     private String createToken(Map<String, Object> claims, String username) {
         return Jwts
@@ -170,32 +201,40 @@ public class JwtUtils {
     }
     
     /**
-     * Extract role from token claims
-     * Useful for authorization checks
+     * Trích xuất role code từ JWT token.
      * 
-     * @param token JWT token
-     * @return Role code (ADM, DN, UV) or null if not present
+     * Role code có thể là:
+     * - "ADM": Administrator (Quản trị viên)
+     * - "DN": Doanh nghiệp (Employer)
+     * - "UV": Ứng viên (Candidate)
+     * 
+     * @param token JWT token string
+     * @return Role code hoặc null nếu không có claim "role" trong token
      */
     public String extractRole(String token) {
         return extractClaim(token, claims -> claims.get("role", String.class));
     }
     
     /**
-     * Extract user code from token claims
-     * Used for profile linking (Section 4.5.C)
+     * Trích xuất user code từ JWT token.
      * 
-     * @param token JWT token
-     * @return User code or null if not present
+     * UserCode được đồng bộ với CompanyCode hoặc CandidateCode (Section 4.5.C):
+     * - Admin: AD00000001
+     * - Company: DN + 8 số (ví dụ: DN12345678)
+     * - Candidate: UV + 8 số (ví dụ: UV87654321)
+     * 
+     * @param token JWT token string
+     * @return UserCode hoặc null nếu không có claim "userCode" trong token
      */
     public String extractUserCode(String token) {
         return extractClaim(token, claims -> claims.get("userCode", String.class));
     }
     
     /**
-     * Extract user ID from token claims
+     * Trích xuất user ID từ JWT token.
      * 
-     * @param token JWT token
-     * @return User ID or null if not present
+     * @param token JWT token string
+     * @return User ID (Primary Key) hoặc null nếu không có claim "userId" trong token
      */
     public Long extractUserId(String token) {
         return extractClaim(token, claims -> claims.get("userId", Long.class));

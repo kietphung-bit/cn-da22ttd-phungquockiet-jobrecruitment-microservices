@@ -1,5 +1,13 @@
 package com.jobrecruitment.backend.enums;
 
+/** 
+ * Gender - Enum đại diện cho giới tính của ứng viên
+ * Mô tả:
+ * - MALE: Nam
+ * - FEMALE: Nữ
+ * - OTHER: Khác
+ */
+
 public enum Gender {
     MALE("Nam"),
     FEMALE("Nữ"),

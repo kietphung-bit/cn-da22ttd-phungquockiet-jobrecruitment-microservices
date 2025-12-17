@@ -13,10 +13,10 @@ import org.springframework.stereotype.Component;
 import java.time.LocalDate;
 
 /**
- * Data Seeding Component
- * Seeds comprehensive test data into database on application startup
+ * Thành phần Data Seeding
+ * Tạo dữ liệu kiểm thử toàn diện vào cơ sở dữ liệu khi khởi động ứng dụng
  * 
- * Phase 5: Complete Data Seeding
+ * Dữ liệu được tạo bao gồm:
  * - 3 Roles (ADM, DN, UV)
  * - 1 Admin User
  * - 3 Job Categories (IT, Marketing, Sales)
@@ -34,6 +34,7 @@ public class DataSeeder implements CommandLineRunner {
     private final CandidateRepository candidateRepository;
     private final JobCategoryRepository jobCategoryRepository;
     private final JobRepository jobRepository;
+    private final CVRepository cvRepository;
     private final PasswordEncoder passwordEncoder;
     private final CodeGenerator codeGenerator;
 
@@ -44,6 +45,7 @@ public class DataSeeder implements CommandLineRunner {
         seedJobCategories();
         seedEmployersAndJobs();
         seedCandidates();
+        seedCVs();
         
         log.info("=== DATA SEEDING COMPLETED ===");
         log.info("Total Users: {}", userRepository.count());
@@ -51,6 +53,7 @@ public class DataSeeder implements CommandLineRunner {
         log.info("Total Candidates: {}", candidateRepository.count());
         log.info("Total Job Categories: {}", jobCategoryRepository.count());
         log.info("Total Jobs: {}", jobRepository.count());
+        log.info("Total CVs: {}", cvRepository.count());
     }
 
     private void seedRoles() {
@@ -63,12 +66,12 @@ public class DataSeeder implements CommandLineRunner {
 
         Role adminRole = new Role();
         adminRole.setRoleCode("ADM");
-        adminRole.setRoleName("Admin");
+        adminRole.setRoleName("Quản trị viên");
         roleRepository.save(adminRole);
 
         Role companyRole = new Role();
         companyRole.setRoleCode("DN");
-        companyRole.setRoleName("Doanh nghiệp");
+        companyRole.setRoleName("Nhà tuyển dụng");
         roleRepository.save(companyRole);
 
         Role candidateRole = new Role();
@@ -109,20 +112,20 @@ public class DataSeeder implements CommandLineRunner {
         log.info("Seeding job categories...");
 
         JobCategory itCategory = new JobCategory();
-        itCategory.setJcName("IT");
-        itCategory.setJcDescription("Information Technology and Software Development");
+        itCategory.setJcName("Công nghệ thông tin");
+        itCategory.setJcDescription("Phát triển phần mềm, Lập trình, Hệ thống IT và Công nghệ");
         itCategory.setJcBaseSalary(15000000.0);
         jobCategoryRepository.save(itCategory);
 
         JobCategory marketingCategory = new JobCategory();
-        marketingCategory.setJcName("Marketing");
-        marketingCategory.setJcDescription("Marketing, Advertising, and Brand Management");
+        marketingCategory.setJcName("Truyền thông & Marketing");
+        marketingCategory.setJcDescription("Marketing, Quảng cáo, Truyền thông và Quản lý thương hiệu");
         marketingCategory.setJcBaseSalary(12000000.0);
         jobCategoryRepository.save(marketingCategory);
 
         JobCategory salesCategory = new JobCategory();
-        salesCategory.setJcName("Sales");
-        salesCategory.setJcDescription("Sales, Business Development, and Customer Relations");
+        salesCategory.setJcName("Kinh doanh & Bán hàng");
+        salesCategory.setJcDescription("Kinh doanh, Phát triển thị trường và Quan hệ khách hàng");
         salesCategory.setJcBaseSalary(10000000.0);
         jobCategoryRepository.save(salesCategory);
 
@@ -154,18 +157,18 @@ public class DataSeeder implements CommandLineRunner {
         Company company1 = new Company();
         company1.setUser(user1);
         company1.setCompanyCode(companyCode1);
-        company1.setCompanyName("Tech Corp Vietnam");
-        company1.setCompanyDescription("Leading technology company specializing in software development and IT solutions");
-        company1.setCompanyAddress("123 Nguyen Hue Street, District 1, Ho Chi Minh City");
-        company1.setCompanyWebsite("https://techcorp.vn");
-        company1.setCompanyEmail("hr@techcorp.vn");
-        company1.setLogoURL("https://example.com/logos/techcorp.png");
+        company1.setCompanyName("Công ty Công nghệ FPT Software");
+        company1.setCompanyDescription("Công ty công nghệ hàng đầu Việt Nam chuyên về phát triển phần mềm, giải pháp IT và chuyển đổi số");
+        company1.setCompanyAddress("Tòa nhà FPT, Đường Số 13, Khu Công nghệ cao, Quận 9, TP. Hồ Chí Minh");
+        company1.setCompanyWebsite("https://fptsoftware.com");
+        company1.setCompanyEmail("hr@fptsoftware.com");
+        company1.setLogoURL("https://example.com/logos/fpt.png");
         company1.setCompanyStatus(CompanyStatus.ACTIVE);
         companyRepository.save(company1);
 
-        // Jobs for Tech Corp
+        // Jobs for FPT Software
         JobCategory itCategory = jobCategoryRepository.findAll().stream()
-                .filter(jc -> jc.getJcName().equals("IT"))
+                .filter(jc -> jc.getJcName().equals("Công nghệ thông tin"))
                 .findFirst()
                 .orElseThrow();
 
@@ -174,11 +177,11 @@ public class DataSeeder implements CommandLineRunner {
         job1.setJobCategory(itCategory);
         job1.setJobCode(codeGenerator.generateCode("VL", code -> 
                 jobRepository.findByJobCode(code).isPresent()));
-        job1.setJobTitle("Senior Java Developer");
-        job1.setJobDescription("We are looking for an experienced Java developer to join our backend team");
-        job1.setJobRequirement("5+ years Java/Spring Boot, PostgreSQL, Microservices architecture");
+        job1.setJobTitle("Tuyển dụng Lập trình viên Java Senior");
+        job1.setJobDescription("Chúng tôi đang tìm kiếm lập trình viên Java giàu kinh nghiệm để tham gia đội ngũ phát triển backend. Bạn sẽ làm việc với các dự án lớn cho khách hàng quốc tế, sử dụng công nghệ hiện đại và quy trình Agile.");
+        job1.setJobRequirement("- Tối thiểu 5 năm kinh nghiệm Java/Spring Boot\n- Thành thạo PostgreSQL, MySQL\n- Kinh nghiệm Microservices, Docker, Kubernetes\n- Có khả năng làm việc nhóm và giao tiếp tốt");
         job1.setJobSalary(25000000.0);
-        job1.setJobLocation("Ho Chi Minh City");
+        job1.setJobLocation("TP. Hồ Chí Minh");
         job1.setStartDate(LocalDate.now().minusDays(5));
         job1.setEndDate(LocalDate.now().plusDays(25));
         job1.setMaxCandidates(2);
@@ -190,20 +193,20 @@ public class DataSeeder implements CommandLineRunner {
         job2.setJobCategory(itCategory);
         job2.setJobCode(codeGenerator.generateCode("VL", code -> 
                 jobRepository.findByJobCode(code).isPresent()));
-        job2.setJobTitle("Frontend React Developer");
-        job2.setJobDescription("Join our frontend team to build modern web applications");
-        job2.setJobRequirement("3+ years React, TypeScript, TailwindCSS experience");
+        job2.setJobTitle("Frontend Developer (React/Next.js)");
+        job2.setJobDescription("Tham gia đội ngũ frontend để xây dựng các ứng dụng web hiện đại. Cơ hội làm việc với các dự án sản phẩm cho thị trường Nhật Bản và Châu Âu.");
+        job2.setJobRequirement("- Tối thiểu 3 năm kinh nghiệm React, Next.js\n- Thành thạo TypeScript, TailwindCSS\n- Có kinh nghiệm làm việc với RESTful API\n- Ưu tiên có kinh nghiệm UI/UX");
         job2.setJobSalary(20000000.0);
-        job2.setJobLocation("Ho Chi Minh City");
+        job2.setJobLocation("TP. Hồ Chí Minh");
         job2.setStartDate(LocalDate.now().minusDays(3));
         job2.setEndDate(LocalDate.now().plusDays(27));
         job2.setMaxCandidates(3);
         job2.setJobStatus(JobStatus.ACTIVE);
         jobRepository.save(job2);
 
-        log.info("✓ Created Employer 1: Tech Corp - Username: techcorp@example.com | Password: company123");
+        log.info("✓ Created Employer 1: FPT Software - Username: techcorp@example.com | Password: company123");
 
-        // Employer 2: Marketing Solutions
+        // Employer 2: VCCorp
         String companyCode2 = codeGenerator.generateCode("DN", code -> 
                 companyRepository.findByCompanyCode(code).isPresent());
         
@@ -217,23 +220,23 @@ public class DataSeeder implements CommandLineRunner {
         Company company2 = new Company();
         company2.setUser(user2);
         company2.setCompanyCode(companyCode2);
-        company2.setCompanyName("Marketing Solutions Ltd");
-        company2.setCompanyDescription("Full-service marketing agency providing digital and traditional marketing services");
-        company2.setCompanyAddress("456 Le Loi Boulevard, District 3, Ho Chi Minh City");
-        company2.setCompanyWebsite("https://marketingsolutions.vn");
-        company2.setCompanyEmail("contact@marketingsolutions.vn");
-        company2.setLogoURL("https://example.com/logos/marketing.png");
+        company2.setCompanyName("Công ty TNHH Truyền thông VCCorp");
+        company2.setCompanyDescription("Công ty truyền thông hàng đầu Việt Nam, cung cấp dịch vụ marketing tổng thể bao gồm digital marketing, quảng cáo và quản lý thương hiệu");
+        company2.setCompanyAddress("Tầng 18, Tòa nhà VCCorp Tower, 19 Nguyễn Trãi, Quận 1, TP. Hà Nội");
+        company2.setCompanyWebsite("https://vccorp.vn");
+        company2.setCompanyEmail("tuyendung@vccorp.vn");
+        company2.setLogoURL("https://example.com/logos/vccorp.png");
         company2.setCompanyStatus(CompanyStatus.ACTIVE);
         companyRepository.save(company2);
 
-        // Jobs for Marketing Solutions
+        // Jobs for VCCorp
         JobCategory marketingCategory = jobCategoryRepository.findAll().stream()
-                .filter(jc -> jc.getJcName().equals("Marketing"))
+                .filter(jc -> jc.getJcName().equals("Truyền thông & Marketing"))
                 .findFirst()
                 .orElseThrow();
 
         JobCategory salesCategory = jobCategoryRepository.findAll().stream()
-                .filter(jc -> jc.getJcName().equals("Sales"))
+                .filter(jc -> jc.getJcName().equals("Kinh doanh & Bán hàng"))
                 .findFirst()
                 .orElseThrow();
 
@@ -242,11 +245,11 @@ public class DataSeeder implements CommandLineRunner {
         job3.setJobCategory(marketingCategory);
         job3.setJobCode(codeGenerator.generateCode("VL", code -> 
                 jobRepository.findByJobCode(code).isPresent()));
-        job3.setJobTitle("Digital Marketing Manager");
-        job3.setJobDescription("Lead our digital marketing campaigns and strategy");
-        job3.setJobRequirement("4+ years digital marketing, SEO, SEM, Social Media Marketing");
+        job3.setJobTitle("Trưởng phòng Digital Marketing");
+        job3.setJobDescription("Lãnh đạo các chiến dịch marketing kỹ thuật số và xây dựng chiến lược phát triển thương hiệu. Quản lý đội ngũ 5-7 nhân viên, điều phối các kênh Facebook, Google, TikTok Ads với ngân sách hàng tỷ đồng/tháng.");
+        job3.setJobRequirement("- Tối thiểu 4 năm kinh nghiệm Digital Marketing\n- Thành thạo SEO, SEM, Social Media Marketing\n- Có kinh nghiệm quản lý đội ngũ\n- Có khả năng phân tích dữ liệu và báo cáo ROI\n- Ưu tiên có kinh nghiệm làm việc tại agency hoặc tập đoàn lớn");
         job3.setJobSalary(22000000.0);
-        job3.setJobLocation("Ho Chi Minh City");
+        job3.setJobLocation("Hà Nội");
         job3.setStartDate(LocalDate.now().minusDays(7));
         job3.setEndDate(LocalDate.now().plusDays(23));
         job3.setMaxCandidates(1);
@@ -258,18 +261,18 @@ public class DataSeeder implements CommandLineRunner {
         job4.setJobCategory(salesCategory);
         job4.setJobCode(codeGenerator.generateCode("VL", code -> 
                 jobRepository.findByJobCode(code).isPresent()));
-        job4.setJobTitle("Business Development Executive");
-        job4.setJobDescription("Expand our client base and build strategic partnerships");
-        job4.setJobRequirement("2+ years B2B sales, excellent communication skills, proven track record");
+        job4.setJobTitle("Chuyên viên Phát triển Kinh doanh (B2B)");
+        job4.setJobDescription("Mở rộng danh mục khách hàng doanh nghiệp và xây dựng các mối quan hệ đối tác chiến lược. Làm việc với các tập đoàn lớn trong lĩnh vực bất động sản, tài chính, FMCG.");
+        job4.setJobRequirement("- Tối thiểu 2 năm kinh nghiệm bán hàng B2B\n- Có kỹ năng giao tiếp và thuyết phục tốt\n- Có thành tích bán hàng xuất sắc\n- Có mạng lưới quan hệ rộng là lợi thế\n- Chủ động, năng động và có tinh thần trách nhiệm cao");
         job4.setJobSalary(18000000.0);
-        job4.setJobLocation("Ho Chi Minh City");
+        job4.setJobLocation("Hà Nội");
         job4.setStartDate(LocalDate.now().minusDays(2));
         job4.setEndDate(LocalDate.now().plusDays(28));
         job4.setMaxCandidates(2);
         job4.setJobStatus(JobStatus.ACTIVE);
         jobRepository.save(job4);
 
-        log.info("✓ Created Employer 2: Marketing Solutions - Username: marketingsolutions@example.com | Password: company123");
+        log.info("✓ Created Employer 2: VCCorp - Username: marketingsolutions@example.com | Password: company123");
         log.info("✓ Created 4 active jobs");
     }
 
@@ -337,5 +340,54 @@ public class DataSeeder implements CommandLineRunner {
         candidateRepository.save(candidate2);
 
         log.info("✓ Created Candidate 2: Tran Thi B - Username: tranthib@example.com | Password: candidate123");
+    }
+
+    private void seedCVs() {
+        if (cvRepository.count() > 0) {
+            log.info("CVs already seeded. Skipping...");
+            return;
+        }
+
+        log.info("Seeding CVs...");
+
+        // Get candidates via users
+        User user1 = userRepository.findByUsername("nguyenvana@example.com")
+                .orElseThrow(() -> new RuntimeException("Candidate user 1 not found"));
+        Candidate candidate1 = candidateRepository.findByUserUserId(user1.getUserId())
+                .orElseThrow(() -> new RuntimeException("Candidate 1 not found"));
+        
+        User user2 = userRepository.findByUsername("tranthib@example.com")
+                .orElseThrow(() -> new RuntimeException("Candidate user 2 not found"));
+        Candidate candidate2 = candidateRepository.findByUserUserId(user2.getUserId())
+                .orElseThrow(() -> new RuntimeException("Candidate 2 not found"));
+
+        // CV for Candidate 1
+        CV cv1 = new CV();
+        cv1.setCandidate(candidate1);
+        cv1.setCvCode(codeGenerator.generateCode("CV", code -> 
+                cvRepository.findByCvCode(code).isPresent()));
+        cv1.setCvFile("/uploads/cvs/nguyen_van_a_java_developer.pdf");
+        cv1.setCvStatus(CVStatus.ACTIVE);
+        cvRepository.save(cv1);
+
+        // Second CV for Candidate 1 (hidden)
+        CV cv2 = new CV();
+        cv2.setCandidate(candidate1);
+        cv2.setCvCode(codeGenerator.generateCode("CV", code -> 
+                cvRepository.findByCvCode(code).isPresent()));
+        cv2.setCvFile("/uploads/cvs/nguyen_van_a_fullstack_developer_old.pdf");
+        cv2.setCvStatus(CVStatus.HIDDEN);
+        cvRepository.save(cv2);
+
+        // CV for Candidate 2
+        CV cv3 = new CV();
+        cv3.setCandidate(candidate2);
+        cv3.setCvCode(codeGenerator.generateCode("CV", code -> 
+                cvRepository.findByCvCode(code).isPresent()));
+        cv3.setCvFile("/uploads/cvs/tran_thi_b_marketing_specialist.pdf");
+        cv3.setCvStatus(CVStatus.ACTIVE);
+        cvRepository.save(cv3);
+
+        log.info("✓ Created 3 CVs (2 ACTIVE, 1 HIDDEN)");
     }
 }

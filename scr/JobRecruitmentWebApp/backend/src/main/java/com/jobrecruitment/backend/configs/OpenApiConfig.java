@@ -5,20 +5,20 @@ import io.swagger.v3.oas.models.OpenAPI;
 import io.swagger.v3.oas.models.info.Contact;
 import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
-import io.swagger.v3.oas.models.security.SecurityRequirement;
+
 import io.swagger.v3.oas.models.security.SecurityScheme;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
 /**
- * OpenAPI/Swagger Configuration
+ * OpenAPI/Swagger Configuration - Cấu hình OpenAPI cho tài liệu API
  * 
- * Features:
- * - JWT Bearer Token Authentication in Swagger UI
- * - API Documentation with metadata
- * - Global security requirement for protected endpoints
+ * Tính năng chính:
+ * - Xác thực JWT Bearer Token trong Swagger UI
+ * - Tài liệu API với metadata
+ * - Yêu cầu bảo mật toàn cục cho các endpoint được bảo vệ
  * 
- * Access Swagger UI: http://localhost:8080/swagger-ui.html
+ * Truy cập Swagger UI: http://localhost:8080/swagger-ui.html
  */
 @Configuration
 public class OpenApiConfig {
@@ -39,8 +39,9 @@ public class OpenApiConfig {
                         .license(new License()
                                 .name("MIT License")
                                 .url("https://opensource.org/licenses/MIT")))
-                .addSecurityItem(new SecurityRequirement()
-                        .addList(securitySchemeName))
+                // Không có yêu cầu bảo mật toàn cục
+                // Bảo mật được áp dụng cho từng endpoint thông qua chú thích @SecurityRequirement
+                // Điều này cho phép các endpoint công khai được kiểm thử mà không cần xác thực trong Swagger UI
                 .components(new Components()
                         .addSecuritySchemes(securitySchemeName, new SecurityScheme()
                                 .name(securitySchemeName)

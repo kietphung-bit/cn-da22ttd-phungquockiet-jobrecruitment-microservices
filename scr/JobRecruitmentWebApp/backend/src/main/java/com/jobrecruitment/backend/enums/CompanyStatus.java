@@ -1,5 +1,12 @@
 package com.jobrecruitment.backend.enums;
 
+/** Trạng thái của công ty
+ * Mô tả:
+ * - PENDING: Chờ xét duyệt (mới đăng ký)
+ * - ACTIVE: Đang hoạt động (được phép đăng tin tuyển dụng)
+ * - BLOCKED: Bị khóa (không thể đăng tin)
+ */
+
 public enum CompanyStatus {
     PENDING("Chờ xét duyệt"),
     ACTIVE("Đang hoạt động"),

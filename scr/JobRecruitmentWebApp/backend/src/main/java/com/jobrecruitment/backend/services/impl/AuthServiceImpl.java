@@ -26,6 +26,34 @@ import org.springframework.security.crypto.password.PasswordEncoder;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
 
+/**
+ * AuthServiceImpl - Service xử lý logic nghiệp vụ cho Xác thực và Đăng ký.
+ * 
+ * Chức năng chính:
+ * - Đăng ký Doanh nghiệp (Company Registration)
+ * - Đăng ký Ứng viên (Candidate Registration)
+ * - Đăng nhập User (User Login)
+ * 
+ * Đặc điểm kỹ thuật:
+ * - Transaction management với @Transactional
+ * - UserCode synchronization (UserCode = CompanyCode/CandidateCode)
+ * - BCrypt password hashing
+ * - JWT token generation
+ * - Code generation với uniqueness check
+ * 
+ * Dependencies:
+ * - UserRepository: Quản lý User entity
+ * - RoleRepository: Lấy thông tin Role (ADM, DN, UV)
+ * - CompanyRepository: Quản lý Company profile
+ * - CandidateRepository: Quản lý Candidate profile
+ * - PasswordEncoder: Mã hóa password (BCrypt)
+ * - AuthenticationManager: Xác thực login credentials
+ * - JwtUtils: Tạo JWT token
+ * - CodeGenerator: Tạo mã ngẫu nhiên (CompanyCode, CandidateCode)
+ * 
+ * @see AuthService
+ * @see AuthControllerV1
+ */
 @Service
 @RequiredArgsConstructor
 public class AuthServiceImpl implements AuthService {
@@ -39,10 +67,34 @@ public class AuthServiceImpl implements AuthService {
     private final JwtUtils jwtUtils;
     private final CodeGenerator codeGenerator;
 
+    /**
+     * Đăng ký tài khoản Doanh nghiệp mới.
+     * 
+     * Quy trình thực hiện (Transaction - Rollback nếu lỗi):
+     * 1. Kiểm tra email chưa tồn tại (User table và Company table)
+     * 2. Lấy Role "DN" từ database
+     * 3. Tạo CompanyCode unique: "DN" + 8 số ngẫu nhiên
+     * 4. Tạo User entity với:
+     *    - UserCode = CompanyCode (đồng bộ mã - Section 4.5.C.2)
+     *    - Username = CompanyEmail
+     *    - Password = BCrypt hash
+     *    - Role = DN
+     * 5. Lưu User vào database
+     * 6. Tạo Company entity liên kết với User
+     * 7. CompanyStatus = PENDING (chờ admin duyệt)
+     * 8. Lưu Company vào database
+     * 9. Tạo JWT token cho user vừa đăng ký
+     * 10. Trả về AuthResponse với token và thông tin user
+     * 
+     * @param request CompanyRegisterRequest chứa thông tin đăng ký
+     * @return AuthResponse chứa JWT token và thông tin user/company
+     * @throws ValidationException Nếu email đã tồn tại
+     * @throws ResourceNotFoundException Nếu Role "DN" chưa được seed
+     */
     @Override
     @Transactional
     public AuthResponse registerCompany(CompanyRegisterRequest request) {
-        // Validate email uniqueness
+        // Kiểm tra email chưa tồn tại
         if (userRepository.existsByUsername(request.getCompanyEmail())) {
             throw new ValidationException("Email already registered");
         }
@@ -92,10 +144,35 @@ public class AuthServiceImpl implements AuthService {
                 .build();
     }
 
+    /**
+     * Đăng ký tài khoản Ứng viên mới.
+     * 
+     * Quy trình thực hiện (Transaction - Rollback nếu lỗi):
+     * 1. Kiểm tra email chưa tồn tại (User table và Candidate table)
+     * 2. Lấy Role "UV" từ database
+     * 3. Tạo CandidateCode unique: "UV" + 8 số ngẫu nhiên
+     * 4. Tạo User entity với:
+     *    - UserCode = CandidateCode (đồng bộ mã - Section 4.5.C.3)
+     *    - Username = CandidateEmail
+     *    - Password = BCrypt hash
+     *    - Role = UV
+     * 5. Lưu User vào database
+     * 6. Tạo Candidate entity liên kết với User
+     * 7. Lưu Candidate vào database
+     * 8. Tạo JWT token cho user vừa đăng ký
+     * 9. Trả về AuthResponse với token và thông tin user/candidate
+     * 
+     * Lưu ý: RBNS validation (tuổi >= 18) được xử lý trong DTO validation (@WorkingAge annotation)
+     * 
+     * @param request CandidateRegisterRequest chứa thông tin đăng ký
+     * @return AuthResponse chứa JWT token và thông tin user/candidate
+     * @throws ValidationException Nếu email đã tồn tại
+     * @throws ResourceNotFoundException Nếu Role "UV" chưa được seed
+     */
     @Override
     @Transactional
     public AuthResponse registerCandidate(CandidateRegisterRequest request) {
-        // Validate email uniqueness
+        // Kiểm tra email chưa tồn tại
         if (userRepository.existsByUsername(request.getCandidateEmail())) {
             throw new ValidationException("Email already registered");
         }
@@ -147,9 +224,32 @@ public class AuthServiceImpl implements AuthService {
                 .build();
     }
 
+    /**
+     * Đăng nhập user vào hệ thống.
+     * 
+     * Quy trình thực hiện:
+     * 1. Gọi AuthenticationManager.authenticate() với username và password
+     * 2. Spring Security tự động:
+     *    - Load user từ database (UserDetailsService)
+     *    - So sánh password với BCrypt hash
+     *    - Nếu khớp, trả về Authentication object
+     *    - Nếu không khớp, throw BadCredentialsException
+     * 3. Lấy thông tin user từ database theo username
+     * 4. Tạo JWT token với username
+     * 5. Trả về AuthResponse với token và thông tin user
+     * 
+     * Lưu ý:
+     * - Method này KHÔNG cần @Transactional (chỉ read data)
+     * - BadCredentialsException sẽ được GlobalExceptionHandler bắt và trả về 401
+     * 
+     * @param request LoginRequest chứa username (email) và password
+     * @return AuthResponse chứa JWT token và thông tin user
+     * @throws BadCredentialsException Nếu username hoặc password sai (xử lý bởi Spring Security)
+     * @throws ResourceNotFoundException Nếu user không tồn tại (không bình thường - chỉ xảy ra nếu database inconsistent)
+     */
     @Override
     public AuthResponse login(LoginRequest request) {
-        // Authenticate user
+        // Xác thực user
         Authentication authentication = authenticationManager.authenticate(
                 new UsernamePasswordAuthenticationToken(
                         request.getUsername(),

@@ -1,5 +1,14 @@
 package com.jobrecruitment.backend.enums;
 
+/**
+ * CVStatus - Enum đại diện cho trạng thái của CV
+ * 
+ * Mô tả:
+ * - Trạng thái của CV trong hệ thống
+ * - ACTIVE: CV đang được sử dụng và có thể ứng tuyển
+ * - HIDDEN: CV đã bị ẩn, không thể sử dụng để ứng tuyển
+ */
+
 public enum CVStatus {
     ACTIVE("Đang hoạt động"),
     HIDDEN("Tạm ẩn");

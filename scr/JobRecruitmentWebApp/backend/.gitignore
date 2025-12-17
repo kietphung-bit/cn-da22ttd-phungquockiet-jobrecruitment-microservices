@@ -1,10 +1,41 @@
-HELP.md
+# ============================================
+# JAVA & SPRING BOOT - BUILD ARTIFACTS
+# ============================================
 target/
-.mvn/wrapper/maven-wrapper.jar
+!.mvn/wrapper/maven-wrapper.jar
 !**/src/main/**/target/
 !**/src/test/**/target/
 
-### STS ###
+# ============================================
+# COMPILED CLASS FILES
+# ============================================
+*.class
+*.jar
+*.war
+*.ear
+*.zip
+*.tar.gz
+*.rar
+
+# ============================================
+# LOG FILES
+# ============================================
+*.log
+logs/
+spring.log
+
+# ============================================
+# IDE - INTELLIJ IDEA
+# ============================================
+.idea/
+*.iws
+*.iml
+*.ipr
+out/
+
+# ============================================
+# IDE - ECLIPSE
+# ============================================
 .apt_generated
 .classpath
 .factorypath
@@ -12,14 +43,21 @@ target/
 .settings
 .springBeans
 .sts4-cache
+bin/
 
-### IntelliJ IDEA ###
-.idea
-*.iws
-*.iml
-*.ipr
+# ============================================
+# IDE - VISUAL STUDIO CODE
+# ============================================
+.vscode/
+!.vscode/settings.json
+!.vscode/tasks.json
+!.vscode/launch.json
+!.vscode/extensions.json
+*.code-workspace
 
-### NetBeans ###
+# ============================================
+# IDE - NETBEANS
+# ============================================
 /nbproject/private/
 /nbbuild/
 /dist/
@@ -29,5 +67,93 @@ build/
 !**/src/main/**/build/
 !**/src/test/**/build/
 
-### VS Code ###
-.vscode/
+# ============================================
+# OPERATING SYSTEM FILES
+# ============================================
+# macOS
+.DS_Store
+.AppleDouble
+.LSOverride
+._*
+
+# Windows
+Thumbs.db
+ehthumbs.db
+Desktop.ini
+$RECYCLE.BIN/
+
+# Linux
+*~
+
+# ============================================
+# MAVEN WRAPPER
+# ============================================
+.mvn/timing.properties
+.mvn/wrapper/maven-wrapper.jar
+
+# ============================================
+# CRITICAL: SECURITY & SECRETS
+# ============================================
+# Never commit files containing real credentials
+application-dev.properties
+application-prod.properties
+application-local.properties
+
+# Environment variable files
+.env
+.env.local
+.env.production
+
+# JWT & Security Keys
+*.key
+*.pem
+*.jks
+*.p12
+
+# ============================================
+# INCLUDE EXAMPLE FILES (For GitHub)
+# ============================================
+!application.properties.example
+
+# ============================================
+# TEMPORARY FILES
+# ============================================
+*.tmp
+*.bak
+*.swp
+*~.nib
+*.orig
+
+# ============================================
+# TEST COVERAGE & REPORTS
+# ============================================
+coverage/
+*.exec
+*.ser
+
+# ============================================
+# DOCKER & DEPLOYMENT
+# ============================================
+docker-compose.override.yml
+.dockerignore
+
+# ============================================
+# DATABASE
+# ============================================
+*.db
+*.sqlite
+*.sql
+db/
+data/
+
+# ============================================
+# UPLOADED FILES (If any)
+# ============================================
+uploads/
+static/uploads/
+
+# ============================================
+# DOCUMENTATION (Keep)
+# ============================================
+!README.md
+!HELP.md

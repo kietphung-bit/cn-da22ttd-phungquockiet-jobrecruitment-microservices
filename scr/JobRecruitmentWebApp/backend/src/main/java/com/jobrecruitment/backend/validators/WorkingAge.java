@@ -10,12 +10,25 @@ import jakarta.validation.Constraint;
 import jakarta.validation.Payload;
 
 /**
- * Custom Validator Annotation for Working Age
- * Section 4.6.C - RBNS Rule
+ * @interface WorkingAge - Custom annotation để validate tuổi lao động
  * 
- * Validates that:
- * 1. Birthdate is in the past (< Current Date)
- * 2. Candidate is of working age (CurrentYear - BirthYear >= 18)
+ * Mô tả:
+ * - Đánh dấu field cần validate tuổi lao động
+ * - Sử dụng với Jakarta Validation (@Valid)
+ * - Implementation: WorkingAgeValidator
+ * 
+ * Quy tắc validate:
+ * 1. Ngày sinh phải là ngày quá khứ (< Current Date)
+ * 2. Ứng viên phải đủ 18 tuổi (CurrentYear - BirthYear >= 18)
+ * 
+ * Sử dụng:
+ * - @WorkingAge private LocalDate candidateBirthDate;
+ * - @WorkingAge(minAge = 21) private LocalDate birthDate;
+ * 
+ * Tham khảo:
+ * - Section 4.6.C - RBNS Rule (Registration Business Validation)
+ * 
+ * @see WorkingAgeValidator
  */
 @Documented
 @Constraint(validatedBy = WorkingAgeValidator.class)

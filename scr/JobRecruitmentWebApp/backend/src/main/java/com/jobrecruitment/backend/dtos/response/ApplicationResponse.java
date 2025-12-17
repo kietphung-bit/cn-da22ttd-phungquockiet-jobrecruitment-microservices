@@ -9,22 +9,82 @@ import lombok.Data;
 import lombok.NoArgsConstructor;
 
 /**
- * Application Response DTO
- * Section 4.3 - Apply for Job
+ * ApplicationResponse - DTO trả về thông tin đơn ứng tuyển
+ * 
+ * Mô tả:
+ * - Trả về thông tin đơn ứng tuyển của ứng viên
+ * - Map từ Application entity
+ * - Bao gồm jobTitle và cvCode (flatten data)
+ * 
+ * Sử dụng:
+ * - API GET /api/v1/applications
+ * - API GET /api/v1/applications/{id}
+ * - API POST /api/v1/applications
+ * - API PUT /api/v1/applications/{id}/status
+ * 
+ * Tham khảo: Section 4.3 - Apply for Job
  */
 @Data
 @NoArgsConstructor
 @AllArgsConstructor
 public class ApplicationResponse {
     
+    /**
+     * ID đơn ứng tuyển
+     */
     private Long applicationId;
+    
+    /**
+     * ID tin tuyển dụng
+     * - Tham chiếu đến Job.jobId
+     */
     private Long jobId;
+    
+    /**
+     * Tiêu đề tin tuyển dụng
+     * - Flatten data từ Job.jobTitle
+     */
     private String jobTitle;
+    
+    /**
+     * ID CV sử dụng
+     * - Tham chiếu đến CV.cvId
+     */
     private Long cvId;
+    
+    /**
+     * Mã CV sử dụng
+     * - Flatten data từ CV.cvCode
+     * - Format: "CV" + 8 chữ số
+     */
     private String cvCode;
+    
+    /**
+     * Mã đơn ứng tuyển
+     * - Format: "DX" + 8 chữ số
+     */
     private String applicationCode;
+    
+    /**
+     * Thời gian nộp đơn
+     */
     private LocalDateTime applyTime;
+    
+    /**
+     * Trạng thái đơn ứng tuyển
+     * - PENDING: Chờ duyệt
+     * - APPROVED: Đã chấp nhận
+     * - REJECTED: Bị từ chối
+     */
     private ApplicationStatus applicationStatus;
+    
+    /**
+     * Thời gian tạo đơn
+     */
     private LocalDateTime createdAt;
+    
+    /**
+     * Thời gian cập nhật gần nhất
+     */
     private LocalDateTime updatedAt;
 }
