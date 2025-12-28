@@ -1,0 +1,435 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Saved Jobs Debug Tool</title>
+    <style>
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 20px;
+            background: #f5f5f5;
+        }
+        .card {
+            background: white;
+            padding: 20px;
+            margin: 20px 0;
+            border-radius: 8px;
+            box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+        }
+        h1 {
+            color: #333;
+        }
+        h2 {
+            color: #0066cc;
+            margin-top: 0;
+        }
+        .status {
+            padding: 10px;
+            border-radius: 4px;
+            margin: 10px 0;
+        }
+        .success {
+            background: #d4edda;
+            color: #155724;
+            border: 1px solid #c3e6cb;
+        }
+        .error {
+            background: #f8d7da;
+            color: #721c24;
+            border: 1px solid #f5c6cb;
+        }
+        .warning {
+            background: #fff3cd;
+            color: #856404;
+            border: 1px solid #ffeaa7;
+        }
+        .info {
+            background: #d1ecf1;
+            color: #0c5460;
+            border: 1px solid #bee5eb;
+        }
+        button {
+            background: #0066cc;
+            color: white;
+            border: none;
+            padding: 10px 20px;
+            border-radius: 4px;
+            cursor: pointer;
+            margin: 5px;
+        }
+        button:hover {
+            background: #0052a3;
+        }
+        button:disabled {
+            background: #ccc;
+            cursor: not-allowed;
+        }
+        pre {
+            background: #f4f4f4;
+            padding: 10px;
+            border-radius: 4px;
+            overflow-x: auto;
+        }
+        .flex {
+            display: flex;
+            gap: 10px;
+            align-items: center;
+        }
+        input {
+            padding: 8px;
+            border: 1px solid #ddd;
+            border-radius: 4px;
+            width: 100px;
+        }
+        .log {
+            max-height: 300px;
+            overflow-y: auto;
+            background: #1e1e1e;
+            color: #d4d4d4;
+            padding: 10px;
+            border-radius: 4px;
+            font-family: 'Courier New', monospace;
+            font-size: 12px;
+        }
+        .log-entry {
+            margin: 5px 0;
+            padding: 5px;
+            border-left: 3px solid #0066cc;
+        }
+        .log-success {
+            border-left-color: #28a745;
+        }
+        .log-error {
+            border-left-color: #dc3545;
+        }
+    </style>
+</head>
+<body>
+    <h1>🔧 Saved Jobs Debug Tool</h1>
+    
+    <div class="card">
+        <h2>1. System Status</h2>
+        <div id="systemStatus">Checking...</div>
+    </div>
+
+    <div class="card">
+        <h2>2. Authentication Status</h2>
+        <div id="authStatus">Checking...</div>
+    </div>
+
+    <div class="card">
+        <h2>3. Backend Connection</h2>
+        <div id="backendStatus">Checking...</div>
+        <button onclick="testBackendConnection()">Test Backend</button>
+    </div>
+
+    <div class="card">
+        <h2>4. Test Save Job API</h2>
+        <div class="flex">
+            <label>Job ID:</label>
+            <input type="number" id="jobId" value="1" min="1">
+            <button onclick="testSaveJob()" id="saveBtn">Test Save Job</button>
+            <button onclick="testUnsaveJob()" id="unsaveBtn">Test Unsave Job</button>
+            <button onclick="testGetSavedJobs()" id="getBtn">Test Get Saved Jobs</button>
+        </div>
+        <div id="apiTestResult"></div>
+    </div>
+
+    <div class="card">
+        <h2>5. API Logs</h2>
+        <button onclick="clearLogs()">Clear Logs</button>
+        <div id="apiLogs" class="log"></div>
+    </div>
+
+    <script>
+        const API_BASE = 'http://localhost:8080/api/v1';
+        const logs = [];
+
+        function log(message, type = 'info') {
+            const timestamp = new Date().toLocaleTimeString();
+            const entry = `[${timestamp}] ${message}`;
+            logs.push({ message: entry, type });
+            updateLogs();
+        }
+
+        function updateLogs() {
+            const logsDiv = document.getElementById('apiLogs');
+            logsDiv.innerHTML = logs.map(l => 
+                `<div class="log-entry log-${l.type}">${l.message}</div>`
+            ).join('');
+            logsDiv.scrollTop = logsDiv.scrollHeight;
+        }
+
+        function clearLogs() {
+            logs.length = 0;
+            updateLogs();
+        }
+
+        // Check System Status
+        function checkSystemStatus() {
+            const status = [];
+            
+            // Check if running on localhost:5173
+            if (window.location.hostname !== 'localhost' && window.location.hostname !== '127.0.0.1') {
+                status.push(`<div class="status warning">⚠️ Not running on localhost. Current: ${window.location.hostname}</div>`);
+            } else {
+                status.push(`<div class="status success">✅ Running on localhost</div>`);
+            }
+
+            // Check localStorage
+            if (typeof Storage !== "undefined") {
+                status.push(`<div class="status success">✅ localStorage available</div>`);
+            } else {
+                status.push(`<div class="status error">❌ localStorage not available</div>`);
+            }
+
+            document.getElementById('systemStatus').innerHTML = status.join('');
+        }
+
+        // Check Authentication Status
+        function checkAuthStatus() {
+            const status = [];
+            const token = localStorage.getItem('auth_token');
+            const user = localStorage.getItem('user');
+
+            if (!token) {
+                status.push(`<div class="status error">❌ No JWT token found in localStorage</div>`);
+                status.push(`<div class="status info">ℹ️ Please login at: <a href="http://localhost:5173/login" target="_blank">http://localhost:5173/login</a></div>`);
+            } else {
+                status.push(`<div class="status success">✅ JWT token found</div>`);
+                
+                try {
+                    const payload = JSON.parse(atob(token.split('.')[1]));
+                    const expiry = new Date(payload.exp * 1000);
+                    const isExpired = Date.now() > payload.exp * 1000;
+                    
+                    if (isExpired) {
+                        status.push(`<div class="status error">❌ Token expired at: ${expiry.toLocaleString()}</div>`);
+                    } else {
+                        status.push(`<div class="status success">✅ Token valid until: ${expiry.toLocaleString()}</div>`);
+                    }
+
+                    status.push(`<div class="status info">Token Preview: ${token.substring(0, 50)}...</div>`);
+                } catch (e) {
+                    status.push(`<div class="status error">❌ Invalid token format</div>`);
+                }
+            }
+
+            if (!user) {
+                status.push(`<div class="status warning">⚠️ No user data in localStorage</div>`);
+            } else {
+                try {
+                    const userData = JSON.parse(user);
+                    status.push(`<div class="status success">✅ User data found</div>`);
+                    status.push(`<div class="status info">Username: ${userData.username || 'N/A'}</div>`);
+                    status.push(`<div class="status info">Role: ${userData.roleCode || 'N/A'}</div>`);
+                    
+                    if (userData.roleCode !== 'UV') {
+                        status.push(`<div class="status warning">⚠️ Role is ${userData.roleCode}. Saved Jobs requires UV (Candidate) role</div>`);
+                    } else {
+                        status.push(`<div class="status success">✅ Correct role (UV - Candidate)</div>`);
+                    }
+                } catch (e) {
+                    status.push(`<div class="status error">❌ Invalid user data format</div>`);
+                }
+            }
+
+            document.getElementById('authStatus').innerHTML = status.join('');
+        }
+
+        // Test Backend Connection
+        async function testBackendConnection() {
+            log('Testing backend connection...', 'info');
+            const statusDiv = document.getElementById('backendStatus');
+            statusDiv.innerHTML = '<div class="status info">⏳ Testing connection to ' + API_BASE + '...</div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/jobs?page=0&size=1`);
+                
+                if (response.ok) {
+                    log('✅ Backend connection successful', 'success');
+                    statusDiv.innerHTML = `
+                        <div class="status success">✅ Backend is running on port 8080</div>
+                        <div class="status info">Response Status: ${response.status}</div>
+                    `;
+                } else {
+                    log(`⚠️ Backend responded with status ${response.status}`, 'warning');
+                    statusDiv.innerHTML = `
+                        <div class="status warning">⚠️ Backend responded with status ${response.status}</div>
+                        <div class="status info">This might be normal if auth is required</div>
+                    `;
+                }
+            } catch (error) {
+                log('❌ Backend connection failed: ' + error.message, 'error');
+                statusDiv.innerHTML = `
+                    <div class="status error">❌ Cannot connect to backend</div>
+                    <div class="status info">Error: ${error.message}</div>
+                    <div class="status info">Make sure backend is running: <code>cd backend && ./mvnw spring-boot:run</code></div>
+                `;
+            }
+        }
+
+        // Test Save Job API
+        async function testSaveJob() {
+            const jobId = document.getElementById('jobId').value;
+            const token = localStorage.getItem('auth_token');
+
+            if (!token) {
+                alert('Please login first!');
+                return;
+            }
+
+            log(`Testing POST /saved-jobs with jobId=${jobId}`, 'info');
+            const resultDiv = document.getElementById('apiTestResult');
+            resultDiv.innerHTML = '<div class="status info">⏳ Calling API...</div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/saved-jobs`, {
+                    method: 'POST',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    },
+                    body: JSON.stringify({ jobId: parseInt(jobId) })
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log(`✅ Save job successful: ${JSON.stringify(data)}`, 'success');
+                    resultDiv.innerHTML = `
+                        <div class="status success">✅ Job saved successfully!</div>
+                        <div class="status info">Status: ${response.status}</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    log(`❌ Save job failed: ${JSON.stringify(data)}`, 'error');
+                    resultDiv.innerHTML = `
+                        <div class="status error">❌ Failed to save job</div>
+                        <div class="status info">Status: ${response.status}</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                log(`❌ API call failed: ${error.message}`, 'error');
+                resultDiv.innerHTML = `
+                    <div class="status error">❌ API call failed</div>
+                    <div class="status info">Error: ${error.message}</div>
+                `;
+            }
+        }
+
+        // Test Unsave Job API
+        async function testUnsaveJob() {
+            const jobId = document.getElementById('jobId').value;
+            const token = localStorage.getItem('auth_token');
+
+            if (!token) {
+                alert('Please login first!');
+                return;
+            }
+
+            log(`Testing DELETE /saved-jobs/${jobId}`, 'info');
+            const resultDiv = document.getElementById('apiTestResult');
+            resultDiv.innerHTML = '<div class="status info">⏳ Calling API...</div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/saved-jobs/${jobId}`, {
+                    method: 'DELETE',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log(`✅ Unsave job successful: ${JSON.stringify(data)}`, 'success');
+                    resultDiv.innerHTML = `
+                        <div class="status success">✅ Job unsaved successfully!</div>
+                        <div class="status info">Status: ${response.status}</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    log(`❌ Unsave job failed: ${JSON.stringify(data)}`, 'error');
+                    resultDiv.innerHTML = `
+                        <div class="status error">❌ Failed to unsave job</div>
+                        <div class="status info">Status: ${response.status}</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                log(`❌ API call failed: ${error.message}`, 'error');
+                resultDiv.innerHTML = `
+                    <div class="status error">❌ API call failed</div>
+                    <div class="status info">Error: ${error.message}</div>
+                `;
+            }
+        }
+
+        // Test Get Saved Jobs API
+        async function testGetSavedJobs() {
+            const token = localStorage.getItem('auth_token');
+
+            if (!token) {
+                alert('Please login first!');
+                return;
+            }
+
+            log('Testing GET /saved-jobs/me', 'info');
+            const resultDiv = document.getElementById('apiTestResult');
+            resultDiv.innerHTML = '<div class="status info">⏳ Calling API...</div>';
+
+            try {
+                const response = await fetch(`${API_BASE}/saved-jobs/me?page=0&size=10`, {
+                    method: 'GET',
+                    headers: {
+                        'Authorization': `Bearer ${token}`,
+                        'Content-Type': 'application/json'
+                    }
+                });
+
+                const data = await response.json();
+                
+                if (response.ok) {
+                    log(`✅ Get saved jobs successful: ${data.data?.totalElements || 0} jobs found`, 'success');
+                    resultDiv.innerHTML = `
+                        <div class="status success">✅ Retrieved saved jobs successfully!</div>
+                        <div class="status info">Status: ${response.status}</div>
+                        <div class="status info">Total Saved Jobs: ${data.data?.totalElements || 0}</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                } else {
+                    log(`❌ Get saved jobs failed: ${JSON.stringify(data)}`, 'error');
+                    resultDiv.innerHTML = `
+                        <div class="status error">❌ Failed to get saved jobs</div>
+                        <div class="status info">Status: ${response.status}</div>
+                        <pre>${JSON.stringify(data, null, 2)}</pre>
+                    `;
+                }
+            } catch (error) {
+                log(`❌ API call failed: ${error.message}`, 'error');
+                resultDiv.innerHTML = `
+                    <div class="status error">❌ API call failed</div>
+                    <div class="status info">Error: ${error.message}</div>
+                `;
+            }
+        }
+
+        // Run checks on page load
+        window.addEventListener('load', () => {
+            checkSystemStatus();
+            checkAuthStatus();
+            testBackendConnection();
+            log('Debug tool initialized', 'info');
+        });
+
+        // Refresh auth status every 5 seconds
+        setInterval(checkAuthStatus, 5000);
+    </script>
+</body>
+</html>
