@@ -11,12 +11,14 @@ import com.jobrecruitment.backend.repositories.CVRepository;
 import com.jobrecruitment.backend.repositories.CandidateRepository;
 import com.jobrecruitment.backend.repositories.UserRepository;
 import com.jobrecruitment.backend.services.CVServiceV1;
+import com.jobrecruitment.backend.services.FileStorageService;
 import com.jobrecruitment.backend.utils.CodeGenerator;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 import java.util.stream.Collectors;
@@ -61,6 +63,7 @@ public class CVServiceV1Impl implements CVServiceV1 {
     private final UserRepository userRepository;
     private final CodeGenerator codeGenerator;
     private final CVMapper cvMapper;
+    private final FileStorageService fileStorageService;
 
     /**
      * Tạo mới CV cho ứng viên.
@@ -70,24 +73,26 @@ public class CVServiceV1Impl implements CVServiceV1 {
      * Quy trình xử lý:
      * 1. Tìm User entity theo username (từ JWT)
      * 2. Tìm Candidate entity liên kết với User
-     * 3. Tạo CVCode unique theo format "CV" + 8 chữ số ngẫu nhiên
-     * 4. Kiểm tra uniqueness trong database (retry nếu trùng)
-     * 5. Tạo CV entity:
+     * 3. Upload file CV vào uploads/cvs/ bằng FileStorageService
+     * 4. Tạo CVCode unique theo format "CV" + 8 chữ số ngẫu nhiên
+     * 5. Kiểm tra uniqueness trong database (retry nếu trùng)
+     * 6. Tạo CV entity:
      *    - Candidate: Liên kết với ứng viên
      *    - CVCode: Mã được tạo tự động
-     *    - CVFile: Đường dẫn file CV (PDF/DOCX)
+     *    - CVFile: Đường dẫn file CV (ví dụ: uploads/cvs/uuid-resume.pdf)
      *    - CVStatus: ACTIVE (mặc định)
-     * 6. Lưu CV entity vào database
-     * 7. Chuyển đổi sang DTO và trả về
+     * 7. Lưu CV entity vào database
+     * 8. Chuyển đổi sang DTO và trả về
      * 
-     * @param cvFile Đường dẫn file CV (file path hoặc cloud URL)
+     * @param file MultipartFile từ form upload (PDF/DOCX, max 10MB)
      * @param username Username của ứng viên đang đăng nhập
      * @return CVResponse chứa thông tin CV vừa tạo (bao gồm CVCode)
      * @throws ResourceNotFoundException Nếu không tìm thấy User hoặc Candidate profile
+     * @throws FileStorageException Nếu file không hợp lệ hoặc lỗi khi lưu
      */
     @Override
     @Transactional
-    public CVResponse createCV(String cvFile, String username) {
+    public CVResponse createCV(MultipartFile file, String username) {
         log.info("Creating CV for user: {}", username);
         
         // Get authenticated user and their candidate profile
@@ -97,6 +102,10 @@ public class CVServiceV1Impl implements CVServiceV1 {
         Candidate candidate = candidateRepository.findByUserUserId(user.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("Candidate profile not found for user: " + username));
 
+        // Upload file to uploads/cvs/ directory
+        String cvFilePath = fileStorageService.storeFile(file, "cvs");
+        log.info("File uploaded successfully: {}", cvFilePath);
+
         // Generate unique CVCode
         String cvCode = codeGenerator.generateCVCode(code -> cvRepository.existsByCvCode(code));
         log.info("Generated CVCode: {}", cvCode);
@@ -105,7 +114,7 @@ public class CVServiceV1Impl implements CVServiceV1 {
         CV cv = new CV();
         cv.setCandidate(candidate);
         cv.setCvCode(cvCode);
-        cv.setCvFile(cvFile);
+        cv.setCvFile(cvFilePath); // Store file path (e.g., uploads/cvs/uuid-resume.pdf)
         cv.setCvStatus(CVStatus.ACTIVE);
 
         CV savedCV = cvRepository.save(cv);
@@ -115,21 +124,24 @@ public class CVServiceV1Impl implements CVServiceV1 {
     }
 
     /**
-     * Lấy danh sách tất cả CV của ứng viên đang đăng nhập.
+     * Lấy danh sách CV của ứng viên đang đăng nhập (bao gồm ACTIVE và HIDDEN).
      * 
      * Candidate-only endpoint - chỉ ứng viên mới có thể xem danh sách CV của chính mình.
      * 
      * Quy trình xử lý:
      * 1. Tìm User entity theo username (từ JWT)
      * 2. Tìm Candidate entity liên kết với User
-     * 3. Lấy tất cả CV entity của candidate (bao gồm cả ACTIVE và HIDDEN)
-     * 4. Chuyển đổi List<CV> sang List<CVResponse>
-     * 5. Trả về danh sách CV
+     * 3. Lấy tất cả CV entity của candidate
+     * 4. Lọc lấy CV có trạng thái ACTIVE hoặc HIDDEN (loại bỏ DELETED)
+     * 5. Chuyển đổi List<CV> sang List<CVResponse>
+     * 6. Trả về danh sách CV
      * 
-     * Lưu ý: Danh sách bao gồm cả CV ở trạng thái ACTIVE và HIDDEN
+     * Lưu ý: 
+     * - Trả về cả CV ACTIVE và HIDDEN để ứng viên quản lý (toggle trạng thái)
+     * - CV DELETED sẽ không hiển thị (xóa vĩnh viễn)
      * 
      * @param username Username của ứng viên đang đăng nhập
-     * @return List<CVResponse> chứa tất cả CV của ứng viên
+     * @return List<CVResponse> chứa các CV ACTIVE và HIDDEN của ứng viên
      * @throws ResourceNotFoundException Nếu không tìm thấy User hoặc Candidate profile
      */
     @Override
@@ -144,11 +156,16 @@ public class CVServiceV1Impl implements CVServiceV1 {
                 .orElseThrow(() -> new ResourceNotFoundException("Candidate profile not found for user: " + username));
         
         List<CV> cvs = cvRepository.findByCandidateCandidateId(candidate.getCandidateId());
-        log.info("Found {} CVs for candidate: {}", cvs.size(), candidate.getCandidateCode());
+        log.info("Found {} CVs (total) for candidate: {}", cvs.size(), candidate.getCandidateCode());
         
-        return cvs.stream()
+        // Filter to return ACTIVE and HIDDEN CVs (exclude DELETED ones)
+        List<CVResponse> managedCVs = cvs.stream()
+                .filter(cv -> cv.getCvStatus() != CVStatus.DELETED)
                 .map(cvMapper::toResponse)
                 .collect(Collectors.toList());
+        
+        log.info("Returning {} manageable CVs (ACTIVE + HIDDEN)", managedCVs.size());
+        return managedCVs;
     }
 
     /**
@@ -205,7 +222,7 @@ public class CVServiceV1Impl implements CVServiceV1 {
     }
 
     /**
-     * Xóa CV (Soft Delete - đặt trạng thái HIDDEN).
+     * Xóa CV vĩnh viễn (Permanent Delete).
      * 
      * Candidate-only endpoint - chỉ ứng viên mới có thể xóa CV của chính mình.
      * 
@@ -215,10 +232,14 @@ public class CVServiceV1Impl implements CVServiceV1 {
      * 3. Tìm CV entity theo cvId
      * 4. Kiểm tra ownership: CV phải thuộc về ứng viên đang đăng nhập
      *    - Nếu không: Throw AccessDeniedException
-     * 5. Soft Delete: Set CVStatus = HIDDEN (không xóa khỏi database)
-     * 6. Lưu CV entity vào database
+     * 5. Xóa file vật lý (nếu tồn tại) khỏi uploads/cvs/
+     * 6. Set CVStatus = DELETED (không hiển thị trong danh sách)
+     * 7. Lưu CV entity vào database
      * 
-     * Lưu ý: Đây là Soft Delete - CV không bị xóa vĩnh viễn, chỉ ẩn đi
+     * Lưu ý: 
+     * - CV vẫn trong database với status DELETED (audit trail)
+     * - File vật lý được xóa khỏi disk
+     * - CV không hiển thị trong getMyCVs()
      * 
      * @param cvId ID của CV cần xóa
      * @param username Username của ứng viên đang đăng nhập
@@ -228,7 +249,7 @@ public class CVServiceV1Impl implements CVServiceV1 {
     @Override
     @Transactional
     public void deleteCV(Long cvId, String username) {
-        log.info("Deleting CV - CVId: {}", cvId);
+        log.info("Deleting CV permanently - CVId: {}", cvId);
         
         // Get authenticated user and their candidate profile
         User user = userRepository.findByUsername(username)
@@ -246,10 +267,21 @@ public class CVServiceV1Impl implements CVServiceV1 {
             throw new AccessDeniedException("You can only delete your own CVs");
         }
 
-        // Soft delete - set status to HIDDEN
-        cv.setCvStatus(CVStatus.HIDDEN);
+        // Delete physical file from disk (if exists)
+        if (cv.getCvFile() != null && !cv.getCvFile().isEmpty()) {
+            try {
+                fileStorageService.deleteFile(cv.getCvFile());
+                log.info("Physical file deleted: {}", cv.getCvFile());
+            } catch (Exception e) {
+                log.warn("Failed to delete physical file: {} - Error: {}", cv.getCvFile(), e.getMessage());
+                // Continue with status update even if file deletion fails
+            }
+        }
+
+        // Set status to DELETED (soft delete in database for audit trail)
+        cv.setCvStatus(CVStatus.DELETED);
         cvRepository.save(cv);
         
-        log.info("CV soft deleted successfully - CVCode: {}", cv.getCvCode());
+        log.info("CV marked as DELETED - CVCode: {}", cv.getCvCode());
     }
 }

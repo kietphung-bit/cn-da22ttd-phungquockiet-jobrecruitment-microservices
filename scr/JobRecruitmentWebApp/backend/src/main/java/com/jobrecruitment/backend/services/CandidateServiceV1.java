@@ -19,17 +19,25 @@ import com.jobrecruitment.backend.dtos.response.CandidateResponse;
 public interface CandidateServiceV1 {
     
     /**
-     * Lấy hồ sơ Candidate theo ID (Public/Employer/Admin)
+     * Lấy hồ sơ Candidate theo ID (với IDOR Protection)
      * 
      * Sử dụng:
      * - API GET /api/v1/candidates/{candidateId}
      * - Employer xem hồ sơ ứng viên đã nộp đơn
      * 
+     * Security - IDOR Protection:
+     * - Admin (ADM): Có thể xem tất cả candidates
+     * - Employer (DN): Có thể xem tất cả candidates (để đánh giá ứng viên)
+     * - Candidate (UV): Chỉ xem hồ sơ của mình
+     * - Public/Unauthenticated: Deny (403 Forbidden)
+     * 
      * @param candidateId Candidate ID
+     * @param username Username của user đang authenticate (từ JWT token, null nếu không đăng nhập)
      * @return CandidateResponse
      * @throws ResourceNotFoundException nếu không tìm thấy Candidate
+     * @throws ValidationException nếu user không có quyền truy cập (IDOR attempt)
      */
-    CandidateResponse getCandidateById(Long candidateId);
+    CandidateResponse getCandidateById(Long candidateId, String username);
     
     /**
      * Lấy hồ sơ của Candidate đang authenticate (Candidate only)

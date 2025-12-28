@@ -74,7 +74,7 @@ public class ApplicationControllerV1 {
      * Quyền truy cập: Người dùng đã xác thực (Quản trị viên/Nhà tuyển dụng/Ứng viên)
      */
     @GetMapping
-    @PreAuthorize("hasAnyRole('QTV', 'NTD', 'UV')")
+    @PreAuthorize("hasAnyRole('ADM', 'DN', 'UV')")
     @Operation(
         summary = "List all applications",
         description = "Retrieve a paginated list of job applications with optional filters. " +
@@ -139,18 +139,25 @@ public class ApplicationControllerV1 {
     }
     
     /**
-     * GET /api/v1/applications/{id} - Lấy đơn ứng tuyển theo ID
+     * GET /api/v1/applications/{id} - Lấy đơn ứng tuyển theo ID (với IDOR Protection)
      * 
      * Path Variables:
      * - id: ID đơn ứng tuyển (Long)
      * 
      * Quyền truy cập: Người dùng đã xác thực (Quản trị viên/Nhà tuyển dụng/Ứng viên)
+     * 
+     * Security - IDOR Protection:
+     * - Admin: Có thể xem tất cả applications
+     * - Candidate: Chỉ xem applications của mình
+     * - Employer: Chỉ xem applications cho jobs của mình
+     * - Unauthorized access: HTTP 403 Forbidden
      */
     @GetMapping("/{id}")
-    @PreAuthorize("hasAnyRole('QTV', 'NTD', 'UV')")
+    @PreAuthorize("hasAnyRole('ADM', 'DN', 'UV')")
     @Operation(
-        summary = "Get application by ID",
-        description = "Retrieve a single job application by its unique ID.",
+        summary = "Get application by ID (IDOR Protected)",
+        description = "Retrieve a single job application by its unique ID. " +
+                     "Access control: Admin sees all, Candidate sees own, Employer sees applications to own jobs.",
         security = @SecurityRequirement(name = "bearerAuth")
     )
     @ApiResponses(value = {
@@ -163,6 +170,10 @@ public class ApplicationControllerV1 {
             )
         ),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "403",
+            description = "Forbidden - Access denied (IDOR attempt blocked)"
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
             responseCode = "404",
             description = "Application not found"
         ),
@@ -172,11 +183,13 @@ public class ApplicationControllerV1 {
         )
     })
     public ResponseEntity<ApiResponse<ApplicationResponse>> getApplicationById(
-            @PathVariable @Parameter(description = "Application ID", required = true) Long id
+            @PathVariable @Parameter(description = "Application ID", required = true) Long id,
+            Authentication authentication
     ) {
-        log.info("GET /api/v1/applications/{}", id);
+        String username = authentication.getName();
+        log.info("GET /api/v1/applications/{} - User: {}", id, username);
         
-        ApplicationResponse application = applicationServiceV1.getApplicationById(id);
+        ApplicationResponse application = applicationServiceV1.getApplicationById(id, username);
         ApiResponse<ApplicationResponse> response = ApiResponse.success(application);
         return ResponseEntity.ok(response);
     }
@@ -263,7 +276,7 @@ public class ApplicationControllerV1 {
      * Validation: Nhà tuyển dụng phải sở hữu tin tuyển dụng liên quan đến đơn ứng tuyển
      */
     @PatchMapping("/{id}/status")
-    @PreAuthorize("hasRole('NTD')")
+    @PreAuthorize("hasRole('DN')")
     @Operation(
         summary = "Update application status",
         description = "Update the status of a job application (PENDING → APPROVED/REJECTED). " +
@@ -429,7 +442,7 @@ public class ApplicationControllerV1 {
      * Trả về: Danh sách phân trang các đơn ứng tuyển nhận được cho các tin tuyển dụng của nhà tuyển dụng
      */
     @GetMapping("/company")
-    @PreAuthorize("hasRole('NTD')")
+    @PreAuthorize("hasRole('DN')")
     @Operation(
         summary = "Get applications for my jobs",
         description = "Retrieve a paginated list of job applications received for the authenticated employer's job postings. " +

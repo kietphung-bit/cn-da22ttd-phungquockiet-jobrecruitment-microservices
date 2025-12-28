@@ -33,6 +33,7 @@ import org.springframework.transaction.annotation.Transactional;
 
 import java.time.LocalDate;
 import java.time.LocalDateTime;
+import java.util.List;
 import java.util.Objects;
 
 /**
@@ -138,7 +139,7 @@ public class ApplicationServiceV1Impl implements ApplicationServiceV1 {
     }
     
     /**
-     * Lấy thông tin chi tiết application theo ID.
+     * Lấy thông tin chi tiết application theo ID (với kiểm tra quyền truy cập - IDOR Protection).
      * 
      * Thông tin trả về bao gồm:
      * - Thông tin đơn: applicationCode, applyTime, applicationStatus
@@ -147,19 +148,91 @@ public class ApplicationServiceV1Impl implements ApplicationServiceV1 {
      * - Thông tin CV: cvCode, cvFile (link download)
      * - Thông tin công ty: companyName, companyEmail
      * 
+     * Security - IDOR Protection:
+     * - Xác minh user có quyền xem application này trước khi trả về dữ liệu
+     * - Admin: Có thể xem tất cả applications
+     * - Candidate: Chỉ xem applications của mình (qua CV ownership)
+     * - Employer: Chỉ xem applications cho jobs thuộc company của mình
+     * 
      * @param applicationId ID của application cần lấy
+     * @param username Username của user đang authenticate (từ JWT token)
      * @return ApplicationResponse chứa thông tin chi tiết
      * @throws ResourceNotFoundException Nếu không tìm thấy application với ID này
+     * @throws ValidationException Nếu user không có quyền truy cập (IDOR attempt blocked)
      */
     @Override
     @Transactional(readOnly = true)
-    public ApplicationResponse getApplicationById(Long applicationId) {
-        log.info("Fetching application with ID: {}", applicationId);
+    public ApplicationResponse getApplicationById(Long applicationId, String username) {
+        log.info("Fetching application with ID: {} for user: {}", applicationId, username);
         
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Application not found with ID: " + applicationId));
         
+        // IDOR Protection: Verify user has permission to view this application
+        verifyApplicationAccess(application, username);
+        
         return applicationMapper.toResponse(application);
+    }
+    
+    /**
+     * Xác minh user có quyền truy cập application này không (IDOR Protection).
+     * 
+     * Quy tắc phân quyền:
+     * 1. Admin (ADM): Có thể xem tất cả applications (full access)
+     * 2. Candidate (UV): Chỉ xem applications của mình (CV ownership check)
+     * 3. Employer (DN): Chỉ xem applications cho jobs của mình (Company ownership check)
+     * 
+     * @param application Application entity cần kiểm tra
+     * @param username Username của user đang authenticate
+     * @throws ResourceNotFoundException Nếu không tìm thấy user/profile
+     * @throws ValidationException Nếu user không có quyền truy cập (IDOR blocked)
+     */
+    private void verifyApplicationAccess(Application application, String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
+        
+        String roleCode = user.getRole().getRoleCode();
+        
+        // Admin có thể xem tất cả applications
+        if ("ADM".equals(roleCode)) {
+            log.debug("Admin access granted for application {}", application.getApplicationId());
+            return;
+        }
+        
+        // Candidate chỉ có thể xem applications của mình
+        if ("UV".equals(roleCode)) {
+            Candidate candidate = candidateRepository.findByUserUserId(user.getUserId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Candidate profile not found for user: " + username));
+            
+            Long applicationCandidateId = application.getCv().getCandidate().getCandidateId();
+            if (!Objects.equals(applicationCandidateId, candidate.getCandidateId())) {
+                log.warn("IDOR attempt blocked: Candidate {} tried to access application {} (belongs to candidate {})",
+                        candidate.getCandidateId(), application.getApplicationId(), applicationCandidateId);
+                throw new ValidationException("Access denied: You can only view your own applications");
+            }
+            log.debug("Candidate access granted for own application {}", application.getApplicationId());
+            return;
+        }
+        
+        // Employer chỉ có thể xem applications cho jobs của mình
+        if ("DN".equals(roleCode)) {
+            Company company = companyRepository.findByUserUserId(user.getUserId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Company profile not found for user: " + username));
+            
+            Long jobCompanyId = application.getJob().getCompany().getCompanyId();
+            if (!Objects.equals(jobCompanyId, company.getCompanyId())) {
+                log.warn("IDOR attempt blocked: Employer {} (company {}) tried to access application {} (job belongs to company {})",
+                        username, company.getCompanyId(), application.getApplicationId(), jobCompanyId);
+                throw new ValidationException("Access denied: You can only view applications to your own jobs");
+            }
+            log.debug("Employer access granted for application {} (job owned by company {})", 
+                    application.getApplicationId(), company.getCompanyId());
+            return;
+        }
+        
+        // Unknown role - deny access
+        log.warn("Access denied: Unknown role {} for user {}", roleCode, username);
+        throw new ValidationException("Access denied: Invalid role");
     }
     
     /**
@@ -328,6 +401,7 @@ public class ApplicationServiceV1Impl implements ApplicationServiceV1 {
     
     /**
      * Get applications for jobs posted by authenticated employer with pagination
+     * Performance: Uses JOIN FETCH để tránh N+1 queries
      */
     @Override
     @Transactional(readOnly = true)
@@ -346,27 +420,45 @@ public class ApplicationServiceV1Impl implements ApplicationServiceV1 {
         Company company = companyRepository.findByUserUserId(user.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("Company profile not found for user: " + username));
         
-        // Build specification
-        Specification<Application> spec = ApplicationSpecification.hasCompanyId(company.getCompanyId());
+        // Use optimized query with JOIN FETCH (tránh N+1 queries)
+        List<Application> applications = applicationRepository.findByCompanyIdWithDetailsFiltered(
+            company.getCompanyId(),
+            jobId,
+            status
+        );
         
-        // Add optional filters
-        if (jobId != null) {
-            spec = spec.and(ApplicationSpecification.hasJobId(jobId));
+        log.info("Found {} applications for employer (using JOIN FETCH)", applications.size());
+        
+        // Manual pagination (vì JOIN FETCH không support Page trực tiếp)
+        int pageSize = pageable.getPageSize();
+        int currentPage = pageable.getPageNumber();
+        int startItem = currentPage * pageSize;
+        
+        List<Application> pageContent;
+        if (applications.size() < startItem) {
+            pageContent = List.of();
+        } else {
+            int toIndex = Math.min(startItem + pageSize, applications.size());
+            pageContent = applications.subList(startItem, toIndex);
         }
-        if (status != null) {
-            spec = spec.and(ApplicationSpecification.hasStatus(status));
-        }
-        
-        // Execute query with pagination
-        Page<Application> applicationPage = applicationRepository.findAll(spec, pageable);
-        
-        log.info("Found {} applications for employer (page {} of {})",
-                applicationPage.getTotalElements(),
-                applicationPage.getNumber() + 1,
-                applicationPage.getTotalPages());
         
         // Map to DTOs
-        return applicationPage.map(applicationMapper::toResponse);
+        List<ApplicationResponse> responses = pageContent.stream()
+                .map(applicationMapper::toResponse)
+                .toList();
+        
+        Page<ApplicationResponse> page = new org.springframework.data.domain.PageImpl<>(
+            responses,
+            pageable,
+            applications.size()
+        );
+        
+        log.info("Returning page {} of {} ({} applications)",
+                page.getNumber() + 1,
+                page.getTotalPages(),
+                page.getTotalElements());
+        
+        return page;
     }
     
     /**

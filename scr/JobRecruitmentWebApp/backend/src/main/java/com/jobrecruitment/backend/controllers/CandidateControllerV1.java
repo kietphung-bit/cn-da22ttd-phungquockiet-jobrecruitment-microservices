@@ -53,22 +53,38 @@ public class CandidateControllerV1 {
     private final CandidateServiceV1 candidateServiceV1;
 
     /**
-     * Lấy thông tin hồ sơ ứng viên theo ID.
+     * Lấy thông tin hồ sơ ứng viên theo ID (với IDOR Protection).
      * 
-     * Endpoint công khai - cho phép employer và admin xem thông tin ứng viên
-     * khi đánh giá hồ sơ ứng tuyển.
+     * Endpoint có authentication - cho phép employer và admin xem thông tin ứng viên
+     * khi đánh giá hồ sơ ứng tuyển. Candidate chỉ có thể xem hồ sơ của chính mình.
      * 
      * HTTP Method: GET
      * URL: /api/v1/candidates/{candidateId}
+     * Authentication: JWT Bearer Token (Required)
+     * 
+     * Security - IDOR Protection:
+     * - Admin (ADM): Can view all candidates
+     * - Employer (DN): Can view all candidates (for recruitment)
+     * - Candidate (UV): Can only view own profile
+     * - Unauthenticated: 401 Unauthorized
      * 
      * @param candidateId ID của ứng viên cần xem
+     * @param userDetails Thông tin user đang đăng nhập (từ JWT, auto-inject)
      * @return ResponseEntity chứa ApiResponse<CandidateResponse> với thông tin hồ sơ
      */
     @GetMapping("/{candidateId}")
+    @PreAuthorize("hasAnyRole('ADM', 'DN', 'UV')")
     @Operation(
-            summary = "Get candidate profile by ID",
-            description = "Public endpoint to view candidate profile details. " +
-                    "Used by employers to view candidate information when reviewing applications."
+            summary = "Get candidate profile by ID (IDOR Protected)",
+            description = "Authenticated endpoint to view candidate profile details. " +
+                    "Admin and Employers can view all candidates. " +
+                    "Candidates can only view their own profile. " +
+                    "\n\nAccess Control:" +
+                    "\n- Admin (ADM): Full access to all candidates" +
+                    "\n- Employer (DN): Can view all candidates (for recruitment evaluation)" +
+                    "\n- Candidate (UV): Can only view own profile (IDOR protection)" +
+                    "\n- Unauthenticated: 401 Unauthorized",
+            security = @SecurityRequirement(name = "bearerAuth")
     )
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -77,16 +93,28 @@ public class CandidateControllerV1 {
                     content = @Content(schema = @Schema(implementation = CandidateResponse.class))
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - Access denied (IDOR attempt blocked)",
+                    content = @Content
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "404",
                     description = "Candidate not found",
+                    content = @Content
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication required",
                     content = @Content
             )
     })
     public ResponseEntity<ApiResponse<CandidateResponse>> getCandidateById(
             @Parameter(description = "Candidate ID", example = "1")
-            @PathVariable Long candidateId
+            @PathVariable Long candidateId,
+            @Parameter(hidden = true)
+            @AuthenticationPrincipal UserDetails userDetails
     ) {
-        CandidateResponse candidateResponse = candidateServiceV1.getCandidateById(candidateId);
+        CandidateResponse candidateResponse = candidateServiceV1.getCandidateById(candidateId, userDetails.getUsername());
         
         return ResponseEntity.ok(
                 ApiResponse.<CandidateResponse>builder()

@@ -52,30 +52,93 @@ public class CandidateServiceV1Impl implements CandidateServiceV1 {
     private final CandidateMapper candidateMapper;
 
     /**
-     * Lấy thông tin hồ sơ ứng viên theo ID.
+     * Lấy thông tin hồ sơ ứng viên theo ID (với IDOR Protection).
      * 
-     * Endpoint công khai - cho phép Employer và Admin xem thông tin ứng viên
-     * khi đánh giá hồ sơ ứng tuyển.
+     * Endpoint có IDOR protection - cho phép Employer và Admin xem thông tin ứng viên
+     * khi đánh giá hồ sơ ứng tuyển. Candidate chỉ có thể xem hồ sơ của chính mình.
+     * 
+     * Security - IDOR Protection:
+     * - Admin (ADM): Full access to all candidates
+     * - Employer (DN): Can view all candidates (for recruitment evaluation)
+     * - Candidate (UV): Can only view own profile (ownership check)
+     * - Unauthenticated: Denied (401 Unauthorized)
      * 
      * Quy trình xử lý:
      * 1. Tìm kiếm Candidate entity theo candidateId
      * 2. Nếu không tìm thấy: Throw ResourceNotFoundException
-     * 3. Chuyển đổi Entity sang DTO (CandidateResponse)
-     * 4. Trả về thông tin hồ sơ ứng viên
+     * 3. Xác minh quyền truy cập (IDOR Protection)
+     * 4. Chuyển đổi Entity sang DTO (CandidateResponse)
+     * 5. Trả về thông tin hồ sơ ứng viên
      * 
      * @param candidateId ID của ứng viên cần xem
+     * @param username Username của user đang authenticate (từ JWT token)
      * @return CandidateResponse chứa thông tin hồ sơ ứng viên
      * @throws ResourceNotFoundException Nếu không tìm thấy ứng viên với ID được cung cấp
+     * @throws ValidationException Nếu user không có quyền truy cập (IDOR attempt blocked)
      */
     @Override
     @Transactional(readOnly = true)
-    public CandidateResponse getCandidateById(Long candidateId) {
-        log.info("Fetching candidate with ID: {}", candidateId);
+    public CandidateResponse getCandidateById(Long candidateId, String username) {
+        log.info("Fetching candidate with ID: {} for user: {}", candidateId, username);
         
         Candidate candidate = candidateRepository.findById(candidateId)
                 .orElseThrow(() -> new ResourceNotFoundException("Candidate not found with ID: " + candidateId));
         
+        // IDOR Protection: Verify user has permission to view this candidate
+        verifyCandidateAccess(candidate, username);
+        
         return candidateMapper.toResponse(candidate);
+    }
+    
+    /**
+     * Xác minh user có quyền truy cập candidate profile này không (IDOR Protection).
+     * 
+     * Quy tắc phân quyền:
+     * 1. Admin (ADM): Có thể xem tất cả candidates (full access)
+     * 2. Employer (DN): Có thể xem tất cả candidates (để đánh giá ứng viên)
+     * 3. Candidate (UV): Chỉ xem profile của mình (candidate ID ownership check)
+     * 
+     * @param candidate Candidate entity cần kiểm tra
+     * @param username Username của user đang authenticate
+     * @throws ResourceNotFoundException Nếu không tìm thấy user/profile
+     * @throws ValidationException Nếu user không có quyền truy cập (IDOR blocked)
+     */
+    private void verifyCandidateAccess(Candidate candidate, String username) {
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
+        
+        String roleCode = user.getRole().getRoleCode();
+        
+        // Admin có thể xem tất cả candidates
+        if ("ADM".equals(roleCode)) {
+            log.debug("Admin access granted for candidate {}", candidate.getCandidateId());
+            return;
+        }
+        
+        // Employer có thể xem tất cả candidates (để đánh giá ứng viên)
+        if ("DN".equals(roleCode)) {
+            log.debug("Employer access granted for candidate {}", candidate.getCandidateId());
+            return;
+        }
+        
+        // Candidate chỉ có thể xem profile của mình
+        if ("UV".equals(roleCode)) {
+            Candidate authenticatedCandidate = candidateRepository.findByUserUserId(user.getUserId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Candidate profile not found for user: " + username));
+            
+            if (!candidate.getCandidateId().equals(authenticatedCandidate.getCandidateId())) {
+                log.warn("IDOR attempt blocked: Candidate {} tried to access candidate {} profile",
+                        authenticatedCandidate.getCandidateId(), candidate.getCandidateId());
+                throw new com.jobrecruitment.backend.exceptions.ValidationException(
+                    "Access denied: You can only view your own profile");
+            }
+            log.debug("Candidate access granted for own profile {}", candidate.getCandidateId());
+            return;
+        }
+        
+        // Unknown role - deny access
+        log.warn("Access denied: Unknown role {} for user {}", roleCode, username);
+        throw new com.jobrecruitment.backend.exceptions.ValidationException("Access denied: Invalid role");
     }
 
     /**

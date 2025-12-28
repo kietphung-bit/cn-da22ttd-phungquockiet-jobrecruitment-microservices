@@ -70,6 +70,30 @@ public class AuthResponse {
     private String roleName;
     
     /**
+     * Tên ứng viên (nếu role = UV)
+     * - Null nếu không phải ứng viên
+     */
+    private String candidateName;
+    
+    /**
+     * Mã ứng viên (nếu role = UV)
+     * - Null nếu không phải ứng viên
+     */
+    private String candidateCode;
+    
+    /**
+     * Tên công ty (nếu role = DN)
+     * - Null nếu không phải nhà tuyển dụng
+     */
+    private String companyName;
+    
+    /**
+     * Mã công ty (nếu role = DN)
+     * - Null nếu không phải nhà tuyển dụng
+     */
+    private String companyCode;
+    
+    /**
      * Thông báo tùy chỉnh
      * - Ví dụ: "Đăng nhập thành công", "Đăng ký thành công"
      */

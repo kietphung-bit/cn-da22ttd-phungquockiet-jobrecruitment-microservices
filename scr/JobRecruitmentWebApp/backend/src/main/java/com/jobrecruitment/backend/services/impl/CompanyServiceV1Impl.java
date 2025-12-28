@@ -9,12 +9,14 @@ import com.jobrecruitment.backend.mappers.CompanyMapper;
 import com.jobrecruitment.backend.repositories.CompanyRepository;
 import com.jobrecruitment.backend.repositories.UserRepository;
 import com.jobrecruitment.backend.services.CompanyServiceV1;
+import com.jobrecruitment.backend.services.FileStorageService;
 import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.stereotype.Service;
 import org.springframework.transaction.annotation.Transactional;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * CompanyServiceV1Impl - Service triển khai logic nghiệp vụ cho Quản lý Doanh nghiệp (Version 1).
@@ -53,6 +55,7 @@ public class CompanyServiceV1Impl implements CompanyServiceV1 {
     private final CompanyRepository companyRepository;
     private final UserRepository userRepository;
     private final CompanyMapper companyMapper;
+    private final FileStorageService fileStorageService;
 
     /**
      * Lấy danh sách tất cả doanh nghiệp với phân trang và tìm kiếm.
@@ -196,39 +199,66 @@ public class CompanyServiceV1Impl implements CompanyServiceV1 {
     }
 
     /**
-     * Cập nhật logo doanh nghiệp.
+     * Upload logo công ty (Employer-only)
      * 
-     * Employer-only endpoint - chỉ employer mới có thể cập nhật logo doanh nghiệp của mình.
+     * Employer-only endpoint - chỉ employer mới có thể upload logo doanh nghiệp của mình.
      * 
      * Quy trình xử lý:
      * 1. Tìm User entity theo username (từ JWT)
      * 2. Tìm Company entity liên kết với User
-     * 3. Cập nhật LogoURL field với URL mới
-     * 4. Lưu Company entity vào database
-     * 5. Chuyển đổi sang DTO và trả về
+     * 3. Upload file vào uploads/logos/ với FileStorageService
+     *    - Validation: extension (jpg, jpeg, png, gif), size (max 10MB)
+     *    - Uniqueness: UUID prefix + original filename
+     * 4. Xóa logo cũ nếu tồn tại (cleanup old file)
+     * 5. Cập nhật LogoURL field với URL mới trong database
+     * 6. Lưu Company entity vào database
+     * 7. Chuyển đổi sang DTO và trả về
      * 
      * Lưu ý: Đây là endpoint chuyên dụng cho việc upload logo (PATCH method)
      * 
-     * @param logoUrl URL của logo mới (file path hoặc cloud URL)
+     * @param file Logo image file (MultipartFile)
      * @param username Username của employer đang đăng nhập
      * @return CompanyResponse với thông tin đã cập nhật logo
      * @throws ResourceNotFoundException Nếu không tìm thấy User hoặc Company profile
+     * @throws FileStorageException Nếu file không hợp lệ hoặc lỗi upload
      */
     @Override
-    public CompanyResponse updateLogo(String logoUrl, String username) {
-        log.info("Updating company logo for user: {}", username);
+    public CompanyResponse uploadLogo(MultipartFile file, String username) {
+        log.info("Uploading company logo for user: {} - File: {}, Size: {} bytes", 
+                username, file.getOriginalFilename(), file.getSize());
         
+        // 1. Find User by username
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
         
+        // 2. Find Company profile by User
         Company company = companyRepository.findByUserUserId(user.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("Company profile not found for user: " + username));
         
-        // Update logo URL
-        company.setLogoURL(logoUrl);
+        // 3. Upload file to logos directory
+        String relativePath = fileStorageService.storeFile(file, "logos");
+        // Prepend /uploads/ to make it accessible via static resource mapping
+        String newLogoUrl = "/uploads/" + relativePath;
+        log.info("Logo file uploaded successfully: {}", newLogoUrl);
+        
+        // 4. Delete old logo if exists
+        String oldLogoUrl = company.getLogoURL();
+        if (oldLogoUrl != null && !oldLogoUrl.isEmpty()) {
+            try {
+                fileStorageService.deleteFile(oldLogoUrl);
+                log.info("Old logo deleted: {}", oldLogoUrl);
+            } catch (Exception e) {
+                log.warn("Failed to delete old logo: {} - Error: {}", oldLogoUrl, e.getMessage());
+                // Continue anyway - new logo is already uploaded
+            }
+        }
+        
+        // 5. Update logo URL in database
+        company.setLogoURL(newLogoUrl);
         
         Company updatedCompany = companyRepository.save(company);
-        log.info("Company logo updated successfully - CompanyID: {}", updatedCompany.getCompanyId());
+        log.info("Company logo updated successfully - CompanyID: {}, LogoURL: {}", 
+                updatedCompany.getCompanyId(), newLogoUrl);
         
         return companyMapper.toResponse(updatedCompany);
     }

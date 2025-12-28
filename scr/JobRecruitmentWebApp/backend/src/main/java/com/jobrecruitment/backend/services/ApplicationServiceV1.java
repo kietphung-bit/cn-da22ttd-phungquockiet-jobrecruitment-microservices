@@ -63,18 +63,26 @@ public interface ApplicationServiceV1 {
     );
     
     /**
-     * Lấy chi tiết đơn ứng tuyển theo ID
+     * Lấy chi tiết đơn ứng tuyển theo ID (với kiểm tra quyền truy cập - IDOR Protection)
      * 
      * Sử dụng:
      * - API GET /api/v1/applications/{applicationId}
      * - Employer xem chi tiết đơn ứng tuyển vào job của mình
      * - Candidate xem chi tiết đơn của mình
      * 
+     * Security:
+     * - IDOR Protection: Xác minh user có quyền xem application này không
+     * - Admin: Xem tất cả applications
+     * - Candidate: Chỉ xem applications của mình
+     * - Employer: Chỉ xem applications cho jobs của mình
+     * 
      * @param applicationId Application ID
+     * @param username Username của user đang authenticate (từ JWT token)
      * @return ApplicationResponse (bao gồm jobId, jobTitle, cvId, cvCode, applyTime, status)
      * @throws ResourceNotFoundException nếu không tìm thấy application
+     * @throws ValidationException nếu user không có quyền truy cập (IDOR attempt)
      */
-    ApplicationResponse getApplicationById(Long applicationId);
+    ApplicationResponse getApplicationById(Long applicationId, String username);
     
     /**
      * Nộp đơn ứng tuyển (Candidate only)

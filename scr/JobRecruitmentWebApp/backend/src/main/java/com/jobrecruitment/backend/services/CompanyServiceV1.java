@@ -4,6 +4,7 @@ import com.jobrecruitment.backend.dtos.request.CompanyProfileRequest;
 import com.jobrecruitment.backend.dtos.response.CompanyResponse;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * CompanyServiceV1 - Service interface cho quản lý hồ sơ công ty
@@ -81,15 +82,24 @@ public interface CompanyServiceV1 {
     CompanyResponse updateProfile(CompanyProfileRequest request, String username);
     
     /**
-     * Cập nhật logo công ty (Employer only)
+     * Upload logo công ty (Employer-only)
      * 
      * Sử dụng:
-     * - API PATCH /api/v1/companies/logo
-     * - Upload logo qua file upload service, sau đó gọi API này với logoUrl
+     * - API PATCH /api/v1/companies/me/logo
+     * - Employer upload logo công ty
      * 
-     * @param logoUrl URL logo mới (ví dụ: https://cdn.example.com/logos/company123.png)
-     * @param username Username của Employer đang authenticate
-     * @return CompanyResponse (đã cập nhật logoURL)
+     * Business Logic:
+     * 1. Validate ownership: User phải là chủ Company
+     * 2. Validate file: Extension (jpg, jpeg, png, gif), size (max 10MB)
+     * 3. Upload file vào uploads/logos/ với FileStorageService
+     * 4. Xóa logo cũ nếu tồn tại
+     * 5. Cập nhật logoURL trong database
+     * 
+     * @param file Logo image file (MultipartFile)
+     * @param username Username từ JWT token
+     * @return CompanyResponse với URL logo mới
+     * @throws ResourceNotFoundException nếu Company không tồn tại
+     * @throws FileStorageException nếu file không hợp lệ hoặc lỗi upload
      */
-    CompanyResponse updateLogo(String logoUrl, String username);
+    CompanyResponse uploadLogo(MultipartFile file, String username);
 }

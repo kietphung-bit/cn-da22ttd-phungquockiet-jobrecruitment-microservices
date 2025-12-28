@@ -44,6 +44,7 @@ public class JobMapper {
             job.getJobId(),
             job.getCompany() != null ? job.getCompany().getCompanyId() : null,
             job.getCompany() != null ? job.getCompany().getCompanyName() : null,
+            job.getCompany() != null ? job.getCompany().getLogoURL() : null,
             job.getJobCategory() != null ? job.getJobCategory().getJcId() : null,
             job.getJobCategory() != null ? job.getJobCategory().getJcName() : null,
             job.getJobCode(),

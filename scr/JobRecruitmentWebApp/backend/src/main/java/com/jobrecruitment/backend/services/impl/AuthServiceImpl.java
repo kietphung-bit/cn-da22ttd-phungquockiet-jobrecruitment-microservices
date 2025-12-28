@@ -1,6 +1,9 @@
 package com.jobrecruitment.backend.services.impl;
 
+import java.time.LocalDateTime;
+
 import com.jobrecruitment.backend.dtos.request.CandidateRegisterRequest;
+import com.jobrecruitment.backend.dtos.request.ChangePasswordRequest;
 import com.jobrecruitment.backend.dtos.request.CompanyRegisterRequest;
 import com.jobrecruitment.backend.dtos.request.LoginRequest;
 import com.jobrecruitment.backend.dtos.response.AuthResponse;
@@ -19,6 +22,7 @@ import com.jobrecruitment.backend.services.AuthService;
 import com.jobrecruitment.backend.utils.CodeGenerator;
 import com.jobrecruitment.backend.utils.JwtUtils;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.Authentication;
@@ -56,6 +60,7 @@ import org.springframework.transaction.annotation.Transactional;
  */
 @Service
 @RequiredArgsConstructor
+@Slf4j
 public class AuthServiceImpl implements AuthService {
 
     private final UserRepository userRepository;
@@ -267,13 +272,107 @@ public class AuthServiceImpl implements AuthService {
         // Generate JWT token
         String token = jwtUtils.generateToken(authenticatedUsername);
 
-        return AuthResponse.builder()
+        // Build base response
+        AuthResponse.AuthResponseBuilder responseBuilder = AuthResponse.builder()
                 .token(token)
                 .username(user.getUsername())
                 .userCode(user.getUserCode())
                 .roleCode(user.getRole().getRoleCode())
                 .roleName(user.getRole().getRoleName())
-                .message("Login successful")
-                .build();
+                .message("Login successful");
+
+        // Add role-specific information
+        if ("UV".equals(user.getRole().getRoleCode())) {
+            // Candidate - fetch candidate info
+            candidateRepository.findByUserUserId(user.getUserId())
+                    .ifPresent(candidate -> {
+                        responseBuilder.candidateName(candidate.getCandidateName());
+                        responseBuilder.candidateCode(candidate.getCandidateCode());
+                    });
+        } else if ("DN".equals(user.getRole().getRoleCode())) {
+            // Employer - fetch company info
+            companyRepository.findByUserUserId(user.getUserId())
+                    .ifPresent(company -> {
+                        responseBuilder.companyName(company.getCompanyName());
+                        responseBuilder.companyCode(company.getCompanyCode());
+                    });
+        }
+
+        return responseBuilder.build();
+    }
+
+    /**
+     * Đổi mật khẩu cho user đang đăng nhập.
+     * 
+     * Quy trình thực hiện:
+     * 1. Lấy User từ database theo username (authenticated user)
+     * 2. Verify oldPassword khớp với BCrypt hash hiện tại
+     * 3. Validate newPassword khác oldPassword
+     * 4. Validate newPassword == confirmPassword
+     * 5. Hash newPassword bằng BCrypt
+     * 6. Update User.password và save
+     * 
+     * @param request ChangePasswordRequest
+     * @param username Username từ JWT token
+     * @throws ValidationException nếu old password sai hoặc validation fail
+     * @throws ResourceNotFoundException nếu User không tồn tại
+     */
+    @Override
+    @Transactional
+    public void changePassword(ChangePasswordRequest request, String username) {
+        log.info("Changing password for user: {}", username);
+        
+        // Get user
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
+        
+        // Verify old password
+        if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
+            throw new ValidationException("Mật khẩu cũ không đúng");
+        }
+        
+        // Validate new password != old password
+        if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
+            throw new ValidationException("Mật khẩu mới phải khác mật khẩu cũ");
+        }
+        
+        // Validate new password == confirm password
+        if (!request.getNewPassword().equals(request.getConfirmPassword())) {
+            throw new ValidationException("Xác nhận mật khẩu không khớp");
+        }
+        
+        // Update password
+        user.setPassword(passwordEncoder.encode(request.getNewPassword()));
+        userRepository.save(user);
+        
+        log.info("Password changed successfully for user: {}", username);
+    }
+
+    /**
+     * Đăng xuất khỏi tất cả thiết bị (vô hiệu hóa tất cả JWT tokens cũ).
+     * 
+     * Quy trình thực hiện:
+     * 1. Lấy User từ database theo username
+     * 2. Set User.lastLogout = LocalDateTime.now()
+     * 3. Save user
+     * 4. Tất cả JWT tokens có issuedAt < lastLogout sẽ bị reject bởi JwtAuthenticationFilter
+     * 
+     * @param username Username từ JWT token
+     * @throws ResourceNotFoundException nếu User không tồn tại
+     */
+    @Override
+    @Transactional
+    public void logoutAllSessions(String username) {
+        log.info("Logout all sessions for user: {}", username);
+        
+        // Get user
+        User user = userRepository.findByUsername(username)
+                .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
+        
+        // Update lastLogout timestamp
+        user.setLastLogout(LocalDateTime.now());
+        userRepository.save(user);
+        
+        log.info("All sessions logged out for user: {}", username);
     }
 }

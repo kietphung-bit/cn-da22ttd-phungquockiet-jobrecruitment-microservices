@@ -7,6 +7,8 @@ import io.swagger.v3.oas.models.info.Info;
 import io.swagger.v3.oas.models.info.License;
 
 import io.swagger.v3.oas.models.security.SecurityScheme;
+import io.swagger.v3.oas.models.servers.Server;
+
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
 
@@ -30,7 +32,45 @@ public class OpenApiConfig {
         return new OpenAPI()
                 .info(new Info()
                         .title("Job Recruitment Platform API")
-                        .description("Comprehensive RESTful API for Job Recruitment System connecting Employers and Candidates")
+                        .description("""
+                        # API documentation for the Job Recruitment Platform.
+                        This platform allows employers to post job listings and candidates to apply for jobs.
+                        
+                        RESTful API for Job Recruitment Platform providing:
+                        - **User Management:** Registration, Authentication (JWT), Profile Management
+                        - **Job Listings:** Create, Read, Update, Delete job postings
+                        - **Applications:** Apply for jobs, View application status
+                        - **Admin Features:** User role management, Job listing approvals
+                        - **Authentication:** JWT-based authentication for secure access
+
+                        ## Authentication
+                        This API uses JWT (JSON Web Tokens) for authentication. To access protected:
+                        1. Obtain a JWT token by logging in via the `/api/auth/login` endpoint.
+                        2. Copy the `token` from the response.
+                        3. In Swagger UI, click on the "Authorize" button and enter the token in the format: `Bearer <your_token_here>`.
+                        4. After authorization, you can access the protected endpoints.
+
+                        ## Authorization Rules
+                        - **Public Endpoints:** Some endpoints are publicly accessible without authentication (e.g., job listings).
+                        - **Protected Endpoints:** Endpoints that require authentication are marked with a lock icon in Swagger UI.
+                        - **Role-Based Access:** Certain actions may require specific user roles (e.g., admin privileges).
+                                - Employers can create and manage job listings.
+                                - Candidates can apply for jobs and manage their applications.
+                                - Admins can manage users and oversee platform activities.
+                        ## API Conventions
+                        - All endpoints follow RESTful conventions.
+                        - Use standard HTTP methods: GET, POST, PUT, DELETE.
+                        - All responses follow standard JSON format:
+                          ```json
+                          {
+                              "status": "success",
+                              "data": { ... },
+                              "message": "Descriptive message"
+                          }
+                          ```
+                        - Request and response bodies are in JSON format.
+                        - Auto-generated codes: Company (DN), Job (VL), Candidate (UV), Application (DX)
+                                        """)
                         .version("1.0.0")
                         .contact(new Contact()
                                 .name("Development Team")
@@ -48,6 +88,21 @@ public class OpenApiConfig {
                                 .type(SecurityScheme.Type.HTTP)
                                 .scheme("bearer")
                                 .bearerFormat("JWT")
-                                .description("Enter JWT token obtained from /api/auth/login endpoint")));
+                                .description("""
+                                Enter your JWT token in the format: `Bearer <your_token_here>`
+
+                                To obtain a token:
+                                1. Use the `/api/auth/login` endpoint with valid credentials.
+                                2. Copy the `token` from the response.
+                                3. Click the "Authorize" button in Swagger UI and enter the token.
+                                4. Access protected endpoints as needed.
+                                                """)))
+                
+                .addServersItem(new Server()
+                        .url("http://localhost:5000")
+                        .description("Local Development Server"))
+                .addServersItem(new Server()
+                        .url("https://api.jobrecruitment.com")
+                        .description("Production Server"));
     }
 }

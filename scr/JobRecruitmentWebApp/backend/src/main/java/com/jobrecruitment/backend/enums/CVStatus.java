@@ -6,12 +6,14 @@ package com.jobrecruitment.backend.enums;
  * Mô tả:
  * - Trạng thái của CV trong hệ thống
  * - ACTIVE: CV đang được sử dụng và có thể ứng tuyển
- * - HIDDEN: CV đã bị ẩn, không thể sử dụng để ứng tuyển
+ * - HIDDEN: CV đã bị ẩn tạm thời, ứng viên vẫn quản lý được
+ * - DELETED: CV đã bị xóa vĩnh viễn, không hiển thị trong danh sách
  */
 
 public enum CVStatus {
     ACTIVE("Đang hoạt động"),
-    HIDDEN("Tạm ẩn");
+    HIDDEN("Tạm ẩn"),
+    DELETED("Đã xóa");
 
     private final String displayName;
 

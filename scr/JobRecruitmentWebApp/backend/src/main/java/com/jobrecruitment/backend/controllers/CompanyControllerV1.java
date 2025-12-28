@@ -17,10 +17,12 @@ import lombok.extern.slf4j.Slf4j;
 import org.springframework.data.domain.Page;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 /**
  * CompanyControllerV1 - Controller REST API cho Quản lý Doanh nghiệp (Version 1).
@@ -42,7 +44,7 @@ import org.springframework.web.bind.annotation.*;
  * 
  * Security:
  * - Endpoints công khai (GET list, GET by ID): Không yêu cầu authentication
- * - Endpoints Employer-only: JWT Bearer Authentication + @PreAuthorize("hasRole('NTD')")
+ * - Endpoints Employer-only: JWT Bearer Authentication + @PreAuthorize("hasRole('DN')")
  * 
  * @author JobRecruitment Development Team
  * @version 1.0
@@ -162,13 +164,13 @@ public class CompanyControllerV1 {
      * HTTP Method: GET
      * URL: /api/v1/companies/me
      * Authentication: JWT Bearer Token
-     * Authorization: @PreAuthorize("hasRole('NTD')")
+     * Authorization: @PreAuthorize("hasRole('DN')")
      * 
      * @param authentication Thông tin authentication (auto-inject bởi Spring Security)
      * @return ResponseEntity chứa ApiResponse<CompanyResponse> với thông tin profile
      */
     @GetMapping("/me")
-    @PreAuthorize("hasRole('NTD')")
+    @PreAuthorize("hasRole('DN')")
     @Operation(
         summary = "Get my company profile",
         description = "Retrieve the authenticated employer's company profile. " +
@@ -215,7 +217,7 @@ public class CompanyControllerV1 {
      * HTTP Method: PUT
      * URL: /api/v1/companies/me
      * Authentication: JWT Bearer Token
-     * Authorization: @PreAuthorize("hasRole('NTD')")
+     * Authorization: @PreAuthorize("hasRole('DN')")
      * 
      * Request Body: CompanyProfileRequest
      * - companyName: Tên chính thức (RBHT validation: chỉ chữ cái và khoảng trắng)
@@ -229,7 +231,7 @@ public class CompanyControllerV1 {
      * @return ResponseEntity chứa ApiResponse<CompanyResponse> với thông tin đã cập nhật
      */
     @PutMapping("/me")
-    @PreAuthorize("hasRole('NTD')")
+    @PreAuthorize("hasRole('DN')")
     @Operation(
         summary = "Update my company profile",
         description = "Update the authenticated employer's company profile. " +
@@ -278,44 +280,56 @@ public class CompanyControllerV1 {
     }
     
     /**
-     * Cập nhật logo doanh nghiệp.
+     * Cập nhật logo doanh nghiệp (File Upload).
      * 
      * Employer-only endpoint - chỉ employer mới có thể cập nhật logo doanh nghiệp của mình.
      * 
      * HTTP Method: PATCH
      * URL: /api/v1/companies/me/logo
      * Authentication: JWT Bearer Token
-     * Authorization: @PreAuthorize("hasRole('NTD')")
+     * Authorization: @PreAuthorize("hasRole('DN')")
+     * Content-Type: multipart/form-data
      * 
      * Request Parameters:
-     * - logoUrl: URL của logo mới (String)
+     * - file: Logo image file (MultipartFile, jpg/jpeg/png/gif)
      * 
-     * Lưu ý: Đây là phiên bản đơn giản. Trong production, sẽ:
-     * 1. Nhận multipart/form-data file upload
-     * 2. Upload lên cloud storage (AWS S3, Azure Blob, Cloudinary)
-     * 3. Lưu URL trả về vào field logoURL
+     * Business Logic:
+     * 1. Xác thực ownership: Chỉ employer được phép update logo công ty mình
+     * 2. Validate file: Extension (jpg, jpeg, png, gif), size (max 10MB)
+     * 3. Upload file vào thư mục uploads/logos/
+     * 4. Xóa logo cũ nếu tồn tại
+     * 5. Cập nhật logoURL trong database
+     * 6. Trả về CompanyResponse với URL logo mới
      * 
-     * @param logoUrl URL logo mới (request parameter)
+     * Ví dụ URL truy cập logo:
+     * - http://localhost:8080/uploads/logos/uuid-filename.png
+     * 
+     * @param file Logo image file (multipart/form-data)
      * @param authentication Thông tin authentication (auto-inject bởi Spring Security)
      * @return ResponseEntity chứa ApiResponse<CompanyResponse> với thông tin đã cập nhật logo
      */
-    @PatchMapping("/me/logo")
-    @PreAuthorize("hasRole('NTD')")
+    @PatchMapping(value = "/me/logo", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
+    @PreAuthorize("hasRole('DN')")
     @Operation(
-        summary = "Update company logo",
-        description = "Update the company logo URL. " +
-                     "In production, this would accept file upload and store to cloud storage. " +
-                     "Currently accepts logo URL as request parameter.",
+        summary = "Upload company logo",
+        description = "Upload a logo image file for the company. " +
+                     "Accepts multipart/form-data with image file (jpg, jpeg, png, gif). " +
+                     "Maximum file size: 10MB. " +
+                     "Old logo will be deleted if exists.",
         security = @SecurityRequirement(name = "bearerAuth")
     )
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
             responseCode = "200",
-            description = "Company logo updated successfully",
+            description = "Company logo uploaded successfully",
             content = @Content(
                 mediaType = "application/json",
                 schema = @Schema(implementation = ApiResponse.class)
             )
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "400",
+            description = "Bad Request - Invalid file format or size exceeds limit"
         ),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
             responseCode = "401",
@@ -330,15 +344,17 @@ public class CompanyControllerV1 {
             description = "Company profile not found"
         )
     })
-    public ResponseEntity<ApiResponse<CompanyResponse>> updateLogo(
-            @RequestParam @Parameter(description = "New logo URL", required = true) String logoUrl,
+    public ResponseEntity<ApiResponse<CompanyResponse>> uploadLogo(
+            @RequestParam("file") @Parameter(description = "Logo image file (jpg, jpeg, png, gif)", required = true) 
+            MultipartFile file,
             Authentication authentication
     ) {
         String username = authentication.getName();
-        log.info("PATCH /api/v1/companies/me/logo - User: {}, LogoURL: {}", username, logoUrl);
+        log.info("PATCH /api/v1/companies/me/logo - User: {}, File: {}, Size: {} bytes", 
+                username, file.getOriginalFilename(), file.getSize());
         
-        CompanyResponse company = companyServiceV1.updateLogo(logoUrl, username);
-        ApiResponse<CompanyResponse> response = ApiResponse.success("Company logo updated successfully", company);
+        CompanyResponse company = companyServiceV1.uploadLogo(file, username);
+        ApiResponse<CompanyResponse> response = ApiResponse.success("Company logo uploaded successfully", company);
         
         return ResponseEntity.ok(response);
     }

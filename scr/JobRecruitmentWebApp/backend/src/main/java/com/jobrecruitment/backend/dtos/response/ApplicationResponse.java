@@ -60,6 +60,41 @@ public class ApplicationResponse {
     private String cvCode;
     
     /**
+     * Đường dẫn file CV
+     * - Flatten data từ CV.cvFile
+     * - Dùng để download/view CV
+     */
+    private String cvFile;
+    
+    /**
+     * ID ứng viên
+     * - Tham chiếu đến Candidate.candidateId
+     * - Lấy từ CV.candidate
+     */
+    private Long candidateId;
+    
+    /**
+     * Tên ứng viên
+     * - Flatten data từ Candidate.candidateName
+     * - Lấy từ CV.candidate.candidateName
+     */
+    private String candidateName;
+    
+    /**
+     * Email ứng viên
+     * - Flatten data từ Candidate.candidateEmail
+     * - Lấy từ CV.candidate.candidateEmail
+     */
+    private String candidateEmail;
+    
+    /**
+     * Số điện thoại ứng viên
+     * - Flatten data từ Candidate.candidatePhone
+     * - Lấy từ CV.candidate.candidatePhone
+     */
+    private String candidatePhone;
+    
+    /**
      * Mã đơn ứng tuyển
      * - Format: "DX" + 8 chữ số
      */

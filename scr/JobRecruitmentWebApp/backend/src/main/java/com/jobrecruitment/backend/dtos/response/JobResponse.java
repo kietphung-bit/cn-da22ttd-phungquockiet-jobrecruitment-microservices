@@ -46,6 +46,12 @@ public class JobResponse {
      * - Flatten data từ Company.companyName
      */
     private String companyName;
+
+    /**
+     * Logo công ty
+     * - Flatten data từ Company.logoURL
+     */
+    private String logoURL;
     
     /**
      * ID ngành nghề

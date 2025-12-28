@@ -18,6 +18,7 @@ import org.springframework.security.access.prepost.PreAuthorize;
 import org.springframework.security.core.annotation.AuthenticationPrincipal;
 import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -62,24 +63,32 @@ public class CVControllerV1 {
      * 
      * HTTP Method: POST
      * URL: /api/v1/cvs
+     * Content-Type: multipart/form-data
      * Authentication: JWT Bearer Token
      * Authorization: @PreAuthorize("hasRole('UV')")
      * 
-     * @param cvFile Đường dẫn hoặc URL của file CV (request parameter)
+     * CRITICAL: Frontend must send FormData with key 'file' matching @RequestParam("file")
+     * 
+     * @param file MultipartFile từ form upload (PDF/DOCX)
      * @param userDetails Thông tin user đang đăng nhập (auto-inject bởi Spring Security)
      * @return ResponseEntity chứa ApiResponse<CVResponse> với CVCode được tạo
      */
-    @PostMapping
+    @PostMapping(consumes = "multipart/form-data")
     @PreAuthorize("hasRole('UV')")
     @Operation(
             summary = "Upload CV",
-            description = "Candidate-only endpoint. Upload a new CV with auto-generated CVCode (CV + 8 digits)."
+            description = "Candidate-only endpoint. Upload a new CV file (PDF/DOCX) with auto-generated CVCode (CV + 8 digits)."
     )
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "201",
                     description = "CV created successfully",
                     content = @Content(schema = @Schema(implementation = CVResponse.class))
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "400",
+                    description = "Invalid file or file too large",
+                    content = @Content
             ),
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
                     responseCode = "401",
@@ -98,12 +107,12 @@ public class CVControllerV1 {
             )
     })
     public ResponseEntity<ApiResponse<CVResponse>> uploadCV(
-            @Parameter(description = "CV file path or URL", example = "/uploads/cvs/john_doe_cv.pdf")
-            @RequestParam String cvFile,
+            @Parameter(description = "CV file (PDF/DOCX, max 10MB)", required = true)
+            @RequestParam("file") MultipartFile file,
             @Parameter(hidden = true)
             @AuthenticationPrincipal UserDetails userDetails
     ) {
-        CVResponse cvResponse = cvServiceV1.createCV(cvFile, userDetails.getUsername());
+        CVResponse cvResponse = cvServiceV1.createCV(file, userDetails.getUsername());
         
         return ResponseEntity.status(HttpStatus.CREATED).body(
                 ApiResponse.<CVResponse>builder()

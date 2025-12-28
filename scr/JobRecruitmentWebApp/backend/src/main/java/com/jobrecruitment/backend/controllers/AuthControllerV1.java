@@ -1,6 +1,7 @@
 package com.jobrecruitment.backend.controllers;
 
 import com.jobrecruitment.backend.dtos.request.CandidateRegisterRequest;
+import com.jobrecruitment.backend.dtos.request.ChangePasswordRequest;
 import com.jobrecruitment.backend.dtos.request.CompanyRegisterRequest;
 import com.jobrecruitment.backend.dtos.request.LoginRequest;
 import com.jobrecruitment.backend.dtos.response.ApiResponse;
@@ -17,6 +18,8 @@ import lombok.RequiredArgsConstructor;
 import lombok.extern.slf4j.Slf4j;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
+import org.springframework.security.core.annotation.AuthenticationPrincipal;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.web.bind.annotation.*;
 
 /**
@@ -47,6 +50,8 @@ import org.springframework.web.bind.annotation.*;
  * 1. POST   /api/v1/auth/login                 - Đăng nhập user
  * 2. POST   /api/v1/auth/register/employer     - Đăng ký doanh nghiệp
  * 3. POST   /api/v1/auth/register/candidate    - Đăng ký ứng viên
+ * 4. PATCH  /api/v1/auth/change-password       - Đổi mật khẩu (authenticated)
+ * 5. POST   /api/v1/auth/logout-all            - Đăng xuất tất cả thiết bị (authenticated)
  */
 @RestController
 @RequestMapping("/api/v1/auth")
@@ -265,5 +270,106 @@ public class AuthControllerV1 {
         return ResponseEntity
                 .status(HttpStatus.CREATED)
                 .body(response);
+    }
+
+    /**
+     * Đổi mật khẩu cho user đang đăng nhập.
+     * 
+     * Quy trình xử lý:
+     * 1. Lấy username từ JWT token (UserDetails trong SecurityContext)
+     * 2. Validate oldPassword, newPassword, confirmPassword
+     * 3. Update password trong database (BCrypt hash)
+     * 
+     * Request Body (ChangePasswordRequest):
+     * - oldPassword: Mật khẩu hiện tại (để xác thực)
+     * - newPassword: Mật khẩu mới (min 6 chars)
+     * - confirmPassword: Xác nhận mật khẩu mới
+     * 
+     * Security:
+     * - Yêu cầu authenticated (JWT token)
+     * - User chỉ có thể đổi password của chính mình
+     * 
+     * @param request ChangePasswordRequest
+     * @param userDetails UserDetails từ JWT token
+     * @return ResponseEntity<ApiResponse<Void>> với HTTP 200 OK
+     * @throws ValidationException nếu oldPassword sai hoặc newPassword == confirmPassword fail
+     */
+    @PatchMapping("/change-password")
+    @Operation(
+        summary = "Change Password",
+        description = "Change password for authenticated user. Requires old password verification. " +
+                     "New password must be different from old password and match confirmation."
+    )
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200",
+            description = "Password changed successfully"
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "400",
+            description = "Bad Request - Old password incorrect or validation failed"
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized - Invalid or missing JWT token"
+        )
+    })
+    public ResponseEntity<ApiResponse<Void>> changePassword(
+            @Valid @RequestBody @Parameter(description = "Change password request", required = true)
+            ChangePasswordRequest request,
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        log.info("PATCH /api/v1/auth/change-password - User: {}", userDetails.getUsername());
+        
+        authService.changePassword(request, userDetails.getUsername());
+        ApiResponse<Void> response = ApiResponse.success("Đổi mật khẩu thành công", null);
+        
+        return ResponseEntity.ok(response);
+    }
+
+    /**
+     * Đăng xuất khỏi tất cả thiết bị (vô hiệu hóa tất cả JWT tokens cũ).
+     * 
+     * Quy trình xử lý:
+     * 1. Lấy username từ JWT token
+     * 2. Update User.lastLogout = LocalDateTime.now()
+     * 3. Tất cả tokens có issuedAt < lastLogout sẽ bị reject
+     * 
+     * Sử dụng:
+     * - Khi user muốn logout khỏi tất cả thiết bị
+     * - Khi user nghi ngờ tài khoản bị xâm nhập
+     * 
+     * Lưu ý:
+     * - Frontend phải clear localStorage và redirect to /login
+     * - User phải đăng nhập lại trên tất cả thiết bị
+     * 
+     * @param userDetails UserDetails từ JWT token
+     * @return ResponseEntity<ApiResponse<Void>> với HTTP 200 OK
+     */
+    @PostMapping("/logout-all")
+    @Operation(
+        summary = "Logout All Sessions",
+        description = "Invalidate all JWT tokens issued before current timestamp. " +
+                     "User must re-login on all devices. Updates lastLogout timestamp in database."
+    )
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200",
+            description = "All sessions logged out successfully"
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "401",
+            description = "Unauthorized - Invalid or missing JWT token"
+        )
+    })
+    public ResponseEntity<ApiResponse<Void>> logoutAllSessions(
+            @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        log.info("POST /api/v1/auth/logout-all - User: {}", userDetails.getUsername());
+        
+        authService.logoutAllSessions(userDetails.getUsername());
+        ApiResponse<Void> response = ApiResponse.success("Đã đăng xuất khỏi tất cả thiết bị", null);
+        
+        return ResponseEntity.ok(response);
     }
 }

@@ -87,6 +87,17 @@ public class JwtUtils {
     }
     
     /**
+     * Trích xuất thời điểm phát hành token (issuedAt).
+     * Sử dụng để kiểm tra token có trước thời điểm logout all không.
+     * 
+     * @param token JWT token string
+     * @return Thời điểm token được phát hành (Date object)
+     */
+    public Date extractIssuedAt(String token) {
+        return extractClaim(token, Claims::getIssuedAt);
+    }
+    
+    /**
      * Trích xuất một claim cụ thể từ JWT token.
      * Hàm generic cho phép trích xuất bất kỳ claim nào (username, role, userCode, exp, etc.)
      * 

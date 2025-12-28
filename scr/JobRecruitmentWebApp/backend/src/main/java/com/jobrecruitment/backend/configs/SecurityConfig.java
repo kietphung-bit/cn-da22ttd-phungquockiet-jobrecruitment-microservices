@@ -1,6 +1,7 @@
 package com.jobrecruitment.backend.configs;
 
 import com.jobrecruitment.backend.filters.JwtAuthenticationFilter;
+import com.jobrecruitment.backend.filters.RateLimitFilter;
 import lombok.RequiredArgsConstructor;
 import org.springframework.context.annotation.Bean;
 import org.springframework.context.annotation.Configuration;
@@ -49,12 +50,18 @@ import java.util.Arrays;
  *    - @EnableMethodSecurity: Bật tính năng @PreAuthorize, @PostAuthorize
  *    - Kiểm tra quyền chi tiết tại từng method trong controller
  * 
+ * 6. Rate Limiting:
+ *    - RateLimitFilter: Giới hạn số lượng request để bảo vệ khỏi DDoS
+ *    - Public endpoints: 10 requests/minute (theo IP)
+ *    - Authenticated endpoints: 50 requests/minute (theo User ID)
+ * 
  * Kiến trúc bảo mật:
- * Request -> CORS Filter -> JWT Filter -> SecurityFilterChain -> Controller
- *         -> Exception Handler (401/403)
+ * Request -> RateLimitFilter -> CORS Filter -> JWT Filter -> SecurityFilterChain -> Controller
+ *         -> Exception Handler (401/403/429)
  * 
  * Phụ thuộc:
  * - JwtAuthenticationFilter: Filter custom kiểm tra JWT token
+ * - RateLimitFilter: Filter custom giới hạn request rate
  */
 @Configuration
 @EnableWebSecurity
@@ -63,6 +70,7 @@ import java.util.Arrays;
 public class SecurityConfig {
     
     private final JwtAuthenticationFilter jwtAuthenticationFilter;
+    private final RateLimitFilter rateLimitFilter;
     
     /**
      * Bean PasswordEncoder - Mã hoá mật khẩu bằng BCrypt
@@ -138,6 +146,9 @@ public class SecurityConfig {
                 .requestMatchers("/api/auth/**").permitAll()
                 .requestMatchers("/api/v1/auth/**").permitAll()
                 
+                // Public endpoints (static files - logos, CVs, uploaded files)
+                .requestMatchers("/uploads/**").permitAll()
+                
                 // Public endpoints (health check, swagger, documentation)
                 .requestMatchers(
                     "/api/health/**", 
@@ -159,38 +170,20 @@ public class SecurityConfig {
                     "/api/jobs/company/{companyId}"  // GET jobs by company (legacy)
                 ).permitAll()
                 
-                // Public endpoints - RESTful API v1 (read operations)
+                // Public endpoints - RESTful API v1 (read operations for job browsing)
                 .requestMatchers(
                     org.springframework.http.HttpMethod.GET,
-                    "/api/v1/jobs",                  // GET all jobs (paginated & filtered)
-                    "/api/v1/jobs/{jobId}",          // GET job by ID
-                    "/api/v1/applications",          // GET all applications (paginated & filtered)
-                    "/api/v1/applications/{applicationId}",  // GET application by ID
-                    "/api/v1/companies",             // GET all companies (paginated & filtered)
-                    "/api/v1/companies/{companyId}", // GET company by ID
-                    "/api/v1/candidates/{candidateId}" // GET candidate by ID
+                    "/api/v1/jobs/**",               // GET all jobs and job details (public job browsing)
+                    "/api/v1/companies/**",          // GET all companies and company details (public company info)
+                    "/api/v1/categories/**"          // GET all job categories (public category browsing)
                 ).permitAll()
                 
-                // Public endpoints - Job categories (read-only)
-                .requestMatchers(
-                    org.springframework.http.HttpMethod.GET,
-                    "/api/job-categories",           // GET all categories
-                    "/api/job-categories/{jcId}"     // GET category by ID
-                ).permitAll()
+                // REMOVED: Candidate profile endpoint - Now requires authentication (IDOR protection)
+                // Reason: Candidates must be authenticated, can only view own profile
+                // Employers/Admin authenticated to view candidate profiles
                 
-                // Admin-only endpoints (Role: ADM)
-                // Fine-grained control via @PreAuthorize in controllers
-                .requestMatchers("/api/admin/**").hasAuthority("ROLE_ADM")
-                
-                // Employer-only endpoints (Role: DN - Doanh nghiệp)
-                // Fine-grained control via @PreAuthorize in controllers
-                .requestMatchers("/api/employer/**").hasAuthority("ROLE_DN")
-                
-                // Candidate-only endpoints (Role: UV - Ứng viên)
-                // Fine-grained control via @PreAuthorize in controllers
-                .requestMatchers("/api/candidate/**").hasAuthority("ROLE_UV")
-                
-                // All other requests require authentication (but role is determined by controller)
+                // All other requests require authentication
+                // Controllers will handle fine-grained authorization via @PreAuthorize
                 .anyRequest().authenticated()
             )
             
@@ -198,6 +191,9 @@ public class SecurityConfig {
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
+            
+            // Add Rate Limit filter FIRST (before any authentication)
+            .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
             
             // Add JWT filter before UsernamePasswordAuthenticationFilter
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);

@@ -122,4 +122,42 @@ public interface ApplicationRepository extends JpaRepository<Application, Long>,
      */
     @Query("SELECT COUNT(a) FROM Application a WHERE a.applyTime BETWEEN :startDate AND :endDate")
     long countByApplyTimeBetween(@Param("startDate") LocalDateTime startDate, @Param("endDate") LocalDateTime endDate);
+    
+    /**
+     * Tìm Application của Company với JOIN FETCH (tránh N+1 query)
+     * - Eager load: CV, Candidate, Job
+     * - Sử dụng trong: Employer xem đơn (getApplicationsForMyJobs)
+     * - Performance: 1 query thay vì N+1 queries
+     * @param companyId ID công ty
+     * @return List<Application> với relationships đã load sẵn
+     */
+    @Query("SELECT DISTINCT a FROM Application a " +
+           "JOIN FETCH a.cv cv " +
+           "JOIN FETCH cv.candidate c " +
+           "JOIN FETCH a.job j " +
+           "WHERE j.company.companyId = :companyId")
+    List<Application> findByCompanyIdWithDetails(@Param("companyId") Long companyId);
+    
+    /**
+     * Tìm Application của Company có filter Job và Status với JOIN FETCH
+     * - Eager load: CV, Candidate, Job
+     * - Supports filtering by jobId và status
+     * - NULL-safe: jobId và status có thể null (lấy tất cả)
+     * @param companyId ID công ty (required)
+     * @param jobId ID tin (optional - null = tất cả)
+     * @param status Trạng thái (optional - null = tất cả)
+     * @return List<Application> với filters applied
+     */
+    @Query("SELECT DISTINCT a FROM Application a " +
+           "JOIN FETCH a.cv cv " +
+           "JOIN FETCH cv.candidate c " +
+           "JOIN FETCH a.job j " +
+           "WHERE j.company.companyId = :companyId " +
+           "AND (:jobId IS NULL OR j.jobId = :jobId) " +
+           "AND (:status IS NULL OR a.applicationStatus = :status)")
+    List<Application> findByCompanyIdWithDetailsFiltered(
+        @Param("companyId") Long companyId,
+        @Param("jobId") Long jobId,
+        @Param("status") ApplicationStatus status
+    );
 }

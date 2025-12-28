@@ -1,6 +1,7 @@
 package com.jobrecruitment.backend.services;
 
 import com.jobrecruitment.backend.dtos.request.CandidateRegisterRequest;
+import com.jobrecruitment.backend.dtos.request.ChangePasswordRequest;
 import com.jobrecruitment.backend.dtos.request.CompanyRegisterRequest;
 import com.jobrecruitment.backend.dtos.request.LoginRequest;
 import com.jobrecruitment.backend.dtos.response.AuthResponse;
@@ -12,6 +13,8 @@ import com.jobrecruitment.backend.dtos.response.AuthResponse;
  * - Đăng ký tài khoản Company (Role = DN)
  * - Đăng ký tài khoản Candidate (Role = UV)
  * - Đăng nhập và tạo JWT token
+ * - Đổi mật khẩu (Change Password)
+ * - Đăng xuất khỏi tất cả thiết bị (Logout All Sessions)
  * 
  * Business Rules:
  * - Mỗi User chỉ thuộc 1 Role (ADM/DN/UV)
@@ -86,4 +89,49 @@ public interface AuthService {
      * @throws ValidationException nếu User bị khóa
      */
     AuthResponse login(LoginRequest request);
+    
+    /**
+     * Đổi mật khẩu cho user đang đăng nhập
+     * 
+     * Sử dụng:
+     * - API PATCH /api/v1/auth/change-password
+     * - Yêu cầu: User phải authenticated (JWT token)
+     * 
+     * Business Logic:
+     * 1. Lấy username từ SecurityContext (authenticated user)
+     * 2. Verify oldPassword matches BCrypt hash
+     * 3. Validate newPassword != oldPassword
+     * 4. Validate newPassword == confirmPassword
+     * 5. Hash newPassword bằng BCrypt
+     * 6. Update User.password trong database
+     * 
+     * @param request ChangePasswordRequest (oldPassword, newPassword, confirmPassword)
+     * @param username Username từ JWT token (authenticated user)
+     * @throws ValidationException nếu old password sai hoặc newPassword == oldPassword
+     * @throws ResourceNotFoundException nếu User không tồn tại
+     */
+    void changePassword(ChangePasswordRequest request, String username);
+    
+    /**
+     * Đăng xuất khỏi tất cả thiết bị (invalidate all JWT tokens)
+     * 
+     * Sử dụng:
+     * - API POST /api/v1/auth/logout-all
+     * - Yêu cầu: User phải authenticated (JWT token)
+     * 
+     * Business Logic:
+     * 1. Lấy username từ SecurityContext (authenticated user)
+     * 2. Update User.lastLogout = LocalDateTime.now()
+     * 3. Save user to database
+     * 4. JwtAuthenticationFilter sẽ kiểm tra: token.issuedAt < user.lastLogout -> Reject (401)
+     * 
+     * Lưu ý:
+     * - Tất cả JWT tokens cũ (issued before lastLogout) sẽ bị vô hiệu hóa
+     * - User phải đăng nhập lại trên tất cả thiết bị
+     * - Frontend phải clear localStorage và redirect to /login
+     * 
+     * @param username Username từ JWT token (authenticated user)
+     * @throws ResourceNotFoundException nếu User không tồn tại
+     */
+    void logoutAllSessions(String username);
 }

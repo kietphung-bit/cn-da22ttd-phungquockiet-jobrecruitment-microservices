@@ -1,11 +1,19 @@
 package com.jobrecruitment.backend.filters;
 
+import java.io.IOException;
+import java.sql.Timestamp;
+import java.time.LocalDateTime;
+import java.util.Date;
+
+import com.jobrecruitment.backend.entities.User;
+import com.jobrecruitment.backend.repositories.UserRepository;
 import com.jobrecruitment.backend.utils.JwtUtils;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import lombok.extern.slf4j.Slf4j;
 import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
 import org.springframework.security.core.context.SecurityContextHolder;
 import org.springframework.security.core.userdetails.UserDetails;
@@ -14,22 +22,22 @@ import org.springframework.security.web.authentication.WebAuthenticationDetailsS
 import org.springframework.stereotype.Component;
 import org.springframework.web.filter.OncePerRequestFilter;
 
-import java.io.IOException;
-
 /**
  * JWT Authentication Filter
  * 
- * Much đích:
+ * Mục đích:
  * - Kiểm tra JWT token trong header của request
  * - Trích xuất JWT từ header Authorization (schema Bearer)
  * - Xác thực token và thiết lập Spring Security Context
+ * - Kiểm tra token có bị vô hiệu hóa bởi "logout all" không
  * 
  * Luồng xử lý:
  * 1. Trích xuất token từ header "Authorization: Bearer {token}"
  * 2. Xác thực chữ ký và thời hạn token
- * 3. Tải UserDetails từ database
- * 4. Tạo đối tượng Authentication
- * 5. Thiết lập authentication trong SecurityContextHolder
+ * 3. Kiểm tra token.issuedAt có trước user.lastLogout không (nếu có)
+ * 4. Tải UserDetails từ database
+ * 5. Tạo đối tượng Authentication
+ * 6. Thiết lập authentication trong SecurityContextHolder
  * 
  * Mở rộng OncePerRequestFilter để đảm bảo bộ lọc chạy một lần mỗi yêu cầu.
  * 
@@ -38,10 +46,12 @@ import java.io.IOException;
  */
 @Component
 @RequiredArgsConstructor
+@Slf4j
 public class JwtAuthenticationFilter extends OncePerRequestFilter {
 
     private final JwtUtils jwtUtils;
     private final UserDetailsService userDetailsService;
+    private final UserRepository userRepository;
 
     /**
      * Logic lọc - chạy trên mỗi yêu cầu HTTP
@@ -84,6 +94,23 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 // Xác thực token
                 if (jwtUtils.validateToken(jwt, userDetails)) {
                     
+                    // Check if token was issued before user's lastLogout (logout all sessions)
+                    User user = userRepository.findByUsername(username).orElse(null);
+                    if (user != null && user.getLastLogout() != null) {
+                        Date tokenIssuedAt = jwtUtils.extractIssuedAt(jwt);
+                        LocalDateTime tokenIssuedTime = Timestamp.valueOf(
+                            new java.text.SimpleDateFormat("yyyy-MM-dd HH:mm:ss")
+                                .format(tokenIssuedAt)
+                        ).toLocalDateTime();
+                        
+                        // Reject token if it was issued before lastLogout
+                        if (tokenIssuedTime.isBefore(user.getLastLogout())) {
+                            log.warn("Token rejected - issued before logout all: {}", username);
+                            filterChain.doFilter(request, response);
+                            return;
+                        }
+                    }
+                    
                     // Tạo đối tượng authentication
                     UsernamePasswordAuthenticationToken authToken = new UsernamePasswordAuthenticationToken(
                             userDetails,
@@ -104,7 +131,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
         } catch (Exception e) {
             // Ghi log lỗi và tiếp tục chuỗi bộ lọc
             // Các token không hợp lệ sẽ bị bỏ qua, dẫn đến các yêu cầu không được xác thực
-            logger.error("Cannot set user authentication: {}", e);
+            log.error("Cannot set user authentication: {}", e.getMessage());
         }
         
         // Tiếp tục chuỗi bộ lọc

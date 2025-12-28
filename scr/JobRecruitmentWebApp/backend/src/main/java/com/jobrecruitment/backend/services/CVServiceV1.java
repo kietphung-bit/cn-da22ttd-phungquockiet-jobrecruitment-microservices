@@ -2,6 +2,7 @@ package com.jobrecruitment.backend.services;
 
 import com.jobrecruitment.backend.dtos.response.CVResponse;
 import com.jobrecruitment.backend.enums.CVStatus;
+import org.springframework.web.multipart.MultipartFile;
 
 import java.util.List;
 
@@ -28,18 +29,19 @@ public interface CVServiceV1 {
      * Tạo CV mới (Candidate only, upload CV)
      * 
      * Sử dụng:
-     * - API POST /api/v1/cvs
-     * - Upload file CV qua file upload service, sau đó gọi API này với cvFile path
+     * - API POST /api/v1/cvs (multipart/form-data)
+     * - Upload file CV trực tiếp qua MultipartFile
      * 
      * Business Logic:
+     * - Lưu file vào uploads/cvs/ bằng FileStorageService
      * - Tạo CV mới với CVCode = CV + 8 số (unique)
      * - CVStatus = ACTIVE (mặc định)
      * 
-     * @param cvFile Path/URL file CV (ví dụ: uploads/cv/UV12345678_20241225.pdf)
+     * @param file MultipartFile từ form upload (PDF/DOCX, max 10MB)
      * @param username Username của Candidate đang authenticate
      * @return CVResponse (bao gồm cvCode, cvId, cvFile, cvStatus)
      */
-    CVResponse createCV(String cvFile, String username);
+    CVResponse createCV(MultipartFile file, String username);
     
     /**
      * Lấy danh sách CV của Candidate (Candidate only)

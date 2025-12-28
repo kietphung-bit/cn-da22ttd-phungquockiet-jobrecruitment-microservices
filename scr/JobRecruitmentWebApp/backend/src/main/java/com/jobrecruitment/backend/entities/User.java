@@ -84,6 +84,16 @@ public class User {
     private Boolean locked = false;
 
     /**
+     * Thời điểm đăng xuất khỏi tất cả thiết bị gần nhất
+     * - Dùng để vô hiệu hóa tất cả JWT tokens đã phát hành trước thời điểm này
+     * - Null: Chưa từng logout all devices
+     * - Khi user logout all: Set = Instant.now()
+     * - JwtAuthenticationFilter sẽ kiểm tra: token.issuedAt < lastLogout -> Reject
+     */
+    @Column(nullable = true)
+    private LocalDateTime lastLogout;
+
+    /**
      * Thời gian tạo tài khoản (tự động)
      */
     @CreationTimestamp
