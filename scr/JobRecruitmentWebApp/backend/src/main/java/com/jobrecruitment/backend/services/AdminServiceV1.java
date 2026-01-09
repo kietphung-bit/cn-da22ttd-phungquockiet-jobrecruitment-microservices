@@ -13,8 +13,14 @@ import org.springframework.data.domain.Pageable;
  * Chức năng chính:
  * - Thống kê dashboard
  * - Quản lý người dùng (danh sách, khóa/mở khóa)
- * - Duyệt công ty (phê duyệt/khóa)
- * - Duyệt công việc (phê duyệt/từ chối)
+ * - Quản lý công ty (duyệt/khóa)
+ * - Quản lý công việc (Post-moderation: DELETE/BLOCK vi phạm, KHÔNG pre-approve)
+ * - Quản lý SeekingPost (DELETE vi phạm)
+ * 
+ * Post-moderation Policy:
+ * - Admin does NOT pre-approve content (jobs, seeking posts)
+ * - Admin ONLY deletes/blocks content after violations are reported or detected
+ * - Users (Employers, Candidates) are responsible for content accuracy and legality
  */
 public interface AdminServiceV1 {
     
@@ -60,11 +66,42 @@ public interface AdminServiceV1 {
     String changeCompanyStatus(Long companyId, CompanyStatus newStatus);
     
     /**
-     * Thay đổi trạng thái công việc (Duyệt/Từ chối)
+     * Thay đổi trạng thái công việc (Post-moderation: Chỉ DELETE/BLOCK vi phạm)
+     * 
+     * Post-moderation Model:
+     * - Admin KHÔNG duyệt trước (no pre-approval)
+     * - Admin CHỈ thay đổi trạng thái để BLOCK/DELETE nội dung vi phạm
+     * - Recommended status changes: ACTIVE -> HIDDEN (block), or use deleteJob() for permanent removal
      * 
      * @param jobId Job ID
-     * @param newStatus New job status (PENDING, ACTIVE, REJECTED, CLOSED, HIDDEN)
+     * @param newStatus New job status (ACTIVE, CLOSED, HIDDEN - NOT PENDING/APPROVED)
      * @return Success message
      */
     String changeJobStatus(Long jobId, JobStatus newStatus);
+    
+    /**
+     * Xóa tin tuyển dụng (Admin - Post-moderation)
+     * 
+     * Chức năng:
+     * - Soft delete: Thay đổi JobStatus thành HIDDEN hoặc CLOSED
+     * - Sử dụng khi tin tuyển dụng vi phạm chính sách (scam, offensive content)
+     * - Admin có quyền xóa bất kỳ tin tuyển dụng nào
+     * 
+     * @param jobId Job ID cần xóa
+     * @return Success message
+     */
+    String deleteJob(Long jobId);
+    
+    /**
+     * Xóa tin đăng tìm việc (Admin - Post-moderation)
+     * 
+     * Chức năng:
+     * - Soft delete: Thay đổi SKPostStatus thành HIDDEN hoặc CLOSED
+     * - Sử dụng khi tin đăng vi phạm chính sách (fake profile, inappropriate content)
+     * - Admin có quyền xóa bất kỳ SeekingPost nào
+     * 
+     * @param seekingPostId SeekingPost ID cần xóa
+     * @return Success message
+     */
+    String deleteSeekingPost(Long seekingPostId);
 }

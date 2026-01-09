@@ -32,7 +32,9 @@ import org.springframework.web.bind.annotation.*;
  * 3. PATCH /users/{id}/lock         - Khóa tài khoản người dùng
  * 4. PATCH /users/{id}/unlock       - Mở khóa tài khoản người dùng
  * 5. PATCH /companies/{id}/status   - Thay đổi trạng thái doanh nghiệp (kiểm duyệt)
- * 6. PATCH /jobs/{id}/status        - Thay đổi trạng thái công việc (kiểm duyệt)
+ * 6. PATCH /jobs/{id}/status        - Thay đổi trạng thái công việc (Post-moderation)
+ * 7. DELETE /jobs/{id}              - Xóa tin tuyển dụng vi phạm (Post-moderation)
+ * 8. DELETE /seeking-posts/{id}     - Xóa tin đăng tìm việc vi phạm (Post-moderation)
  * 
  * Bảo mật:
  * - Tất cả endpoint yêu cầu JWT Authentication (Bearer Token)
@@ -42,7 +44,13 @@ import org.springframework.web.bind.annotation.*;
  * Chức năng chính:
  * - Thống kê dashboard: Người dùng, công việc, đơn ứng tuyển
  * - Quản lý người dùng: Xem danh sách, khóa/mở khóa
- * - Kiểm duyệt: Duyệt doanh nghiệp, duyệt tin tuyển dụng
+ * - Kiểm duyệt: Duyệt doanh nghiệp
+ * - Post-moderation: DELETE/BLOCK vi phạm (jobs, seeking posts) - NO pre-approval
+ * 
+ * Post-moderation Policy:
+ * - Admin does NOT approve content before publication
+ * - Admin ONLY removes violations after publication
+ * - Users are fully responsible for content accuracy and legality
  * 
  * Phụ thuộc:
  * - AdminServiceV1: Xử lý business logic cho tất cả chức năng Admin
@@ -370,35 +378,42 @@ public class AdminControllerV1 {
     }
 
     /**
-     * Thay đổi trạng thái công việc (kiểm duyệt)
+     * Thay đổi trạng thái công việc (Post-moderation)
      * 
-     * Endpoint dành cho Admin - Kiểm duyệt và thay đổi trạng thái tin tuyển dụng
+     * Endpoint dành cho Admin - Thay đổi trạng thái tin tuyển dụng
+     * 
+     * Post-moderation Model:
+     * - Admin KHÔNG pre-approve content
+     * - Admin CHỈ thay đổi status để DELETE/BLOCK violations
+     * - Recommended: Use DELETE /jobs/{id} for permanent removal
      * 
      * Các trạng thái:
-     * - PENDING: Chờ xét duyệt (mới đăng)
-     * - ACTIVE: Đã duyệt, đang mở (ứng viên có thể ứng tuyển)
-     * - REJECTED: Bị từ chối bởi Admin (không đủ tiêu chuẩn)
+     * - WAIT: Chưa mở (startDate > today)
+     * - ACTIVE: Đang mở (ứng viên có thể ứng tuyển)
      * - CLOSED: Đã đóng (đủ ứng viên hoặc hết hạn)
-     * - HIDDEN: Tạm ẩn (không hiển thị công khai)
+     * - HIDDEN: Tạm ẩn/Bị khóa (vi phạm)
      * 
-     * HTTP Method: PATCH /api/v1/admin/jobs/{jobId}/status?newStatus=ACTIVE
+     * HTTP Method: PATCH /api/v1/admin/jobs/{jobId}/status?newStatus=HIDDEN
      * 
      * Bảo mật: Yêu cầu JWT + Vai trò ADM
      * 
      * @param jobId ID công việc cần thay đổi trạng thái
-     * @param newStatus Trạng thái mới (PENDING/ACTIVE/REJECTED/CLOSED/HIDDEN)
+     * @param newStatus Trạng thái mới (WAIT/ACTIVE/CLOSED/HIDDEN - NOT PENDING)
      * @return ResponseEntity<ApiResponse<String>> - Thông báo thay đổi thành công
      */
     @PatchMapping("/jobs/{jobId}/status")
     @Operation(
-            summary = "Moderate job status",
-            description = "Admin-only endpoint. Change job status for moderation workflow. " +
-                    "\n\nStatus Options:" +
-                    "\n- PENDING: Awaiting approval" +
-                    "\n- ACTIVE: Approved and visible" +
-                    "\n- REJECTED: Rejected by admin" +
-                    "\n- CLOSED: Position filled" +
-                    "\n- HIDDEN: Hidden from public view"
+            summary = "Moderate job status (Post-moderation)",
+            description = "Admin-only endpoint. Change job status for Post-moderation workflow. " +
+                    "\n\n**Post-moderation Model:**" +
+                    "\n- Admin does NOT pre-approve jobs" +
+                    "\n- Admin ONLY blocks/deletes violations after publication" +
+                    "\n- Use DELETE /jobs/{id} for permanent removal" +
+                    "\n\n**Status Options:**" +
+                    "\n- WAIT: Not yet open (startDate > today)" +
+                    "\n- ACTIVE: Published and accepting applications" +
+                    "\n- CLOSED: Position filled or expired" +
+                    "\n- HIDDEN: Blocked by admin for policy violation"
     )
     @ApiResponses(value = {
             @io.swagger.v3.oas.annotations.responses.ApiResponse(
@@ -425,10 +440,148 @@ public class AdminControllerV1 {
     public ResponseEntity<ApiResponse<String>> changeJobStatus(
             @Parameter(description = "Job ID", example = "1")
             @PathVariable Long jobId,
-            @Parameter(description = "New job status", example = "ACTIVE")
+            @Parameter(description = "New job status (WAIT/ACTIVE/CLOSED/HIDDEN)", example = "HIDDEN")
             @RequestParam JobStatus newStatus
     ) {
         String message = adminServiceV1.changeJobStatus(jobId, newStatus);
+        
+        return ResponseEntity.ok(
+                ApiResponse.<String>builder()
+                        .status(200)
+                        .message(message)
+                        .data(null)
+                        .build()
+        );
+    }
+    
+    /**
+     * Xóa tin tuyển dụng vi phạm (Post-moderation)
+     * 
+     * Endpoint dành cho Admin - Xóa tin tuyển dụng do vi phạm chính sách
+     * 
+     * Post-moderation Policy:
+     * - Admin removes content AFTER publication when violations are detected
+     * - No pre-approval process, immediate action on violations
+     * - Employer is fully responsible for content legality
+     * 
+     * Chức năng:
+     * - Soft delete: Chuyển JobStatus thành HIDDEN
+     * - Sử dụng khi phát hiện: Scam, Gambling, Offensive content
+     * - Admin có quyền xóa mà không cần thông báo trước
+     * 
+     * HTTP Method: DELETE /api/v1/admin/jobs/{jobId}
+     * 
+     * Bảo mật: Yêu cầu JWT + Vai trò ADM
+     * 
+     * @param jobId ID tin tuyển dụng cần xóa
+     * @return ResponseEntity<ApiResponse<String>> - Thông báo xóa thành công
+     */
+    @DeleteMapping("/jobs/{jobId}")
+    @Operation(
+            summary = "Delete job posting (Post-moderation)",
+            description = "Admin-only endpoint. Remove job posting for policy violations. " +
+                    "\n\n**Post-moderation Policy:**" +
+                    "\n- Admin removes content AFTER publication" +
+                    "\n- Immediate action on violations (scam, offensive)" +
+                    "\n- Employer is fully responsible for content" +
+                    "\n\n**Action:** Soft delete (changes status to HIDDEN)"
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Job deleted successfully",
+                    content = @Content
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication required",
+                    content = @Content
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - Admin role required",
+                    content = @Content
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "Job not found",
+                    content = @Content
+            )
+    })
+    public ResponseEntity<ApiResponse<String>> deleteJob(
+            @Parameter(description = "Job ID to delete", example = "1")
+            @PathVariable Long jobId
+    ) {
+        String message = adminServiceV1.deleteJob(jobId);
+        
+        return ResponseEntity.ok(
+                ApiResponse.<String>builder()
+                        .status(200)
+                        .message(message)
+                        .data(null)
+                        .build()
+        );
+    }
+    
+    /**
+     * Xóa tin đăng tìm việc vi phạm (Post-moderation)
+     * 
+     * Endpoint dành cho Admin - Xóa tin đăng tìm việc do vi phạm chính sách
+     * 
+     * Post-moderation Policy:
+     * - Admin removes content AFTER publication when violations are detected
+     * - No pre-approval process for candidate seeking posts
+     * - Candidate is fully responsible for profile authenticity
+     * 
+     * Chức năng:
+     * - Soft delete: Chuyển SKPostStatus thành CLOSED
+     * - Sử dụng khi phát hiện: Fake profile, Inappropriate content
+     * - Admin có quyền xóa mà không cần thông báo trước
+     * 
+     * HTTP Method: DELETE /api/v1/admin/seeking-posts/{seekingPostId}
+     * 
+     * Bảo mật: Yêu cầu JWT + Vai trò ADM
+     * 
+     * @param seekingPostId ID tin đăng tìm việc cần xóa
+     * @return ResponseEntity<ApiResponse<String>> - Thông báo xóa thành công
+     */
+    @DeleteMapping("/seeking-posts/{seekingPostId}")
+    @Operation(
+            summary = "Delete seeking post (Post-moderation)",
+            description = "Admin-only endpoint. Remove candidate seeking post for policy violations. " +
+                    "\n\n**Post-moderation Policy:**" +
+                    "\n- Admin removes content AFTER publication" +
+                    "\n- Immediate action on violations (fake, inappropriate)" +
+                    "\n- Candidate is fully responsible for profile authenticity" +
+                    "\n\n**Action:** Soft delete (changes status to CLOSED)"
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Seeking post deleted successfully",
+                    content = @Content
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication required",
+                    content = @Content
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - Admin role required",
+                    content = @Content
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "Seeking post not found",
+                    content = @Content
+            )
+    })
+    public ResponseEntity<ApiResponse<String>> deleteSeekingPost(
+            @Parameter(description = "Seeking post ID to delete", example = "1")
+            @PathVariable Long seekingPostId
+    ) {
+        String message = adminServiceV1.deleteSeekingPost(seekingPostId);
         
         return ResponseEntity.ok(
                 ApiResponse.<String>builder()

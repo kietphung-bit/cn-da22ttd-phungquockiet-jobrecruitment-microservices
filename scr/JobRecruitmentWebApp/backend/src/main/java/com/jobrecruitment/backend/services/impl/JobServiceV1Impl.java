@@ -43,14 +43,18 @@ import java.util.Objects;
  * - JPA Specifications: Lọc động với nhiều tiêu chí tìm kiếm
  * - Spring Data Pageable: Phân trang cho hiệu suất tốt
  * - Transaction Management: Đảm bảo tính toàn vẹn dữ liệu
- * - JobStatus Logic: Tự động set WAIT hoặc PENDING dựa trên StartDate
- * - Validation: Kiểm tra StartDate <= EndDate (RBNT rule)
+ * - JobStatus Logic (Post-moderation Model):
+ *   + WAIT nếu startDate > Today (chưa đến ngày mở)
+ *   + ACTIVE nếu startDate <= Today (công khai ngay, không cần admin duyệt)
+ *   + Admin chỉ DELETE/BLOCK vi phạm, không PRE-APPROVE
+ * - Validation: Kiểm tra StartDate <= EndDate (RBNT rule), termsAgreed = true
  * 
  * Business Rules được áp dụng:
  * - RBNT (Section 4.6.C.7): StartDate <= EndDate, không apply vào job đã hết hạn
  * - RBGTN (Section 4.6.B.4): JobSalary phải > 0
  * - RBSL (Section 4.6.B.5): MaxCandidates phải >= 0
- * - Job Status Logic: WAIT nếu StartDate > Today, ngược lại PENDING
+ * - Post-moderation Policy (Section 4.4): Jobs default ACTIVE, Admin deletes violations
+ * - Legal Compliance (Section 4.7): Employer must agree to Terms (termsAgreed = true)
  * 
  * @see JobServiceV1
  * @see JobControllerV1
@@ -165,6 +169,7 @@ public class JobServiceV1Impl implements JobServiceV1 {
      * 
      * Quy trình thực hiện (Transaction - Rollback nếu lỗi):
      * 1. Validate JobRequest:
+     *    - termsAgreed = true (Legal requirement - Post-moderation policy)
      *    - StartDate <= EndDate (RBNT rule)
      *    - JobSalary > 0 (RBGTN rule)
      *    - MaxCandidates >= 0 (RBSL rule)
@@ -175,16 +180,21 @@ public class JobServiceV1Impl implements JobServiceV1 {
      * 6. Tạo Job entity với:
      *    - Company, JobCategory, JobCode
      *    - Thông tin job từ request
-     *    - JobStatus:
+     *    - JobStatus (Post-moderation Model):
      *      + WAIT nếu startDate > Today (chưa đến ngày mở)
-     *      + PENDING nếu startDate <= Today (chờ admin duyệt)
+     *      + ACTIVE nếu startDate <= Today (đăng công khai ngay lập tức, KHÔNG cần admin duyệt)
      * 7. Lưu Job vào database
      * 8. Chuyển đổi sang JobResponse và trả về
+     * 
+     * Post-moderation Policy:
+     * - Jobs are published immediately (ACTIVE status) without pre-approval
+     * - Employer commits to content accuracy and legal compliance (termsAgreed checkbox)
+     * - Admin only DELETES/BLOCKS violations post-publication (no pre-approval workflow)
      * 
      * @param request JobRequest chứa thông tin job cần tạo
      * @param username Email của employer (từ JWT token)
      * @return JobResponse chứa thông tin job vừa tạo
-     * @throws ValidationException Nếu dữ liệu không hợp lệ (StartDate > EndDate, Salary <= 0)
+     * @throws ValidationException Nếu dữ liệu không hợp lệ (StartDate > EndDate, Salary <= 0, termsAgreed = false)
      * @throws ResourceNotFoundException Nếu không tìm thấy User, Company hoặc JobCategory
      */
     @Override
@@ -223,11 +233,13 @@ public class JobServiceV1Impl implements JobServiceV1 {
         job.setEndDate(request.getEndDate());
         job.setMaxCandidates(request.getMaxCandidates());
         
-        // Set job status: WAIT if startDate is in the future, otherwise PENDING
+        // Set job status (Post-moderation Model):
+        // - WAIT if startDate is in the future (not yet open)
+        // - ACTIVE if startDate is today or past (publish immediately, no pre-approval)
         if (request.getStartDate().isAfter(LocalDate.now())) {
             job.setJobStatus(JobStatus.WAIT);
         } else {
-            job.setJobStatus(JobStatus.PENDING);
+            job.setJobStatus(JobStatus.ACTIVE); // Post-moderation: Publish immediately
         }
         
         Job savedJob = jobRepository.save(job);

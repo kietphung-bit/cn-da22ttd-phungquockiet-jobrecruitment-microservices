@@ -4,9 +4,11 @@ import com.jobrecruitment.backend.dtos.response.DashboardStatsResponse;
 import com.jobrecruitment.backend.dtos.response.UserResponse;
 import com.jobrecruitment.backend.entities.Company;
 import com.jobrecruitment.backend.entities.Job;
+import com.jobrecruitment.backend.entities.SeekingPost;
 import com.jobrecruitment.backend.entities.User;
 import com.jobrecruitment.backend.enums.CompanyStatus;
 import com.jobrecruitment.backend.enums.JobStatus;
+import com.jobrecruitment.backend.enums.SeekingPostStatus;
 import com.jobrecruitment.backend.exceptions.ResourceNotFoundException;
 import com.jobrecruitment.backend.mappers.UserMapper;
 import com.jobrecruitment.backend.repositories.*;
@@ -32,7 +34,13 @@ import java.util.stream.Collectors;
  * - Thống kê dashboard: Tổng hợp số liệu người dùng, công việc, đơn ứng tuyển
  * - Quản lý người dùng: Phân trang, lọc theo vai trò, khóa/mở khóa tài khoản
  * - Quản lý doanh nghiệp: Thay đổi trạng thái (PENDING/ACTIVE/BLOCKED)
- * - Quản lý công việc: Thay đổi trạng thái (PENDING/ACTIVE/REJECTED/CLOSED/HIDDEN)
+ * - Quản lý công việc (Post-moderation): DELETE/BLOCK vi phạm (NOT pre-approve)
+ * - Quản lý SeekingPost (Post-moderation): DELETE vi phạm
+ * 
+ * Post-moderation Policy:
+ * - Admin does NOT approve content before publication
+ * - Admin ONLY removes/blocks violations after publication
+ * - Users are fully responsible for content accuracy and legality
  * 
  * Ràng buộc kỹ thuật:
  * - Không sử dụng Native SQL
@@ -42,6 +50,7 @@ import java.util.stream.Collectors;
  * Phụ thuộc:
  * - CompanyRepository: Truy vấn và cập nhật doanh nghiệp
  * - JobRepository: Truy vấn và cập nhật công việc
+ * - SeekingPostRepository: Truy vấn và cập nhật tin đăng tìm việc
  * - UserRepository: Truy vấn và cập nhật người dùng
  * - CandidateRepository: Đếm ứng viên
  * - ApplicationRepository: Đếm đơn ứng tuyển theo thời gian
@@ -54,6 +63,7 @@ public class AdminServiceV1Impl implements AdminServiceV1 {
 
     private final CompanyRepository companyRepository;
     private final JobRepository jobRepository;
+    private final SeekingPostRepository seekingPostRepository;
     private final UserRepository userRepository;
     private final CandidateRepository candidateRepository;
     private final ApplicationRepository applicationRepository;
@@ -295,12 +305,13 @@ public class AdminServiceV1Impl implements AdminServiceV1 {
     }
 
     /**
-     * Thay đổi trạng thái công việc (kiểm duyệt)
+     * Thay đổi trạng thái công việc (Post-moderation: Chỉ DELETE/BLOCK vi phạm)
      * 
      * Chức năng:
-     * - Thay đổi JobStatus để kiểm duyệt tin tuyển dụng
-     * - Trạng thái: PENDING (Chờ duyệt), ACTIVE (Đang mở), REJECTED (Bị từ chối), CLOSED (Đã đóng), HIDDEN (Tạm ẩn)
-     * - Job PENDING cần Admin duyệt trước khi hiển thị công khai
+     * - Thay đổi JobStatus để quản lý tin tuyển dụng
+     * - Post-moderation Model: Admin KHÔNG pre-approve, chỉ DELETE/BLOCK violations
+     * - Trạng thái: WAIT (Chưa mở), ACTIVE (Đang mở), CLOSED (Đã đóng), HIDDEN (Tạm ẩn/Bị khóa)
+     * - Job HIDDEN = Bị Admin chặn do vi phạm
      * 
      * Quy trình:
      * 1. Tìm Job theo jobId: jobRepository.findById(jobId)
@@ -310,8 +321,12 @@ public class AdminServiceV1Impl implements AdminServiceV1 {
      * 5. Lưu: jobRepository.save(job)
      * 6. Log và trả về thông báo thay đổi (Old -> New)
      * 
+     * Post-moderation Notes:
+     * - KHÔNG có PENDING status (no pre-approval workflow)
+     * - Recommend: ACTIVE -> HIDDEN (block violations) or use deleteJob() for permanent removal
+     * 
      * @param jobId ID công việc cần thay đổi trạng thái
-     * @param newStatus Trạng thái mới (PENDING/ACTIVE/REJECTED/CLOSED/HIDDEN)
+     * @param newStatus Trạng thái mới (WAIT/ACTIVE/CLOSED/HIDDEN - NOT PENDING/APPROVED)
      * @return String - Thông báo thay đổi trạng thái thành công
      * @throws ResourceNotFoundException Nếu không tìm thấy Job
      */
@@ -333,5 +348,95 @@ public class AdminServiceV1Impl implements AdminServiceV1 {
         
         return String.format("Job '%s' status changed from %s to %s", 
                 job.getJobTitle(), oldStatus, newStatus);
+    }
+    
+    /**
+     * Xóa tin tuyển dụng (Admin - Post-moderation)
+     * 
+     * Chức năng:
+     * - Soft delete: Thay đổi JobStatus thành HIDDEN để ẩn tin khỏi công khai
+     * - Sử dụng khi tin tuyển dụng vi phạm chính sách (scam, gambling, offensive content)
+     * - Admin có quyền xóa bất kỳ tin tuyển dụng nào mà không cần thông báo trước
+     * 
+     * Post-moderation Policy:
+     * - Admin removes content AFTER publication when violations are detected
+     * - No pre-approval process, immediate action on violations
+     * - Employer is fully responsible for content legality
+     * 
+     * Quy trình:
+     * 1. Tìm Job theo jobId: jobRepository.findById(jobId)
+     * 2. Nếu không tồn tại: Ném ResourceNotFoundException
+     * 3. Đặt trạng thái: job.setJobStatus(JobStatus.HIDDEN)
+     * 4. Lưu: jobRepository.save(job)
+     * 5. Log và trả về thông báo xóa thành công
+     * 
+     * @param jobId ID tin tuyển dụng cần xóa
+     * @return String - Thông báo xóa thành công
+     * @throws ResourceNotFoundException Nếu không tìm thấy Job
+     */
+    @Override
+    @Transactional
+    public String deleteJob(Long jobId) {
+        log.info("Admin deleting job (Post-moderation) - JobId: {}", jobId);
+        
+        // Entity manipulation pattern: Find -> Validate -> Set -> Save
+        Job job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new ResourceNotFoundException("Job not found with ID: " + jobId));
+        
+        String jobTitle = job.getJobTitle();
+        String jobCode = job.getJobCode();
+        
+        // Soft delete - change status to HIDDEN (blocked by admin)
+        job.setJobStatus(JobStatus.HIDDEN);
+        jobRepository.save(job);
+        
+        log.info("Job deleted by admin - JobCode: {}, Title: {}", jobCode, jobTitle);
+        
+        return String.format("Job '%s' (Code: %s) has been removed due to policy violation", jobTitle, jobCode);
+    }
+    
+    /**
+     * Xóa tin đăng tìm việc (Admin - Post-moderation)
+     * 
+     * Chức năng:
+     * - Soft delete: Thay đổi SKPostStatus thành CLOSED để ẩn tin khỏi công khai
+     * - Sử dụng khi tin đăng vi phạm chính sách (fake profile, inappropriate content)
+     * - Admin có quyền xóa bất kỳ SeekingPost nào mà không cần thông báo trước
+     * 
+     * Post-moderation Policy:
+     * - Admin removes content AFTER publication when violations are detected
+     * - No pre-approval process for candidate seeking posts
+     * - Candidate is fully responsible for profile authenticity
+     * 
+     * Quy trình:
+     * 1. Tìm SeekingPost theo seekingPostId: seekingPostRepository.findById(seekingPostId)
+     * 2. Nếu không tồn tại: Ném ResourceNotFoundException
+     * 3. Đặt trạng thái: seekingPost.setSkPostStatus(SeekingPostStatus.CLOSED)
+     * 4. Lưu: seekingPostRepository.save(seekingPost)
+     * 5. Log và trả về thông báo xóa thành công
+     * 
+     * @param seekingPostId ID tin đăng tìm việc cần xóa
+     * @return String - Thông báo xóa thành công
+     * @throws ResourceNotFoundException Nếu không tìm thấy SeekingPost
+     */
+    @Override
+    @Transactional
+    public String deleteSeekingPost(Long seekingPostId) {
+        log.info("Admin deleting seeking post (Post-moderation) - SeekingPostId: {}", seekingPostId);
+        
+        // Entity manipulation pattern: Find -> Validate -> Set -> Save
+        SeekingPost seekingPost = seekingPostRepository.findById(seekingPostId)
+                .orElseThrow(() -> new ResourceNotFoundException("SeekingPost not found with ID: " + seekingPostId));
+        
+        String postTitle = seekingPost.getSkPostTitle();
+        String postCode = seekingPost.getSkPostCode();
+        
+        // Soft delete - change status to CLOSED (blocked by admin)
+        seekingPost.setSkPostStatus(SeekingPostStatus.CLOSED);
+        seekingPostRepository.save(seekingPost);
+        
+        log.info("SeekingPost deleted by admin - PostCode: {}, Title: {}", postCode, postTitle);
+        
+        return String.format("Seeking post '%s' (Code: %s) has been removed due to policy violation", postTitle, postCode);
     }
 }

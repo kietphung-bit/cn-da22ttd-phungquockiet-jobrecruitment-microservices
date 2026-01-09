@@ -59,6 +59,7 @@ public class CodeGenerator {
     public static final String PREFIX_JOB = "VL";
     public static final String PREFIX_CV = "CV";
     public static final String PREFIX_APPLICATION = "DX";
+    public static final String PREFIX_SEEKING_POST = "BV";
     
     /**
      * Tạo mã duy nhất với PREFIX chỉ định
