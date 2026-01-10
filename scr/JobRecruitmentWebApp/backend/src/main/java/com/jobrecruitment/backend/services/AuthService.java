@@ -16,16 +16,16 @@ import com.jobrecruitment.backend.dtos.response.AuthResponse;
  * - Đổi mật khẩu (Change Password)
  * - Đăng xuất khỏi tất cả thiết bị (Logout All Sessions)
  * 
- * Business Rules:
+ * Quy tắc nghiệp vụ:
  * - Mỗi User chỉ thuộc 1 Role (ADM/DN/UV)
  * - UserCode tự động generate và đồng bộ với CompanyCode/CandidateCode
  * - Password mã hóa bằng BCrypt (Spring Security)
  * - JWT token hết hạn sau 24h (config trong application.properties)
  * 
- * Security:
- * - Password never return in response
+ * Bảo mật:
+ * - Password không bao giờ trả về trong response
  * - JWT token chứa username, role, expiration
- * - Refresh token chưa implement (future feature)
+ * - Refresh token chưa implement (tính năng tương lai)
  * 
  * @see AuthServiceImpl
  */

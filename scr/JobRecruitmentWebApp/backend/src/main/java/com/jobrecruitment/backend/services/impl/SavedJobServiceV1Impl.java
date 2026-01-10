@@ -96,23 +96,23 @@ public class SavedJobServiceV1Impl implements SavedJobServiceV1 {
     public SavedJobResponse saveJob(SaveJobRequest request, String username) {
         log.info("Saving job for user: {}, JobId: {}", username, request.getJobId());
         
-        // Get authenticated user and their candidate profile
+        // Lấy authenticated user và hồ sơ candidate của họ
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
         
         Candidate candidate = candidateRepository.findByUserUserId(user.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("Candidate profile not found for user: " + username));
 
-        // Get job
+        // Lấy job
         Job job = jobRepository.findById(request.getJobId())
                 .orElseThrow(() -> new ResourceNotFoundException("Job not found with ID: " + request.getJobId()));
 
-        // Check if already saved
+        // Kiểm tra đã lưu chưa
         if (savedJobRepository.existsByCandidateIdAndJobId(candidate.getCandidateId(), request.getJobId())) {
             throw new ValidationException("Job is already saved");
         }
 
-        // Create saved job
+        // Tạo saved job
         SavedJob savedJob = new SavedJob();
         savedJob.setCandidate(candidate);
         savedJob.setJob(job);
@@ -158,15 +158,15 @@ public class SavedJobServiceV1Impl implements SavedJobServiceV1 {
         Candidate candidate = candidateRepository.findByUserUserId(user.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("Candidate profile not found for user: " + username));
         
-        // Get all saved jobs (we'll manually paginate since repository doesn't have Page method)
+        // Lấy tất cả job đã lưu (sẽ phân trang thủ công vì repository không có phương thức Page)
         List<SavedJob> allSavedJobs = savedJobRepository.findByCandidateCandidateId(candidate.getCandidateId());
         
-        // Convert to responses
+        // Chuyển đổi sang responses
         List<SavedJobResponse> allResponses = allSavedJobs.stream()
                 .map(savedJobMapper::toResponse)
                 .collect(Collectors.toList());
         
-        // Manual pagination
+        // Phân trang thủ công
         int start = (int) pageable.getOffset();
         int end = Math.min((start + pageable.getPageSize()), allResponses.size());
         
@@ -210,12 +210,12 @@ public class SavedJobServiceV1Impl implements SavedJobServiceV1 {
         Candidate candidate = candidateRepository.findByUserUserId(user.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("Candidate profile not found for user: " + username));
 
-        // Verify job exists and is saved
+        // Kiểm tra job có tồn tại và đã được lưu
         if (!savedJobRepository.existsByCandidateIdAndJobId(candidate.getCandidateId(), jobId)) {
             throw new ResourceNotFoundException("Saved job not found");
         }
 
-        // Delete saved job
+        // Xóa saved job
         savedJobRepository.deleteByCandidateCandidateIdAndJobJobId(candidate.getCandidateId(), jobId);
         log.info("Job unsaved successfully - JobId: {}", jobId);
     }

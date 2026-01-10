@@ -31,13 +31,14 @@ import org.springframework.stereotype.Component;
  * - Dễ đọc, dễ phân biệt theo PREFIX
  * - An toàn với SecureRandom (không dự đoán)
  * 
- * Danh sách PREFIX (Section 4.5.B):
+ * Danh sách PREFIX được sử dụng:
  * - AD: Admin (Cố định "AD00000001" cho Root Admin)
  * - DN: Doanh nghiệp (Company/Employer)
  * - UV: Ứng viên (Candidate/Job Seeker)
  * - VL: Việc làm (Job Posting)
  * - CV: Hồ sơ xin việc (Curriculum Vitae)
  * - DX: Đơn xét (Application)
+ * - BV: Bài viết tìm việc (Seeking Post)
  * 
  * Lưu ý quan trọng:
  * - UserCode đồng bộ với CompanyCode/CandidateCode (Section 4.5.C)
@@ -52,7 +53,7 @@ public class CodeGenerator {
     private static final int CODE_LENGTH = 8;
     private static final int MAX_VALUE = 99999999;
     
-    // Prefix Definitions (Section 4.5.B)
+    // Định nghĩa mã PREFIX 
     public static final String PREFIX_ADMIN = "AD";
     public static final String PREFIX_COMPANY = "DN";
     public static final String PREFIX_CANDIDATE = "UV";
@@ -98,7 +99,7 @@ public class CodeGenerator {
         for (int attempt = 0; attempt < MAX_ATTEMPTS; attempt++) {
             String code = generateCodeOnce(prefix);
             
-            // Check uniqueness
+            // Kiểm tra tính duy nhất
             if (!uniquenessChecker.test(code)) {
                 return code;
             }
@@ -132,13 +133,13 @@ public class CodeGenerator {
      * @return Mã đã tạo (10 ký tự, chưa kiểm tra tính duy nhất)
      */
     private String generateCodeOnce(String prefix) {
-        // Generate random integer between 0 and 99999999
+        // Tạo số ngẫu nhiên từ 0 đến 99999999
         int randomNumber = RANDOM.nextInt(MAX_VALUE + 1);
         
-        // Pad with leading zeros to ensure 8 digits
+        // Độn số 0 đầu để đảm bảo 8 chữ số
         String paddedNumber = String.format("%0" + CODE_LENGTH + "d", randomNumber);
         
-        // Concatenate PREFIX + Padded Number
+        // Nối PREFIX + Padded Number
         return prefix + paddedNumber;
     }
     

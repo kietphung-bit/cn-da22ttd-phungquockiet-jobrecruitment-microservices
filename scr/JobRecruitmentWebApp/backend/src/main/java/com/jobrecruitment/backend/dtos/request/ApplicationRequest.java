@@ -46,5 +46,5 @@ public class ApplicationRequest {
      * - Kiểm tra CV phải thuộc về ứng viên đang đăng nhập (Service layer)
      */
     @NotNull(message = "CV ID không được để trống")
-    private Long cvId; // Candidate selects which CV to use
+    private Long cvId; // Ứng viên chọn CV cụ thể để nộp đơn
 }

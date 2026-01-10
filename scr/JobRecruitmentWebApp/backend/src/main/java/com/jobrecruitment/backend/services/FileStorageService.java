@@ -34,7 +34,7 @@ import java.util.UUID;
  * - Sanitize filename để tránh path traversal attack
  * - Check file size để tránh DOS attack
  * 
- * Production Notes:
+ * Lưu ý:
  * - Thư mục uploads/ lưu local, không commit lên Git
  * - Production nên dùng cloud storage (AWS S3, Azure Blob, Cloudinary)
  * - Cân nhắc dùng virus scanner cho file upload
@@ -62,12 +62,12 @@ public class FileStorageService {
      * @throws FileStorageException Nếu file không hợp lệ hoặc lỗi khi lưu
      */
     public String storeFile(MultipartFile file, String subFolder) {
-        // 1. Validation: Kiểm tra file không rỗng
+        // Bước xác minh 1: Kiểm tra file không rỗng
         if (file == null || file.isEmpty()) {
             throw new FileStorageException("File cannot be empty");
         }
 
-        // 2. Validation: Kiểm tra kích thước file
+        // Bước xác minh 2: Kiểm tra kích thước file
         if (file.getSize() > maxFileSize) {
             throw new FileStorageException(
                 String.format("File size exceeds maximum allowed size of %d bytes", maxFileSize)
@@ -77,16 +77,16 @@ public class FileStorageService {
         // 3. Sanitization: Lấy tên file gốc và làm sạch
         String originalFilename = StringUtils.cleanPath(file.getOriginalFilename());
         
-        // 4. Validation: Kiểm tra tên file hợp lệ
+        // 4. Bước xác minh: Kiểm tra tên file hợp lệ
         if (originalFilename.contains("..")) {
             throw new FileStorageException("Filename contains invalid path sequence: " + originalFilename);
         }
 
-        // 5. Validation: Kiểm tra extension
+        // 5. Bước xác minh: Kiểm tra extension
         String extension = getFileExtension(originalFilename);
         validateFileExtension(extension, subFolder);
 
-        // 6. Uniqueness: Tạo tên file unique với UUID
+        // 6. Tính duy nhất: Tạo tên file unique với UUID
         String uniqueFilename = UUID.randomUUID().toString() + "-" + originalFilename;
 
         try {

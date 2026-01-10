@@ -15,6 +15,7 @@ import io.swagger.v3.oas.annotations.security.SecurityRequirement;
 import io.swagger.v3.oas.annotations.tags.Tag;
 import lombok.RequiredArgsConstructor;
 import org.springframework.data.domain.Page;
+import org.springframework.data.domain.PageRequest;
 import org.springframework.data.domain.Pageable;
 import org.springframework.data.web.PageableDefault;
 import org.springframework.http.ResponseEntity;
@@ -582,6 +583,184 @@ public class AdminControllerV1 {
             @PathVariable Long seekingPostId
     ) {
         String message = adminServiceV1.deleteSeekingPost(seekingPostId);
+        
+        return ResponseEntity.ok(
+                ApiResponse.<String>builder()
+                        .status(200)
+                        .message(message)
+                        .data(null)
+                        .build()
+        );
+    }
+    
+    /**
+     * Toggle trạng thái công việc (ACTIVE <-> HIDDEN)
+     * 
+     * Endpoint dành cho Admin - Toggle visibility của tin tuyển dụng
+     * 
+     * Chức năng:
+     * - Nếu JobStatus = ACTIVE: Chuyển thành HIDDEN (ẩn tin)
+     * - Nếu JobStatus = HIDDEN: Chuyển thành ACTIVE (hiện tin)
+     * - Dùng để quản lý nội dung nhanh chóng
+     * 
+     * HTTP Method: PATCH /api/v1/admin/jobs/{jobId}/toggle-status
+     * 
+     * Bảo mật: Yêu cầu JWT + Vai trò ADM
+     * 
+     * @param jobId ID công việc cần toggle
+     * @return ResponseEntity<ApiResponse<String>> - Thông báo toggle thành công
+     */
+    @PatchMapping("/jobs/{jobId}/toggle-status")
+    @Operation(
+            summary = "Toggle job visibility (ACTIVE ↔ HIDDEN)",
+            description = "Admin-only endpoint. Toggle job visibility between ACTIVE and HIDDEN status. " +
+                    "\n\nUseful for quick content moderation."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Job status toggled successfully",
+                    content = @Content
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication required",
+                    content = @Content
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - Admin role required",
+                    content = @Content
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "Job not found",
+                    content = @Content
+            )
+    })
+    public ResponseEntity<ApiResponse<String>> toggleJobStatus(
+            @Parameter(description = "Job ID", example = "1")
+            @PathVariable Long jobId
+    ) {
+        String message = adminServiceV1.toggleJobStatus(jobId);
+        
+        return ResponseEntity.ok(
+                ApiResponse.<String>builder()
+                        .status(200)
+                        .message(message)
+                        .data(null)
+                        .build()
+        );
+    }
+    
+    /**
+     * Lấy tất cả tin đăng tìm việc (Admin)
+     * 
+     * Endpoint dành cho Admin - Lấy danh sách tin đăng tìm việc để quản lý
+     * 
+     * Chức năng:
+     * - Lấy tất cả SeekingPost bao gồm ACTIVE, HIDDEN, CLOSED
+     * - Phân trang và sắp xếp theo thời gian tạo mới nhất
+     * - Admin có thể xem tất cả tin đăng để moderation
+     * 
+     * HTTP Method: GET /api/v1/admin/seeking-posts?page=0&size=20
+     * 
+     * Bảo mật: Yêu cầu JWT + Vai trò ADM
+     * 
+     * @param page Số trang (0-indexed)
+     * @param size Kích thước trang
+     * @return ResponseEntity<ApiResponse<Page<JobSeekPostResponse>>> - Danh sách tin đăng phân trang
+     */
+    @GetMapping("/seeking-posts")
+    @Operation(
+            summary = "Get all seeking posts (Admin)",
+            description = "Admin-only endpoint. Retrieve all seeking posts including ACTIVE, HIDDEN, and CLOSED status for content moderation."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Seeking posts retrieved successfully",
+                    content = @Content
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication required",
+                    content = @Content
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - Admin role required",
+                    content = @Content
+            )
+    })
+    public ResponseEntity<ApiResponse<Page<com.jobrecruitment.backend.dtos.response.JobSeekPostResponse>>> getAllSeekingPosts(
+            @Parameter(description = "Page number (0-indexed)", example = "0")
+            @RequestParam(defaultValue = "0") int page,
+            @Parameter(description = "Page size", example = "20")
+            @RequestParam(defaultValue = "20") int size
+    ) {
+        Pageable pageable = PageRequest.of(page, size);
+        Page<com.jobrecruitment.backend.dtos.response.JobSeekPostResponse> seekingPosts = adminServiceV1.getAllSeekingPosts(pageable);
+        
+        return ResponseEntity.ok(
+                ApiResponse.<Page<com.jobrecruitment.backend.dtos.response.JobSeekPostResponse>>builder()
+                        .status(200)
+                        .message("Seeking posts retrieved successfully")
+                        .data(seekingPosts)
+                        .build()
+        );
+    }
+    
+    /**
+     * Toggle trạng thái tin đăng tìm việc (ACTIVE <-> HIDDEN)
+     * 
+     * Endpoint dành cho Admin - Toggle visibility của tin đăng tìm việc
+     * 
+     * Chức năng:
+     * - Nếu SKPostStatus = ACTIVE: Chuyển thành HIDDEN (ẩn tin)
+     * - Nếu SKPostStatus = HIDDEN: Chuyển thành ACTIVE (hiện tin)
+     * - Dùng để quản lý nội dung nhanh chóng
+     * 
+     * HTTP Method: PATCH /api/v1/admin/seeking-posts/{seekingPostId}/toggle-status
+     * 
+     * Bảo mật: Yêu cầu JWT + Vai trò ADM
+     * 
+     * @param seekingPostId ID tin đăng tìm việc cần toggle
+     * @return ResponseEntity<ApiResponse<String>> - Thông báo toggle thành công
+     */
+    @PatchMapping("/seeking-posts/{seekingPostId}/toggle-status")
+    @Operation(
+            summary = "Toggle seeking post visibility (ACTIVE ↔ HIDDEN)",
+            description = "Admin-only endpoint. Toggle seeking post visibility between ACTIVE and HIDDEN status. " +
+                    "\n\nUseful for quick content moderation."
+    )
+    @ApiResponses(value = {
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "200",
+                    description = "Seeking post status toggled successfully",
+                    content = @Content
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "401",
+                    description = "Unauthorized - Authentication required",
+                    content = @Content
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "403",
+                    description = "Forbidden - Admin role required",
+                    content = @Content
+            ),
+            @io.swagger.v3.oas.annotations.responses.ApiResponse(
+                    responseCode = "404",
+                    description = "Seeking post not found",
+                    content = @Content
+            )
+    })
+    public ResponseEntity<ApiResponse<String>> toggleSeekingPostStatus(
+            @Parameter(description = "Seeking post ID", example = "1")
+            @PathVariable Long seekingPostId
+    ) {
+        String message = adminServiceV1.toggleSeekingPostStatus(seekingPostId);
         
         return ResponseEntity.ok(
                 ApiResponse.<String>builder()

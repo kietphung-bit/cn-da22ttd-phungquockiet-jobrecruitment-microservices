@@ -34,7 +34,7 @@ public class JobSpecification {
     public static Specification<Job> hasTitle(String jobTitle) {
         return (root, query, criteriaBuilder) -> {
             if (jobTitle == null || jobTitle.trim().isEmpty()) {
-                return criteriaBuilder.conjunction(); // Always true (no filter)
+                return criteriaBuilder.conjunction(); // Luôn true (không lọc)
             }
             return criteriaBuilder.like(
                 criteriaBuilder.lower(root.get("jobTitle")),

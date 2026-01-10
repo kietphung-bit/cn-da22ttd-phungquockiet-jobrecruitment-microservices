@@ -7,6 +7,7 @@ import lombok.Builder;
 import lombok.Data;
 import lombok.NoArgsConstructor;
 
+import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.util.List;
 
@@ -51,7 +52,7 @@ public class JobSeekPostResponse {
      * ID của tin đăng tìm việc
      */
     @Schema(
-        description = "Unique identifier của tin đăng tìm việc",
+        description = "Unique identifier of the job seeking post",
         example = "1",
         accessMode = Schema.AccessMode.READ_ONLY
     )
@@ -61,8 +62,8 @@ public class JobSeekPostResponse {
      * Tiêu đề tin đăng
      */
     @Schema(
-        description = "Tiêu đề tin đăng tìm việc của ứng viên. " +
-                     "Bao gồm vị trí mong muốn và địa điểm.",
+        description = "Title of the job seeking post by the candidate. " +
+                     "Includes desired position and location.",
         example = "Tìm việc Java Developer Senior tại TP.HCM",
         accessMode = Schema.AccessMode.READ_ONLY
     )
@@ -72,8 +73,8 @@ public class JobSeekPostResponse {
      * Mức lương mong muốn (VNĐ)
      */
     @Schema(
-        description = "Mức lương mong muốn của ứng viên (VNĐ). " +
-                     "Giá trị 0 có nghĩa là 'Thỏa thuận'.",
+        description = "Desired salary of the candidate (VND). " +
+                     "Value 0 means 'Negotiable'.",
         example = "25000000",
         accessMode = Schema.AccessMode.READ_ONLY
     )
@@ -83,8 +84,8 @@ public class JobSeekPostResponse {
      * Địa điểm làm việc mong muốn
      */
     @Schema(
-        description = "Địa điểm làm việc mong muốn của ứng viên. " +
-                     "Có thể là tỉnh/thành phố, khu vực hoặc chế độ làm việc.",
+        description = "Desired work location of the candidate. " +
+                     "Can be a specific city/province, region, or work mode (Remote/Hybrid/Onsite).",
         example = "TP. Hồ Chí Minh",
         accessMode = Schema.AccessMode.READ_ONLY
     )
@@ -94,8 +95,8 @@ public class JobSeekPostResponse {
      * Danh sách kỹ năng
      */
     @Schema(
-        description = "Danh sách kỹ năng của ứng viên. " +
-                     "Bao gồm ngôn ngữ lập trình, framework, công nghệ và soft skills.",
+        description = "Skills list of the candidate. " +
+                     "Includes programming languages, frameworks, technologies, and soft skills.",
         example = "[\"Java\", \"Spring Boot\", \"PostgreSQL\", \"Docker\", \"Microservices\"]",
         accessMode = Schema.AccessMode.READ_ONLY
     )
@@ -105,8 +106,8 @@ public class JobSeekPostResponse {
      * Giới thiệu bản thân
      */
     @Schema(
-        description = "Giới thiệu bản thân của ứng viên. " +
-                     "Bao gồm kinh nghiệm, điểm mạnh, mục tiêu nghề nghiệp.",
+        description = "Introduction of the candidate. " +
+                     "Includes experience, strengths, career goals.",
         example = "Tôi là lập trình viên Java với 5 năm kinh nghiệm phát triển backend. " +
                  "Thành thạo Spring Boot, Microservices, Docker và các công nghệ cloud...",
         accessMode = Schema.AccessMode.READ_ONLY
@@ -121,9 +122,9 @@ public class JobSeekPostResponse {
      * - Authenticated: Hiển thị tên đầy đủ
      */
     @Schema(
-        description = "Tên đầy đủ của ứng viên. " +
-                     "Đối với người dùng chưa đăng nhập, tên sẽ được ẩn một phần. " +
-                     "Chỉ nhà tuyển dụng đã đăng nhập mới xem được tên đầy đủ.",
+        description = "Full name of the candidate. " +
+                     "For unauthenticated users, the name will be partially hidden. " +
+                     "Only logged-in recruiters can see the full name.",
         example = "Nguyễn Văn A",
         accessMode = Schema.AccessMode.READ_ONLY
     )
@@ -137,9 +138,9 @@ public class JobSeekPostResponse {
      * - Authenticated: Hiển thị avatar thật
      */
     @Schema(
-        description = "URL đến ảnh đại diện của ứng viên. " +
-                     "Đối với người dùng chưa đăng nhập, hiển thị avatar mặc định. " +
-                     "Chỉ nhà tuyển dụng đã đăng nhập mới xem được avatar thật.",
+        description = "URL to the candidate's avatar. " +
+                     "For unauthenticated users, the default avatar is shown. " +
+                     "Only logged-in recruiters can see the real avatar.",
         example = "/uploads/avatars/nguyen_van_a.jpg",
         accessMode = Schema.AccessMode.READ_ONLY
     )
@@ -150,7 +151,7 @@ public class JobSeekPostResponse {
      */
     @JsonFormat(pattern = "yyyy-MM-dd'T'HH:mm:ss")
     @Schema(
-        description = "Thời điểm tin đăng được tạo. " +
+        description = "The timestamp when the job post was created. " +
                      "Format: ISO 8601 (yyyy-MM-dd'T'HH:mm:ss)",
         example = "2025-12-20T10:30:00",
         accessMode = Schema.AccessMode.READ_ONLY,
@@ -158,6 +159,20 @@ public class JobSeekPostResponse {
         format = "date-time"
     )
     private LocalDateTime createdDate;
+
+    /**
+     * Ngày hết hạn tin đăng
+     */
+    @JsonFormat(pattern = "yyyy-MM-dd")
+    @Schema(
+        description = "Expiry date of the job post. " +
+                     "Format: yyyy-MM-dd",
+        example = "2026-02-15",
+        accessMode = Schema.AccessMode.READ_ONLY,
+        type = "string",
+        format = "date"
+    )
+    private LocalDate expiryDate;
 
     /**
      * Trạng thái tin đăng
@@ -170,9 +185,9 @@ public class JobSeekPostResponse {
      * Note: Chỉ hiển thị cho chính ứng viên và admin
      */
     @Schema(
-        description = "Trạng thái hiện tại của tin đăng. " +
-                     "ACTIVE: Đang công khai | HIDDEN: Tạm ẩn | DELETED: Đã bị xóa. " +
-                     "Chỉ hiển thị cho chính ứng viên và admin.",
+        description = "Current status of the job post. " +
+                     "ACTIVE: Public | HIDDEN: Temporarily hidden | DELETED: Removed due to violation. " +
+                     "Only visible to the candidate and admin.",
         example = "ACTIVE",
         allowableValues = {"ACTIVE", "HIDDEN", "DELETED"},
         accessMode = Schema.AccessMode.READ_ONLY

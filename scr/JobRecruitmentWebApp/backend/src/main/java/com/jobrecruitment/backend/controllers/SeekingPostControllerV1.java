@@ -94,34 +94,34 @@ public class SeekingPostControllerV1 {
     @PreAuthorize("hasRole('UV')")
     @SecurityRequirement(name = "bearerAuth")
     @Operation(
-        summary = "Tạo tin đăng tìm việc mới",
-        description = "Candidate-only endpoint. Tạo tin đăng tìm việc với status=ACTIVE. " +
-                     "Nếu đã có tin ACTIVE, tin cũ tự động chuyển sang HIDDEN."
+        summary = "Create New Job Seeking Post",
+        description = "Candidate-only endpoint. Creates a job seeking post with status=ACTIVE. " +
+                     "If candidate already has an ACTIVE post, the old one will be automatically hidden."
     )
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
             responseCode = "201",
-            description = "Tin đăng được tạo thành công",
+            description = "Job seeking post created successfully",
             content = @Content(schema = @Schema(implementation = JobSeekPostResponse.class))
         ),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
             responseCode = "400",
-            description = "Dữ liệu không hợp lệ",
+            description = "Invalid request data",
             content = @Content
         ),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
             responseCode = "401",
-            description = "Chưa đăng nhập",
+            description = "Not authenticated",
             content = @Content
         ),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
             responseCode = "403",
-            description = "Không có quyền (yêu cầu ROLE_UV)",
+            description = "Forbidden - requires ROLE_UV",
             content = @Content
         ),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
             responseCode = "404",
-            description = "Không tìm thấy hồ sơ ứng viên",
+            description = "Candidate profile not found",
             content = @Content
         )
     })
@@ -135,7 +135,7 @@ public class SeekingPostControllerV1 {
         
         ApiResponse<JobSeekPostResponse> apiResponse = ApiResponse.<JobSeekPostResponse>builder()
             .status(HttpStatus.CREATED.value())
-            .message("Tạo tin đăng tìm việc thành công")
+            .message("Job seeking post created successfully")
             .data(response)
             .build();
         
@@ -152,7 +152,7 @@ public class SeekingPostControllerV1 {
      * URL: /api/v1/seeking-posts/{id}
      * Content-Type: application/json
      * Authentication: JWT Bearer Token
-     * Authorization: Owner only (verified in service)
+     * Authorization: chỉ owner mới được phép cập nhật
      * 
      * @param id ID tin đăng
      * @param request Dữ liệu cập nhật (validated)
@@ -163,29 +163,29 @@ public class SeekingPostControllerV1 {
     @PreAuthorize("hasRole('UV')")
     @SecurityRequirement(name = "bearerAuth")
     @Operation(
-        summary = "Cập nhật tin đăng tìm việc",
-        description = "Candidate-only endpoint. Chỉ owner mới có thể cập nhật. " +
-                     "Không thay đổi status (dùng PATCH /{id}/status)."
+        summary = "Update Job Seeking Post",
+        description = "Candidate-only endpoint. Only the owner can update their post. " +
+                     "Does not change status (use PATCH /{id}/status for that)."
     )
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
             responseCode = "200",
-            description = "Cập nhật thành công",
+            description = "Updated successfully",
             content = @Content(schema = @Schema(implementation = JobSeekPostResponse.class))
         ),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
             responseCode = "400",
-            description = "Dữ liệu không hợp lệ",
+            description = "Invalid request data",
             content = @Content
         ),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
             responseCode = "403",
-            description = "Không có quyền (không phải owner)",
+            description = "Forbidden - not the owner",
             content = @Content
         ),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
             responseCode = "404",
-            description = "Không tìm thấy tin đăng",
+            description = "Post not found",
             content = @Content
         )
     })
@@ -200,7 +200,7 @@ public class SeekingPostControllerV1 {
         
         ApiResponse<JobSeekPostResponse> apiResponse = ApiResponse.<JobSeekPostResponse>builder()
             .status(HttpStatus.OK.value())
-            .message("Cập nhật tin đăng thành công")
+            .message("Update job seeking post successfully")
             .data(response)
             .build();
         
@@ -227,35 +227,35 @@ public class SeekingPostControllerV1 {
     @PreAuthorize("hasRole('UV')")
     @SecurityRequirement(name = "bearerAuth")
     @Operation(
-        summary = "Thay đổi trạng thái tin đăng",
-        description = "Candidate-only endpoint. Chỉ owner mới có thể thay đổi trạng thái. " +
-                     "Nếu chuyển sang ACTIVE khi đã có tin ACTIVE khác, tin khác sẽ chuyển sang HIDDEN."
+        summary = "Change Post Status",
+        description = "Candidate-only endpoint. Only the owner can change the status. " +
+                     "If changing to ACTIVE when another ACTIVE post exists, the other post will be hidden."
     )
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
             responseCode = "200",
-            description = "Thay đổi trạng thái thành công",
+            description = "Status changed successfully",
             content = @Content(schema = @Schema(implementation = JobSeekPostResponse.class))
         ),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
             responseCode = "400",
-            description = "Trạng thái không hợp lệ",
+            description = "Invalid status",
             content = @Content
         ),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
             responseCode = "403",
-            description = "Không có quyền (không phải owner)",
+            description = "Forbidden - not the owner",
             content = @Content
         ),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
             responseCode = "404",
-            description = "Không tìm thấy tin đăng",
+            description = "Post not found",
             content = @Content
         )
     })
     public ResponseEntity<ApiResponse<JobSeekPostResponse>> changeStatus(
         @PathVariable Long id,
-        @RequestParam @Parameter(description = "Trạng thái mới: ACTIVE, HIDDEN, CLOSED") SeekingPostStatus status,
+        @RequestParam @Parameter(description = "New status: ACTIVE, HIDDEN, CLOSED") SeekingPostStatus status,
         @AuthenticationPrincipal UserDetails userDetails
     ) {
         log.info("PATCH /api/v1/seeking-posts/{}/status - Change status to {} by user: {}", 
@@ -265,7 +265,7 @@ public class SeekingPostControllerV1 {
         
         ApiResponse<JobSeekPostResponse> apiResponse = ApiResponse.<JobSeekPostResponse>builder()
             .status(HttpStatus.OK.value())
-            .message("Thay đổi trạng thái thành công")
+            .message("Change status successfully")
             .data(response)
             .build();
         
@@ -296,20 +296,20 @@ public class SeekingPostControllerV1 {
      */
     @GetMapping
     @Operation(
-        summary = "Tìm kiếm tin đăng tìm việc",
-        description = "Public endpoint (không cần đăng nhập). Tìm kiếm tin đăng ACTIVE với filter. " +
-                     "Privacy: Guest/Candidate xem masked data, Employer xem full data."
+        summary = "Search Job Seeking Posts",
+        description = "Public endpoint (no authentication required). Search ACTIVE posts with filters. " +
+                     "Privacy: Guest/Candidate see masked data, Employer sees full data."
     )
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
             responseCode = "200",
-            description = "Tìm kiếm thành công",
+            description = "Search completed successfully",
             content = @Content(schema = @Schema(implementation = JobSeekPostResponse.class))
         )
     })
     public ResponseEntity<ApiResponse<Page<JobSeekPostResponse>>> searchPosts(
-        @RequestParam(required = false) @Parameter(description = "Lọc theo địa điểm (LIKE)") String location,
-        @RequestParam(required = false) @Parameter(description = "Lọc theo kỹ năng (LIKE)") String skills,
+        @RequestParam(required = false) @Parameter(description = "Filter by location (LIKE)") String location,
+        @RequestParam(required = false) @Parameter(description = "Filter by skills (LIKE)") String skills,
         @PageableDefault(size = 10) Pageable pageable,
         @AuthenticationPrincipal UserDetails userDetails
     ) {
@@ -321,7 +321,7 @@ public class SeekingPostControllerV1 {
         
         ApiResponse<Page<JobSeekPostResponse>> apiResponse = ApiResponse.<Page<JobSeekPostResponse>>builder()
             .status(HttpStatus.OK.value())
-            .message("Tìm kiếm tin đăng thành công")
+            .message("Job seeking posts retrieved successfully")
             .data(response)
             .build();
         
@@ -347,19 +347,19 @@ public class SeekingPostControllerV1 {
      */
     @GetMapping("/{id}")
     @Operation(
-        summary = "Xem chi tiết tin đăng",
-        description = "Public endpoint. Xem chi tiết một tin đăng. " +
-                     "Privacy: Guest/Candidate xem masked data, Employer xem full data."
+        summary = "Get Post Detail",
+        description = "Public endpoint. View detailed information of a job seeking post. " +
+                     "Privacy: Guest/Candidate see masked data, Employer sees full data."
     )
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
             responseCode = "200",
-            description = "Lấy thông tin thành công",
+            description = "Post retrieved successfully",
             content = @Content(schema = @Schema(implementation = JobSeekPostResponse.class))
         ),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
             responseCode = "404",
-            description = "Không tìm thấy tin đăng",
+            description = "Post not found",
             content = @Content
         )
     })
@@ -374,7 +374,7 @@ public class SeekingPostControllerV1 {
         
         ApiResponse<JobSeekPostResponse> apiResponse = ApiResponse.<JobSeekPostResponse>builder()
             .status(HttpStatus.OK.value())
-            .message("Lấy thông tin tin đăng thành công")
+            .message("Job seeking post retrieved successfully")
             .data(response)
             .build();
         
@@ -400,29 +400,29 @@ public class SeekingPostControllerV1 {
     @PreAuthorize("hasRole('UV')")
     @SecurityRequirement(name = "bearerAuth")
     @Operation(
-        summary = "Xem tin đăng của tôi",
-        description = "Candidate-only endpoint. Xem tất cả tin đăng của mình (bao gồm HIDDEN, CLOSED). " +
-                     "Trả về full data (owner)."
+        summary = "Get My Job Seeking Posts",
+        description = "Candidate-only endpoint. View all your own posts (including HIDDEN, CLOSED). " +
+                     "Returns full data (owner view)."
     )
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
             responseCode = "200",
-            description = "Lấy danh sách thành công",
+            description = "Posts retrieved successfully",
             content = @Content(schema = @Schema(implementation = JobSeekPostResponse.class))
         ),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
             responseCode = "401",
-            description = "Chưa đăng nhập",
+            description = "Not authenticated",
             content = @Content
         ),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
             responseCode = "403",
-            description = "Không có quyền (yêu cầu ROLE_UV)",
+            description = "Forbidden - requires ROLE_UV",
             content = @Content
         ),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
             responseCode = "404",
-            description = "Không tìm thấy hồ sơ ứng viên",
+            description = "Candidate profile not found",
             content = @Content
         )
     })
@@ -436,8 +436,68 @@ public class SeekingPostControllerV1 {
         
         ApiResponse<Page<JobSeekPostResponse>> apiResponse = ApiResponse.<Page<JobSeekPostResponse>>builder()
             .status(HttpStatus.OK.value())
-            .message("Lấy danh sách tin đăng thành công")
+            .message("Job seeking posts retrieved successfully")
             .data(response)
+            .build();
+        
+        return ResponseEntity.ok(apiResponse);
+    }
+
+    // ==================== DELETE OWN POST (CANDIDATE) ====================
+
+    /**
+     * DELETE /api/v1/seeking-posts/my/{id}
+     * Ứng viên xóa tin đăng của chính mình
+     * 
+     * HTTP Method: DELETE
+     * URL: /api/v1/seeking-posts/my/{id}
+     * Authentication: JWT Bearer Token
+     * Authorization: @PreAuthorize("hasRole('UV')")
+     * 
+     * Business Rules:
+     * - Chỉ owner mới có quyền xóa
+     * - Kiểm tra ownership trong service layer
+     * 
+     * @param id ID tin đăng
+     * @param userDetails Thông tin user đang đăng nhập (auto-inject)
+     * @return ResponseEntity chứa ApiResponse<Void>
+     */
+    @DeleteMapping("/my/{id}")
+    @PreAuthorize("hasRole('UV')")
+    @SecurityRequirement(name = "bearerAuth")
+    @Operation(
+        summary = "Delete Own Post",
+        description = "Candidate-only endpoint. Delete your own seeking post. Only the owner can delete."
+    )
+    @ApiResponses(value = {
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "200",
+            description = "Deleted successfully",
+            content = @Content
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "403",
+            description = "Forbidden - not the owner",
+            content = @Content
+        ),
+        @io.swagger.v3.oas.annotations.responses.ApiResponse(
+            responseCode = "404",
+            description = "Post not found",
+            content = @Content
+        )
+    })
+    public ResponseEntity<ApiResponse<Void>> deleteOwnPost(
+        @PathVariable Long id,
+        @AuthenticationPrincipal UserDetails userDetails
+    ) {
+        log.info("DELETE /api/v1/seeking-posts/my/{} - Delete own post by user: {}", id, userDetails.getUsername());
+        
+        seekingPostService.deleteOwnPost(id, userDetails.getUsername());
+        
+        ApiResponse<Void> apiResponse = ApiResponse.<Void>builder()
+            .status(HttpStatus.OK.value())
+            .message("Delete job seeking post successfully")
+            .data(null)
             .build();
         
         return ResponseEntity.ok(apiResponse);
@@ -465,23 +525,23 @@ public class SeekingPostControllerV1 {
     @PreAuthorize("hasRole('ADM')")
     @SecurityRequirement(name = "bearerAuth")
     @Operation(
-        summary = "Admin xóa tin đăng vi phạm",
-        description = "Admin-only endpoint. Xóa vĩnh viễn tin đăng vi phạm chính sách."
+        summary = "Admin Delete Violating Post",
+        description = "Admin-only endpoint. Permanently delete a post that violates policies."
     )
     @ApiResponses(value = {
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
             responseCode = "200",
-            description = "Xóa thành công",
+            description = "Deleted successfully",
             content = @Content
         ),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
             responseCode = "403",
-            description = "Không có quyền (yêu cầu ROLE_ADM)",
+            description = "Forbidden - requires ROLE_ADM",
             content = @Content
         ),
         @io.swagger.v3.oas.annotations.responses.ApiResponse(
             responseCode = "404",
-            description = "Không tìm thấy tin đăng",
+            description = "Post not found",
             content = @Content
         )
     })
@@ -492,7 +552,7 @@ public class SeekingPostControllerV1 {
         
         ApiResponse<Void> apiResponse = ApiResponse.<Void>builder()
             .status(HttpStatus.OK.value())
-            .message("Xóa tin đăng thành công")
+            .message("Job seeking post deleted successfully")
             .data(null)
             .build();
         

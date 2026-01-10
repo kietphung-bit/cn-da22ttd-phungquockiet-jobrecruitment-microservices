@@ -49,7 +49,7 @@ public class JobRequest {
      * - Tham chiếu đến JobCategory.jcId
      * - Ví dụ: 1 (Công nghệ thông tin)
      */
-    @NotNull(message = "Job Category không được để trống")
+    @NotNull(message = "Danh mục không được để trống")
     private Integer jcId;
     
     /**

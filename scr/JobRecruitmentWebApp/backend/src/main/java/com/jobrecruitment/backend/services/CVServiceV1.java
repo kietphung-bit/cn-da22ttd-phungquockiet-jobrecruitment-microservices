@@ -12,14 +12,14 @@ import java.util.List;
  * Chức năng:
  * - Candidate: Upload CV, xem danh sách CV, ẩn/hiện CV, xóa CV
  * 
- * Business Rules:
+ * Quy tắc nghiệp vụ:
  * - Mỗi Candidate có thể có nhiều CV (One-to-Many)
  * - CV có 2 trạng thái: ACTIVE (hiện thị), HIDDEN (ẩn)
  * - Xóa CV = soft delete (set CVStatus = HIDDEN)
  * 
- * Features:
- * - Code generation: CVCode = CV + 8 số
- * - File storage: cvFile = path/URL đến file CV trên server
+ * Tính năng:
+ * - Tạo mã: CVCode = CV + 8 số
+ * - Lưu trữ file: cvFile = đường dẫn/URL đến file CV trên server
  * 
  * @see CVServiceV1Impl
  */
@@ -32,7 +32,7 @@ public interface CVServiceV1 {
      * - API POST /api/v1/cvs (multipart/form-data)
      * - Upload file CV trực tiếp qua MultipartFile
      * 
-     * Business Logic:
+     * Quy tắc nghiệp vụ:
      * - Lưu file vào uploads/cvs/ bằng FileStorageService
      * - Tạo CV mới với CVCode = CV + 8 số (unique)
      * - CVStatus = ACTIVE (mặc định)
@@ -62,7 +62,7 @@ public interface CVServiceV1 {
      * - API PATCH /api/v1/cvs/{cvId}/status
      * - Candidate ẩn CV cũ (ACTIVE -> HIDDEN) hoặc hiện lại CV (HIDDEN -> ACTIVE)
      * 
-     * Business Logic:
+     * Quy tắc nghiệp vụ:
      * - Kiểm tra CV có thuộc Candidate không
      * - Cập nhật CVStatus
      * 
@@ -81,7 +81,7 @@ public interface CVServiceV1 {
      * Sử dụng:
      * - API DELETE /api/v1/cvs/{cvId}
      * 
-     * Business Logic:
+     * Quy tắc nghiệp vụ:
      * - Kiểm tra CV có thuộc Candidate không
      * - Soft delete: Set CVStatus = HIDDEN (không xóa khỏi database)
      * 

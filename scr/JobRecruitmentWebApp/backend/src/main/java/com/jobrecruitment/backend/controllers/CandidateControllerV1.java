@@ -62,10 +62,10 @@ public class CandidateControllerV1 {
      * URL: /api/v1/candidates/{candidateId}
      * Authentication: JWT Bearer Token (Required)
      * 
-     * Security - IDOR Protection:
-     * - Admin (ADM): Can view all candidates
-     * - Employer (DN): Can view all candidates (for recruitment)
-     * - Candidate (UV): Can only view own profile
+     * Security - Bảo vệ IDOR:
+     * - Admin (ADM): Có thể xem tất cả ứng viên
+     * - Employer (DN): Có thể xem tất cả ứng viên (cho tuyển dụng)
+     * - Candidate (UV): Chỉ có thể xem hồ sơ của chính mình
      * - Unauthenticated: 401 Unauthorized
      * 
      * @param candidateId ID của ứng viên cần xem

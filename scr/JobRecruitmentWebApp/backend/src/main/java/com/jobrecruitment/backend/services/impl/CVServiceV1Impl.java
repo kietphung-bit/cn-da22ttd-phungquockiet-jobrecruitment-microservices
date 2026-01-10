@@ -95,26 +95,26 @@ public class CVServiceV1Impl implements CVServiceV1 {
     public CVResponse createCV(MultipartFile file, String username) {
         log.info("Creating CV for user: {}", username);
         
-        // Get authenticated user and their candidate profile
+        // Lấy authenticated user và profile candidate của họ
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
         
         Candidate candidate = candidateRepository.findByUserUserId(user.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("Candidate profile not found for user: " + username));
 
-        // Upload file to uploads/cvs/ directory
+        // Upload file vào thư mục uploads/cvs/
         String cvFilePath = fileStorageService.storeFile(file, "cvs");
         log.info("File uploaded successfully: {}", cvFilePath);
 
-        // Generate unique CVCode
+        // Tạo CVCode unique
         String cvCode = codeGenerator.generateCVCode(code -> cvRepository.existsByCvCode(code));
         log.info("Generated CVCode: {}", cvCode);
 
-        // Create CV entity
+        // Tạo CV entity
         CV cv = new CV();
         cv.setCandidate(candidate);
         cv.setCvCode(cvCode);
-        cv.setCvFile(cvFilePath); // Store file path (e.g., uploads/cvs/uuid-resume.pdf)
+        cv.setCvFile(cvFilePath); // Lưu đường dẫn file (ví dụ: uploads/cvs/uuid-resume.pdf)
         cv.setCvStatus(CVStatus.ACTIVE);
 
         CV savedCV = cvRepository.save(cv);
@@ -158,7 +158,7 @@ public class CVServiceV1Impl implements CVServiceV1 {
         List<CV> cvs = cvRepository.findByCandidateCandidateId(candidate.getCandidateId());
         log.info("Found {} CVs (total) for candidate: {}", cvs.size(), candidate.getCandidateCode());
         
-        // Filter to return ACTIVE and HIDDEN CVs (exclude DELETED ones)
+        // Lọc để trả về các CV có trạng thái ACTIVE và HIDDEN (loại bỏ DELETED)
         List<CVResponse> managedCVs = cvs.stream()
                 .filter(cv -> cv.getCvStatus() != CVStatus.DELETED)
                 .map(cvMapper::toResponse)
@@ -197,23 +197,23 @@ public class CVServiceV1Impl implements CVServiceV1 {
     public CVResponse updateCVStatus(Long cvId, CVStatus newStatus, String username) {
         log.info("Updating CV status - CVId: {}, NewStatus: {}", cvId, newStatus);
         
-        // Get authenticated user and their candidate profile
+        // Lấy authenticated user và profile candidate của họ
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
         
         Candidate candidate = candidateRepository.findByUserUserId(user.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("Candidate profile not found for user: " + username));
 
-        // Get CV
+        // Lấy CV
         CV cv = cvRepository.findById(cvId)
                 .orElseThrow(() -> new ResourceNotFoundException("CV not found with ID: " + cvId));
 
-        // Verify ownership
+        // Kiểm tra quyền sở hữu
         if (!cv.getCandidate().getCandidateId().equals(candidate.getCandidateId())) {
             throw new AccessDeniedException("You can only update your own CVs");
         }
 
-        // Update status
+        // Cập nhật trạng thái
         cv.setCvStatus(newStatus);
         CV updatedCV = cvRepository.save(cv);
         
@@ -251,34 +251,34 @@ public class CVServiceV1Impl implements CVServiceV1 {
     public void deleteCV(Long cvId, String username) {
         log.info("Deleting CV permanently - CVId: {}", cvId);
         
-        // Get authenticated user and their candidate profile
+        // Lấy authenticated user và profile candidate của họ
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
         
         Candidate candidate = candidateRepository.findByUserUserId(user.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("Candidate profile not found for user: " + username));
 
-        // Get CV
+        // Lấy CV
         CV cv = cvRepository.findById(cvId)
                 .orElseThrow(() -> new ResourceNotFoundException("CV not found with ID: " + cvId));
 
-        // Verify ownership
+        // Kiểm tra quyền sở hữu
         if (!cv.getCandidate().getCandidateId().equals(candidate.getCandidateId())) {
             throw new AccessDeniedException("You can only delete your own CVs");
         }
 
-        // Delete physical file from disk (if exists)
+        // Xóa file vật lý khỏi disk (nếu tồn tại)
         if (cv.getCvFile() != null && !cv.getCvFile().isEmpty()) {
             try {
                 fileStorageService.deleteFile(cv.getCvFile());
                 log.info("Physical file deleted: {}", cv.getCvFile());
             } catch (Exception e) {
                 log.warn("Failed to delete physical file: {} - Error: {}", cv.getCvFile(), e.getMessage());
-                // Continue with status update even if file deletion fails
+                // Tiếp tục cập nhật trạng thái ngay cả khi xóa file thất bại
             }
         }
 
-        // Set status to DELETED (soft delete in database for audit trail)
+        // Set trạng thái thành DELETED (xóa mềm trong database để lưu lịch sử)
         cv.setCvStatus(CVStatus.DELETED);
         cvRepository.save(cv);
         

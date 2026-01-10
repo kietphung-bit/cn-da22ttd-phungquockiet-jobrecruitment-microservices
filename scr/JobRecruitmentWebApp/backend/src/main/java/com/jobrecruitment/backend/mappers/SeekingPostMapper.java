@@ -44,7 +44,7 @@ public class SeekingPostMapper {
             return null;
         }
         
-        // Parse skills from comma-separated string to List
+        // Chuyển skills từ chuỗi phân tách bằng dấu phẩy sang List
         List<String> skillsList = post.getSkPostSkills() != null 
             ? Arrays.asList(post.getSkPostSkills().split(","))
             : List.of();
@@ -56,9 +56,10 @@ public class SeekingPostMapper {
             .location(post.getDesiredLocation())
             .skills(skillsList)
             .introduction(post.getSkPostIntro())
-            // Full candidate info (for Employer)
+            .expiryDate(post.getExpiryDate())
+            // Hiển thị thông tin ứng viên đầy đủ (cho Employer)
             .candidateName(post.getCandidate() != null ? post.getCandidate().getCandidateName() : null)
-            .candidateAvatar(null) // TODO: Add avatar field to Candidate entity
+            .candidateAvatar(null) 
             .createdDate(post.getCreatedAt())
             .status(post.getSkPostStatus() != null ? post.getSkPostStatus().name() : null)
             .build();
@@ -82,12 +83,12 @@ public class SeekingPostMapper {
             return null;
         }
         
-        // Parse skills from comma-separated string to List
+        // Chuyển skills từ chuỗi phân tách bằng dấu phẩy sang List
         List<String> skillsList = post.getSkPostSkills() != null 
             ? Arrays.asList(post.getSkPostSkills().split(","))
             : List.of();
         
-        // Mask candidate name: "Nguyễn Văn An" -> "Nguyễn Văn ***"
+        // Che tên ứng viên: "Nguyễn Văn An" -> "Nguyễn Văn ***"
         String maskedName = maskCandidateName(
             post.getCandidate() != null ? post.getCandidate().getCandidateName() : null
         );
@@ -99,11 +100,12 @@ public class SeekingPostMapper {
             .location(post.getDesiredLocation())
             .skills(skillsList)
             .introduction(post.getSkPostIntro())
-            // Masked candidate info (for Guest/Candidate)
+            .expiryDate(post.getExpiryDate())
+            // Thông tin ứng viên bị che (cho Guest/Candidate)
             .candidateName(maskedName)
             .candidateAvatar(null)
             .createdDate(post.getCreatedAt())
-            .status(null) // Hidden for privacy
+            .status(null) // Ẩn trạng thái để bảo mật
             .build();
     }
     
@@ -128,7 +130,7 @@ public class SeekingPostMapper {
             return parts[0] + " ***";
         }
         
-        // Keep all parts except the last one
+        // Giữ lại tất cả các phần trừ phần cuối cùng
         StringBuilder masked = new StringBuilder();
         for (int i = 0; i < parts.length - 1; i++) {
             masked.append(parts[i]).append(" ");

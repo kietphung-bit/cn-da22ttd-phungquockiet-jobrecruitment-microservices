@@ -33,7 +33,7 @@ public class UserMapper {
      * 
      * Chiến lược:
      * - Loại bỏ password (ẩn thông tin nhạy cảm)
-     * - Loại bỏ locked (ẩn trạng thái khóa)
+     * - Bao gồm locked status (admin cần để quản lý)
      * - Map nested Role qua RoleMapper
      * 
      * @param user User entity
@@ -49,6 +49,7 @@ public class UserMapper {
             user.getUserCode(),
             user.getUsername(),
             roleMapper.toResponse(user.getRole()),
+            user.getLocked(),
             user.getCreatedAt(),
             user.getUpdatedAt()
         );

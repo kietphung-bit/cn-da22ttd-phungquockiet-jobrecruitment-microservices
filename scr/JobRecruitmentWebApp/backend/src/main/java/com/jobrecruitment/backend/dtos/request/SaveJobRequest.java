@@ -34,6 +34,6 @@ public class SaveJobRequest {
      * - Tham chiếu đến Job.jobId
      * - Kiểm tra Job phải ACTIVE (Service layer)
      */
-    @NotNull(message = "Job ID is required")
+    @NotNull(message = "Mã tin tuyển dụng không được để trống")
     private Long jobId;
 }

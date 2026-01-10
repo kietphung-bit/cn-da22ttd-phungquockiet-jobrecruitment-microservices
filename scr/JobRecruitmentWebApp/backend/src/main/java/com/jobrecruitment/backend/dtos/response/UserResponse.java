@@ -10,12 +10,14 @@ import lombok.NoArgsConstructor;
  * UserResponse - DTO trả về thông tin User
  * 
  * Mô tả:
- * - Loại bỏ thông tin nhạy cảm (password, locked)
+ * - Loại bỏ thông tin nhạy cảm (password)
  * - Chỉ trả về thông tin công khai của User
+ * - Bao gồm locked status cho admin quản lý
  * - Nested object: RoleResponse (để hiển thị thông tin vai trò)
  * 
  * Sử dụng:
  * - API GET /api/v1/users/{id}
+ * - API GET /api/v1/admin/users (Admin user management)
  * - Trả về trong các response khác (CandidateResponse, CompanyResponse)
  * 
  * Tham khảo: Section 3.1 - User Table
@@ -51,6 +53,14 @@ public class UserResponse {
      * - Chứa roleCode, roleName
      */
     private RoleResponse role;
+    
+    /**
+     * Trạng thái khóa tài khoản
+     * - true: Tài khoản bị khóa (không thể đăng nhập)
+     * - false: Tài khoản hoạt động bình thường
+     * - Admin cần thông tin này để quản lý user
+     */
+    private Boolean locked;
     
     /**
      * Thời gian tạo tài khoản

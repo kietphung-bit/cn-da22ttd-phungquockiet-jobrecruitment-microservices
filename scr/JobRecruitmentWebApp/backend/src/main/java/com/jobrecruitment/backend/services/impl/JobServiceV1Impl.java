@@ -53,8 +53,8 @@ import java.util.Objects;
  * - RBNT (Section 4.6.C.7): StartDate <= EndDate, không apply vào job đã hết hạn
  * - RBGTN (Section 4.6.B.4): JobSalary phải > 0
  * - RBSL (Section 4.6.B.5): MaxCandidates phải >= 0
- * - Post-moderation Policy (Section 4.4): Jobs default ACTIVE, Admin deletes violations
- * - Legal Compliance (Section 4.7): Employer must agree to Terms (termsAgreed = true)
+ * - Post-moderation Policy (Section 4.4): Giá trị mặc định ACTIVE, Admin xoá vi phạm
+ * - Legal Compliance (Section 4.7): Nhà tuyển dụng phải đồng ý với Điều khoản (termsAgreed = true)
  * 
  * @see JobServiceV1
  * @see JobControllerV1
@@ -115,12 +115,12 @@ public class JobServiceV1Impl implements JobServiceV1 {
         log.info("Fetching jobs with filters - title: {}, status: {}, location: {}, companyId: {}, categoryId: {}, salary: {}-{}",
                 jobTitle, jobStatus, jobLocation, companyId, jcId, minSalary, maxSalary);
         
-        // Build dynamic specification using filter criteria
+        // Xây dựng dynamic specification sử dụng các tiêu chí lọc
         Specification<Job> spec = JobSpecification.withFilters(
                 jobTitle, jobStatus, jobLocation, companyId, jcId, minSalary, maxSalary
         );
         
-        // Execute query with specification and pagination
+        // Thực thi truy vấn với specification và phân trang
         Page<Job> jobPage = jobRepository.findAll(spec, pageable);
         
         log.info("Found {} jobs (page {} of {})", 
@@ -128,7 +128,7 @@ public class JobServiceV1Impl implements JobServiceV1 {
                 jobPage.getNumber() + 1, 
                 jobPage.getTotalPages());
         
-        // Map entities to DTOs
+        // Chuyển đổi entities sang DTOs
         return jobPage.map(jobMapper::toResponse);
     }
     
@@ -201,25 +201,25 @@ public class JobServiceV1Impl implements JobServiceV1 {
     public JobResponse createJob(JobRequest request, String username) {
         log.info("Creating job for employer: {}", username);
         
-        // Validate request
+        // Xác thực request
         validateJobRequest(request);
         
-        // Get employer
+        // Lấy thông tin employer
         User employer = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
         
-        // Get company
+        // Lấy thông tin công ty
         Company company = companyRepository.findByUserUserId(employer.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("Company not found for employer: " + username));
         
-        // Get job category
+        // Lấy thông tin danh mục công việc
         JobCategory category = jobCategoryRepository.findById(request.getJcId())
                 .orElseThrow(() -> new ResourceNotFoundException("Job category not found with ID: " + request.getJcId()));
         
-        // Generate unique JobCode
+        // Tạo mã công việc duy nhất
         String jobCode = codeGenerator.generateJobCode(code -> jobRepository.existsByJobCode(code));
         
-        // Create job entity
+        // Tạo entity job mới
         Job job = new Job();
         job.setCompany(company);
         job.setJobCategory(category);
@@ -233,13 +233,13 @@ public class JobServiceV1Impl implements JobServiceV1 {
         job.setEndDate(request.getEndDate());
         job.setMaxCandidates(request.getMaxCandidates());
         
-        // Set job status (Post-moderation Model):
-        // - WAIT if startDate is in the future (not yet open)
-        // - ACTIVE if startDate is today or past (publish immediately, no pre-approval)
+        // Set trạng thái job (Mô hình hậu duyệt):
+        // - WAIT nếu startDate là tương lai (chưa mở)
+        // - ACTIVE nếu startDate là hôm nay hoặc trước đó (đăng ngay, không cần duyệt trước)
         if (request.getStartDate().isAfter(LocalDate.now())) {
             job.setJobStatus(JobStatus.WAIT);
         } else {
-            job.setJobStatus(JobStatus.ACTIVE); // Post-moderation: Publish immediately
+            job.setJobStatus(JobStatus.ACTIVE); // Mô hình hậu duyệt: Đăng ngay lập tức
         }
         
         Job savedJob = jobRepository.save(job);
@@ -276,23 +276,23 @@ public class JobServiceV1Impl implements JobServiceV1 {
     public JobResponse updateJob(Long jobId, JobRequest request, String username) {
         log.info("Updating job {} by employer: {}", jobId, username);
         
-        // Validate request
+        // Xác thực request
         validateJobRequest(request);
         
-        // Get job and verify ownership
+        // Lấy job và xác minh quyền sở hữu
         Job job = jobRepository.findById(jobId)
                 .orElseThrow(() -> new ResourceNotFoundException("Job not found with ID: " + jobId));
         
         verifyJobOwnership(job, username);
         
-        // Get job category if changed
+        // Lấy thông tin danh mục công việc nếu thay đổi
         if (!job.getJobCategory().getJcId().equals(request.getJcId())) {
             JobCategory category = jobCategoryRepository.findById(request.getJcId())
                     .orElseThrow(() -> new ResourceNotFoundException("Job category not found with ID: " + request.getJcId()));
             job.setJobCategory(category);
         }
         
-        // Update job fields using mapper
+        // Cập nhật các trường của job sử dụng mapper
         jobMapper.updateEntityFromRequest(job, request);
         
         Job updatedJob = jobRepository.save(job);
@@ -333,13 +333,13 @@ public class JobServiceV1Impl implements JobServiceV1 {
     public JobResponse updateJobStatus(Long jobId, JobStatus newStatus, String username) {
         log.info("Updating status of job {} to {} by employer: {}", jobId, newStatus, username);
         
-        // Get job and verify ownership
+        // Lấy job và xác minh quyền sở hữu
         Job job = jobRepository.findById(jobId)
                 .orElseThrow(() -> new ResourceNotFoundException("Job not found with ID: " + jobId));
         
         verifyJobOwnership(job, username);
         
-        // Update status
+        // Cập nhật trạng thái
         job.setJobStatus(newStatus);
         Job updatedJob = jobRepository.save(job);
         
@@ -348,19 +348,19 @@ public class JobServiceV1Impl implements JobServiceV1 {
     }
     
     /**
-     * Delete job (Soft delete - change to HIDDEN)
+     * Xoá job (Xoá mềm - đổi trạng thái thành HIDDEN)
      */
     @Override
     public void deleteJob(Long jobId, String username) {
         log.info("Deleting job {} by employer: {}", jobId, username);
         
-        // Get job and verify ownership
+        // Lấy job và xác minh quyền sở hữu
         Job job = jobRepository.findById(jobId)
                 .orElseThrow(() -> new ResourceNotFoundException("Job not found with ID: " + jobId));
         
         verifyJobOwnership(job, username);
         
-        // Soft delete - change status to HIDDEN
+        // Xoá mềm - đổi trạng thái thành HIDDEN
         job.setJobStatus(JobStatus.HIDDEN);
         jobRepository.save(job);
         
@@ -368,25 +368,25 @@ public class JobServiceV1Impl implements JobServiceV1 {
     }
     
     /**
-     * Get jobs posted by authenticated employer with pagination
+     * Lấy danh sách job do employer đã xác thực đăng với phân trang
      */
     @Override
     @Transactional(readOnly = true)
     public Page<JobResponse> getMyJobs(Pageable pageable, String username) {
         log.info("Fetching jobs for employer: {}", username);
         
-        // Get employer
+        // Lấy employer
         User employer = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
         
-        // Get company
+        // Lấy công ty
         Company company = companyRepository.findByUserUserId(employer.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("Company not found for employer: " + username));
         
-        // Build specification to filter by company
+        // Xây dựng specification để lọc theo công ty
         Specification<Job> spec = JobSpecification.hasCompanyId(company.getCompanyId());
         
-        // Execute query with pagination
+        // Thực hiện truy vấn với phân trang
         Page<Job> jobPage = jobRepository.findAll(spec, pageable);
         
         log.info("Found {} jobs for employer (page {} of {})",
@@ -394,12 +394,12 @@ public class JobServiceV1Impl implements JobServiceV1 {
                 jobPage.getNumber() + 1,
                 jobPage.getTotalPages());
         
-        // Map to DTOs
+        // Chuyển đổi sang DTOs
         return jobPage.map(jobMapper::toResponse);
     }
     
     /**
-     * Validate job request
+     * Xác minh yêu cầu job hợp lệ
      */
     private void validateJobRequest(JobRequest request) {
         if (request.getStartDate() != null && request.getEndDate() != null) {
@@ -418,7 +418,7 @@ public class JobServiceV1Impl implements JobServiceV1 {
     }
     
     /**
-     * Verify job ownership by employer
+     * Xác minh quyền sở hữu job bởi employer
      */
     private void verifyJobOwnership(Job job, String username) {
         User employer = userRepository.findByUsername(username)

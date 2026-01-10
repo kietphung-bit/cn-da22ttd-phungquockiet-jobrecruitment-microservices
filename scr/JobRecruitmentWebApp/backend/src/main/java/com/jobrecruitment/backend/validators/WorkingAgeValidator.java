@@ -20,9 +20,6 @@ import jakarta.validation.ConstraintValidatorContext;
  * 3. Nếu age < minAge: Lỗi "Ứng viên phải đủ {minAge} tuổi (hiện tại: {age} tuổi)"
  * 4. Otherwise: Pass
  * 
- * Tham khảo:
- * - Section 4.6.C - RBNS Rule (Registration Business Validation)
- * 
  * @see WorkingAge
  */
 public class WorkingAgeValidator implements ConstraintValidator<WorkingAge, LocalDate> {

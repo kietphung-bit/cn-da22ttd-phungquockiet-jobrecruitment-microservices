@@ -17,10 +17,10 @@ import org.springframework.data.domain.Pageable;
  * - Quản lý công việc (Post-moderation: DELETE/BLOCK vi phạm, KHÔNG pre-approve)
  * - Quản lý SeekingPost (DELETE vi phạm)
  * 
- * Post-moderation Policy:
- * - Admin does NOT pre-approve content (jobs, seeking posts)
- * - Admin ONLY deletes/blocks content after violations are reported or detected
- * - Users (Employers, Candidates) are responsible for content accuracy and legality
+ * Quy tắc nghiệp vụ:
+ * - Admin không duyệt trước nội dung (công việc, tin tìm việc)
+ * - Admin chỉ xóa/khóa nội dung sau khi có báo cáo hoặc phát hiện vi phạm
+ * - Người dùng (Nhà tuyển dụng, Ứng viên) chịu trách nhiệm về độ chính xác và hợp pháp của nội dung
  */
 public interface AdminServiceV1 {
     
@@ -80,6 +80,19 @@ public interface AdminServiceV1 {
     String changeJobStatus(Long jobId, JobStatus newStatus);
     
     /**
+     * Toggle trạng thái công việc (ACTIVE <-> HIDDEN)
+     * 
+     * Chức năng:
+     * - Toggle JobStatus: ACTIVE <-> HIDDEN
+     * - Dùng để ẩn/hiện tin tuyển dụng nhanh chóng
+     * - Admin có thể toggle để quản lý nội dung vi phạm tạm thời
+     * 
+     * @param jobId Job ID cần toggle
+     * @return Success message với trạng thái mới
+     */
+    String toggleJobStatus(Long jobId);
+    
+    /**
      * Xóa tin tuyển dụng (Admin - Post-moderation)
      * 
      * Chức năng:
@@ -104,4 +117,30 @@ public interface AdminServiceV1 {
      * @return Success message
      */
     String deleteSeekingPost(Long seekingPostId);
+    
+    /**
+     * Lấy tất cả tin đăng tìm việc (Admin)
+     * 
+     * Chức năng:
+     * - Lấy tất cả SeekingPost bao gồm ACTIVE, HIDDEN, CLOSED
+     * - Phân trang và sắp xếp theo thời gian tạo mới nhất
+     * - Chỉ dành cho Admin để quản lý nội dung
+     * 
+     * @param pageable Tham số phân trang
+     * @return Page chứa JobSeekPostResponse
+     */
+    Page<com.jobrecruitment.backend.dtos.response.JobSeekPostResponse> getAllSeekingPosts(Pageable pageable);
+    
+    /**
+     * Toggle trạng thái tin đăng tìm việc (ACTIVE <-> HIDDEN)
+     * 
+     * Chức năng:
+     * - Toggle SKPostStatus: ACTIVE <-> HIDDEN
+     * - Dùng để ẩn/hiện tin tìm việc nhanh chóng
+     * - Admin có thể toggle để quản lý nội dung vi phạm tạm thời
+     * 
+     * @param seekingPostId SeekingPost ID cần toggle
+     * @return Success message với trạng thái mới
+     */
+    String toggleSeekingPostStatus(Long seekingPostId);
 }

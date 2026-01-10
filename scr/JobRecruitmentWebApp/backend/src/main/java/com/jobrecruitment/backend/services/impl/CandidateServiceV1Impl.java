@@ -84,7 +84,7 @@ public class CandidateServiceV1Impl implements CandidateServiceV1 {
         Candidate candidate = candidateRepository.findById(candidateId)
                 .orElseThrow(() -> new ResourceNotFoundException("Candidate not found with ID: " + candidateId));
         
-        // IDOR Protection: Verify user has permission to view this candidate
+        // Bảo vệ IDOR: Xác minh user có quyền truy cập hồ sơ ứng viên này
         verifyCandidateAccess(candidate, username);
         
         return candidateMapper.toResponse(candidate);
@@ -136,7 +136,7 @@ public class CandidateServiceV1Impl implements CandidateServiceV1 {
             return;
         }
         
-        // Unknown role - deny access
+        // Vai trò không hợp lệ - từ chối truy cập
         log.warn("Access denied: Unknown role {} for user {}", roleCode, username);
         throw new com.jobrecruitment.backend.exceptions.ValidationException("Access denied: Invalid role");
     }
@@ -210,7 +210,7 @@ public class CandidateServiceV1Impl implements CandidateServiceV1 {
         Candidate candidate = candidateRepository.findByUserUserId(user.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("Candidate profile not found for user: " + username));
         
-        // Update candidate fields (only non-null values)
+        // Cập nhật các trường của ứng viên (chỉ các giá trị khác null)
         if (request.getCandidateName() != null) {
             candidate.setCandidateName(request.getCandidateName());
         }

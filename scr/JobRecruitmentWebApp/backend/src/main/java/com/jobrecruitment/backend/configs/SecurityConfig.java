@@ -134,13 +134,13 @@ public class SecurityConfig {
     @Bean
     public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception {
         http
-            // Disable CSRF for stateless API
+            // Vô hiệu hóa CSRF cho API không trạng thái
             .csrf(csrf -> csrf.disable())
             
-            // Enable CORS
+            // Kích hoạt CORS
             .cors(cors -> cors.configurationSource(corsConfigurationSource()))
             
-            // Configure authorization rules
+            // Thiết lập quy tắc phân quyền
             .authorizeHttpRequests(auth -> auth
                 // Public endpoints (authentication) - Legacy and V1
                 .requestMatchers("/api/auth/**").permitAll()
@@ -160,7 +160,7 @@ public class SecurityConfig {
                     "/webjars/**"
                 ).permitAll()
                 
-                // Public endpoints - Anyone can view jobs (unauthenticated browsing)
+                // Public endpoints - Tất cả có thể xem việc làm (unauthenticated browsing)
                 .requestMatchers(
                     "/api/jobs",                      // GET all jobs (legacy)
                     "/api/jobs/{jobId}",             // GET job by ID (legacy)
@@ -170,32 +170,29 @@ public class SecurityConfig {
                     "/api/jobs/company/{companyId}"  // GET jobs by company (legacy)
                 ).permitAll()
                 
-                // Public endpoints - RESTful API v1 (read operations for job browsing)
+                // Public endpoints - RESTful API v1 (đọc dữ liệu việc làm, công ty, danh mục)
                 .requestMatchers(
                     org.springframework.http.HttpMethod.GET,
                     "/api/v1/jobs/**",               // GET all jobs and job details (public job browsing)
                     "/api/v1/companies/**",          // GET all companies and company details (public company info)
-                    "/api/v1/categories/**"          // GET all job categories (public category browsing)
+                    "/api/v1/categories/**",         // GET all job categories (public category browsing)
+                    "/api/v1/seeking-posts"          // GET seeking posts (public talent browsing - returns masked data for guests)
                 ).permitAll()
                 
-                // REMOVED: Candidate profile endpoint - Now requires authentication (IDOR protection)
-                // Reason: Candidates must be authenticated, can only view own profile
-                // Employers/Admin authenticated to view candidate profiles
-                
-                // All other requests require authentication
-                // Controllers will handle fine-grained authorization via @PreAuthorize
+                // Tất cả các yêu cầu khác yêu cầu xác thực
+                // Controllers sẽ xử lý phân quyền chi tiết thông qua @PreAuthorize
                 .anyRequest().authenticated()
             )
             
-            // Stateless session management (JWT)
+            // Quản lý phiên không trạng thái (JWT)
             .sessionManagement(session -> session
                 .sessionCreationPolicy(SessionCreationPolicy.STATELESS)
             )
             
-            // Add Rate Limit filter FIRST (before any authentication)
+            // Thêm bộ lọc giới hạn tốc độ ĐẦU TIÊN (trước bất kỳ xác thực nào)
             .addFilterBefore(rateLimitFilter, UsernamePasswordAuthenticationFilter.class)
             
-            // Add JWT filter before UsernamePasswordAuthenticationFilter
+            // Thêm bộ lọc JWT trước UsernamePasswordAuthenticationFilter
             .addFilterBefore(jwtAuthenticationFilter, UsernamePasswordAuthenticationFilter.class);
         
         return http.build();
@@ -254,41 +251,41 @@ public class SecurityConfig {
     public CorsConfigurationSource corsConfigurationSource() {
         CorsConfiguration configuration = new CorsConfiguration();
         
-        // Allow multiple origins: Swagger UI (same origin), React, Vite
+        // Cho phép nhiều origin: Swagger UI (cùng origin), React, Vite
         configuration.setAllowedOriginPatterns(Arrays.asList(
-            "http://localhost:*",     // Allows any localhost port (Swagger UI, React, Vite)
+            "http://localhost:*",     // Cho phép bất kỳ cổng localhost nào (Swagger UI, React, Vite)
             "http://127.0.0.1:*",     // IPv4 localhost
             "https://localhost:*",    // HTTPS localhost
             "https://127.0.0.1:*"     // HTTPS IPv4 localhost
         ));
         
-        // Allow all common HTTP methods (CRITICAL for Swagger UI)
+        // Cho phép tất cả các phương thức HTTP phổ biến (QUAN TRỌNG cho Swagger UI)
         configuration.setAllowedMethods(Arrays.asList(
             "GET", 
             "POST", 
             "PUT", 
             "DELETE", 
             "PATCH", 
-            "OPTIONS",  // CRITICAL: Required for CORS preflight requests
+            "OPTIONS",  // QUAN TRỌNG: Yêu cầu cho preflight CORS
             "HEAD"
         ));
         
-        // Allow all common headers (CRITICAL for JWT and Swagger UI)
+        // Cho phép tất cả các header phổ biến (QUAN TRỌNG cho JWT và Swagger UI)
         configuration.setAllowedHeaders(Arrays.asList(
-            "Authorization",      // CRITICAL: JWT Bearer token
-            "Content-Type",       // CRITICAL: JSON request body
-            "Accept",             // CRITICAL: Response type negotiation
-            "X-Requested-With",   // AJAX identifier
+            "Authorization",      // QUAN TRỌNG: JWT Bearer token
+            "Content-Type",       // QUAN TRỌNG: JSON request body
+            "Accept",             // QUAN TRỌNG: Response type negotiation
+            "X-Requested-With",   // Xác định AJAX request
             "Origin",             // CORS origin header
-            "Access-Control-Request-Method",    // Preflight method
-            "Access-Control-Request-Headers"    // Preflight headers
+            "Access-Control-Request-Method",    // Phương thức preflight
+            "Access-Control-Request-Headers"    // Header preflight
         ));
         
-        // Allow credentials (cookies, authorization headers)
-        // CRITICAL: Must be true for Authorization header to work
+        // Cho phép gửi credentials (cookies, authorization headers)
+        // QUAN TRỌNG: Phải bật để Authorization header hoạt động
         configuration.setAllowCredentials(true);
         
-        // Expose headers to frontend/Swagger UI
+        // Xác định headers cho frontend/Swagger UI
         configuration.setExposedHeaders(Arrays.asList(
             "Authorization",
             "Content-Type",
@@ -296,7 +293,7 @@ public class SecurityConfig {
             "Access-Control-Allow-Credentials"
         ));
         
-        // Max age for preflight requests (1 hour)
+        // Thời gian cache preflight request (1 giờ)
         configuration.setMaxAge(3600L);
         
         UrlBasedCorsConfigurationSource source = new UrlBasedCorsConfigurationSource();

@@ -16,6 +16,7 @@ import com.jobrecruitment.backend.entities.SeekingPost;
 import com.jobrecruitment.backend.entities.User;
 import com.jobrecruitment.backend.enums.SeekingPostStatus;
 import com.jobrecruitment.backend.exceptions.ResourceNotFoundException;
+import com.jobrecruitment.backend.exceptions.ValidationException;
 import com.jobrecruitment.backend.mappers.SeekingPostMapper;
 import com.jobrecruitment.backend.repositories.CandidateRepository;
 import com.jobrecruitment.backend.repositories.SeekingPostRepository;
@@ -100,15 +101,15 @@ public class SeekingPostServiceImpl implements SeekingPostService {
     public JobSeekPostResponse createPost(String username, JobSeekPostRequest request) {
         log.info("Creating seeking post for candidate: {}", username);
         
-        // Step 1: Find User
+        // Step 1: Tìm User
         User user = userRepository.findByUsername(username)
-            .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng: " + username));
+            .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
         
-        // Step 2: Find Candidate
+        // Step 2: Tìm Candidate
         Candidate candidate = candidateRepository.findByUserUserId(user.getUserId())
-            .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hồ sơ ứng viên cho người dùng: " + username));
+            .orElseThrow(() -> new ResourceNotFoundException("Candidate profile not found for user: " + username));
         
-        // Step 3: Check for existing ACTIVE post
+        // Step 3: Kiểm tra tin ACTIVE hiện có
         Optional<SeekingPost> existingActivePost = seekingPostRepository
             .findByCandidateCandidateIdAndSkPostStatus(candidate.getCandidateId(), SeekingPostStatus.ACTIVE);
         
@@ -119,30 +120,30 @@ public class SeekingPostServiceImpl implements SeekingPostService {
             seekingPostRepository.save(oldPost);
         }
         
-        // Step 4: Generate unique SKPostCode
+        // Step 4: Khởi tạo mã SKPostCode duy nhất
         String skPostCode = codeGenerator.generateCode(
             CodeGenerator.PREFIX_SEEKING_POST,
             code -> seekingPostRepository.findBySkPostCode(code).isPresent()
         );
         
-        // Step 5: Create SeekingPost entity
+        // Step 5: Tạo mới SeekingPost entity
         SeekingPost newPost = new SeekingPost();
         newPost.setCandidate(candidate);
         newPost.setSkPostCode(skPostCode);
         newPost.setSkPostTitle(request.getTitle());
         newPost.setDesiredSalary(request.getDesiredSalary());
         newPost.setDesiredLocation(request.getLocation());
-        // Convert skills List<String> to comma-separated string
+        // Chuyển skills List<String> thành chuỗi phân cách bằng dấu phẩy
         newPost.setSkPostSkills(request.getSkills() != null ? String.join(",", request.getSkills()) : "");
         newPost.setSkPostIntro(request.getIntroduction());
-        newPost.setSkPostStatus(SeekingPostStatus.ACTIVE); // Default ACTIVE
+        newPost.setSkPostStatus(SeekingPostStatus.ACTIVE); // Giá trị mặc định: ACTIVE
         
-        // Step 6: Save to database
+        // Step 6: Lưu vào cơ sở dữ liệu
         SeekingPost savedPost = seekingPostRepository.save(newPost);
         
         log.info("Created seeking post successfully. Code: {}", skPostCode);
         
-        // Step 7: Return full response (owner can see all)
+        // Step 7: Trả về response đầy đủ (owner có thể xem tất cả)
         return seekingPostMapper.toFullResponse(savedPost);
     }
 
@@ -172,30 +173,30 @@ public class SeekingPostServiceImpl implements SeekingPostService {
     public JobSeekPostResponse updatePost(Long skPostId, String username, JobSeekPostRequest request) {
         log.info("Updating seeking post ID: {} by user: {}", skPostId, username);
         
-        // Step 1: Find SeekingPost
+        // Step 1: Tìm SeekingPost
         SeekingPost post = seekingPostRepository.findById(skPostId)
-            .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tin đăng với ID: " + skPostId));
+            .orElseThrow(() -> new ResourceNotFoundException("Seeking post not found: " + skPostId));
         
-        // Step 2: Verify ownership
+        // Step 2: Xác minh quyền sở hữu
         String ownerUsername = post.getCandidate().getUser().getUsername();
         if (!ownerUsername.equals(username)) {
             log.warn("Access denied. User {} tried to update post owned by {}", username, ownerUsername);
-            throw new AccessDeniedException("Bạn không có quyền chỉnh sửa tin đăng này");
+            throw new AccessDeniedException("You do not have permission to edit this seeking post");
         }
         
-        // Step 3: Update fields (không update status)
+        // Step 3: Cập nhật các trường (không cập nhật trạng thái)
         post.setSkPostTitle(request.getTitle());
         post.setDesiredSalary(request.getDesiredSalary());
         post.setDesiredLocation(request.getLocation());
         post.setSkPostSkills(request.getSkills() != null ? String.join(",", request.getSkills()) : "");
         post.setSkPostIntro(request.getIntroduction());
         
-        // Step 4: Save to database
+        // Step 4: Lưu vào cơ sở dữ liệu
         SeekingPost updatedPost = seekingPostRepository.save(post);
         
         log.info("Updated seeking post successfully. Code: {}", post.getSkPostCode());
         
-        // Step 5: Return full response
+        // Step 5: Trả về response đầy đủ
         return seekingPostMapper.toFullResponse(updatedPost);
     }
 
@@ -225,18 +226,18 @@ public class SeekingPostServiceImpl implements SeekingPostService {
     public JobSeekPostResponse changeStatus(Long skPostId, String username, SeekingPostStatus newStatus) {
         log.info("Changing status of seeking post ID: {} to {} by user: {}", skPostId, newStatus, username);
         
-        // Step 1: Find SeekingPost
+        // Step 1: Tìm SeekingPost
         SeekingPost post = seekingPostRepository.findById(skPostId)
-            .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tin đăng với ID: " + skPostId));
+            .orElseThrow(() -> new ResourceNotFoundException("Seeking post not found: " + skPostId));
         
-        // Step 2: Verify ownership
+        // Step 2: Xác minh quyền sở hữu
         String ownerUsername = post.getCandidate().getUser().getUsername();
         if (!ownerUsername.equals(username)) {
             log.warn("Access denied. User {} tried to change status of post owned by {}", username, ownerUsername);
-            throw new AccessDeniedException("Bạn không có quyền thay đổi trạng thái tin đăng này");
+            throw new AccessDeniedException("You do not have permission to change the status of this seeking post");
         }
         
-        // Step 3: Check if changing to ACTIVE
+        // Step 3: Kiểm tra nếu chuyển sang ACTIVE
         if (newStatus == SeekingPostStatus.ACTIVE) {
             Optional<SeekingPost> existingActivePost = seekingPostRepository
                 .findByCandidateCandidateIdAndSkPostStatus(
@@ -252,15 +253,15 @@ public class SeekingPostServiceImpl implements SeekingPostService {
             }
         }
         
-        // Step 4: Update status
+        // Step 4: Cập nhật trạng thái
         post.setSkPostStatus(newStatus);
         
-        // Step 5: Save to database
+        // Step 5: Lưu vào cơ sở dữ liệu
         SeekingPost updatedPost = seekingPostRepository.save(post);
         
         log.info("Changed status successfully. Code: {}", post.getSkPostCode());
         
-        // Step 6: Return response
+        // Step 6: Trả về response đầy đủ
         return seekingPostMapper.toFullResponse(updatedPost);
     }
 
@@ -295,7 +296,7 @@ public class SeekingPostServiceImpl implements SeekingPostService {
     public Page<JobSeekPostResponse> searchPosts(String username, String location, String skills, Pageable pageable) {
         log.info("Searching seeking posts. User: {}, Location: {}, Skills: {}", username, location, skills);
         
-        // Step 1: Determine role
+        // Step 1: Xác định vai trò
         boolean isEmployer = false;
         if (username != null) {
             Optional<User> user = userRepository.findByUsername(username);
@@ -305,10 +306,10 @@ public class SeekingPostServiceImpl implements SeekingPostService {
             }
         }
         
-        // Step 2: Search active posts
+        // Step 2: Tìm kiếm tin đăng ACTIVE với filter
         Page<SeekingPost> posts = seekingPostRepository.searchActivePosts(location, skills, pageable);
         
-        // Step 3: Map to response DTO with privacy
+        // Step 3: Map sang response DTO với privacy
         final boolean showFullData = isEmployer;
         return posts.map(post -> 
             showFullData 
@@ -332,19 +333,19 @@ public class SeekingPostServiceImpl implements SeekingPostService {
     public JobSeekPostResponse getPostById(Long skPostId, String username) {
         log.info("Getting seeking post detail. ID: {}, User: {}", skPostId, username);
         
-        // Find post
+        // Tìm SeekingPost
         SeekingPost post = seekingPostRepository.findById(skPostId)
-            .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy tin đăng với ID: " + skPostId));
+            .orElseThrow(() -> new ResourceNotFoundException("Seeking post not found: " + skPostId));
         
-        // Check if post is ACTIVE (public can only see ACTIVE posts)
+        // Kiểm tra nếu tin đăng là ACTIVE (công khai chỉ xem được tin ACTIVE)
         if (post.getSkPostStatus() != SeekingPostStatus.ACTIVE) {
-            // Check ownership: Only owner can view HIDDEN/CLOSED posts
+            // Kiểm tra quyền sở hữu: Chỉ chủ sở hữu mới xem được tin HIDDEN/CLOSED
             if (username == null || !post.getCandidate().getUser().getUsername().equals(username)) {
-                throw new ResourceNotFoundException("Tin đăng không tồn tại hoặc đã bị ẩn");
+                throw new ResourceNotFoundException("Seeking post not found: " + skPostId);
             }
         }
         
-        // Determine role
+        // Xác định vai trò
         boolean isEmployer = false;
         boolean isOwner = false;
         if (username != null) {
@@ -356,7 +357,7 @@ public class SeekingPostServiceImpl implements SeekingPostService {
             }
         }
         
-        // Map to response with privacy
+        // Map sang response DTO với privacy
         if (isEmployer || isOwner) {
             return seekingPostMapper.toFullResponse(post);
         } else {
@@ -379,15 +380,51 @@ public class SeekingPostServiceImpl implements SeekingPostService {
     public void deletePost(Long skPostId) {
         log.info("Deleting seeking post ID: {}", skPostId);
         
-        // Check existence
+        // Kiểm tra tồn tại
         if (!seekingPostRepository.existsById(skPostId)) {
-            throw new ResourceNotFoundException("Không tìm thấy tin đăng với ID: " + skPostId);
+            throw new ResourceNotFoundException("Seeking post not found: " + skPostId);
         }
         
-        // Hard delete
+        // Xóa vĩnh viễn
         seekingPostRepository.deleteById(skPostId);
         
         log.info("Deleted seeking post successfully. ID: {}", skPostId);
+    }
+
+    /**
+     * Ứng viên xóa tin đăng của chính mình
+     * 
+     * @param skPostId ID tin đăng cần xóa
+     * @param username Username của ứng viên (từ JWT)
+     * @throws ResourceNotFoundException nếu không tìm thấy tin đăng
+     * @throws ForbiddenException nếu user không phải owner
+     */
+    @Override
+    @Transactional
+    public void deleteOwnPost(Long skPostId, String username) {
+        log.info("Candidate {} attempting to delete own seeking post ID: {}", username, skPostId);
+        
+        // 1. Tìm User và Candidate
+        User user = userRepository.findByUsername(username)
+            .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
+        
+        Candidate candidate = candidateRepository.findByUserUserId(user.getUserId())
+            .orElseThrow(() -> new ResourceNotFoundException("Candidate profile not found for user: " + username));
+        
+        // 2. Tìm seeking post
+        SeekingPost post = seekingPostRepository.findById(skPostId)
+            .orElseThrow(() -> new ResourceNotFoundException("Seeking post not found: " + skPostId));
+        
+        // 3. Kiểm tra quyền sở hữu
+        if (!post.getCandidate().getCandidateId().equals(candidate.getCandidateId())) {
+            log.warn("User {} tried to delete post {} owned by another candidate", username, skPostId);
+            throw new ValidationException("You can only delete your own seeking posts");
+        }
+        
+        // 4. Xóa
+        seekingPostRepository.deleteById(skPostId);
+        
+        log.info("Candidate {} deleted own post successfully. ID: {}", username, skPostId);
     }
 
     /**
@@ -408,30 +445,30 @@ public class SeekingPostServiceImpl implements SeekingPostService {
     public Page<JobSeekPostResponse> getMyPosts(String username, Pageable pageable) {
         log.info("Getting my posts for candidate: {}", username);
         
-        // Find User
+        // Tìm User
         User user = userRepository.findByUsername(username)
             .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy người dùng: " + username));
         
-        // Find Candidate
+        // Tìm Candidate
         Candidate candidate = candidateRepository.findByUserUserId(user.getUserId())
             .orElseThrow(() -> new ResourceNotFoundException("Không tìm thấy hồ sơ ứng viên cho người dùng: " + username));
         
-        // Get all posts by candidateId
+        // Lấy tất cả tin đăng của candidate
         List<SeekingPost> allPosts = seekingPostRepository.findByCandidateCandidateId(candidate.getCandidateId());
         
-        // Apply pagination manually
+        // Áp dụng phân trang thủ công
         int start = (int) pageable.getOffset();
         int end = Math.min((start + pageable.getPageSize()), allPosts.size());
         List<SeekingPost> pagedPosts = allPosts.subList(start, end);
         
-        // Convert to Page
+        // Chuyển đổi thành Page
         Page<SeekingPost> posts = new org.springframework.data.domain.PageImpl<>(
             pagedPosts,
             pageable,
             allPosts.size()
         );
         
-        // Map to full response (owner)
+        // Map thành full response (owner)
         return posts.map(seekingPostMapper::toFullResponse);
     }
 }

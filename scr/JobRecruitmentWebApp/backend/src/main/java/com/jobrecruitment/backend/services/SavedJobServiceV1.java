@@ -11,13 +11,13 @@ import org.springframework.data.domain.Pageable;
  * Chức năng:
  * - Candidate: Lưu Job, xem danh sách Job đã lưu, bỏ lưu Job
  * 
- * Business Rules:
+ * Quy tắc nghiệp vụ:
  * - Mỗi Candidate có thể lưu nhiều Job
  * - 1 Job chỉ lưu 1 lần (unique constraint: candidateId + jobId)
  * - Bỏ lưu = hard delete khỏi SavedJob table
  * 
- * Features:
- * - Pagination: Spring Data JPA Pageable
+ * Tính năng:
+ * - Phân trang: Spring Data JPA Pageable
  * - SavedJobResponse bao gồm toàn bộ JobResponse (để hiển thị thông tin Job)
  * 
  * @see SavedJobServiceV1Impl
@@ -31,7 +31,7 @@ public interface SavedJobServiceV1 {
      * - API POST /api/v1/saved-jobs
      * - Candidate bookmark Job để xem sau
      * 
-     * Business Logic:
+     * Quy tắc nghiệp vụ:
      * - Kiểm tra Job có tồn tại không
      * - Kiểm tra Job đã lưu chưa (existsByCandidateIdAndJobId)
      * - Tạo SavedJob mới
@@ -45,7 +45,7 @@ public interface SavedJobServiceV1 {
     SavedJobResponse saveJob(SaveJobRequest request, String username);
     
     /**
-     * Lấy danh sách Job đã lưu (Candidate only, phân trang)
+     * Lấy danh sách Job đã lưu (Chỉ ứng viên, phân trang)
      * 
      * Sử dụng:
      * - API GET /api/v1/saved-jobs
@@ -64,12 +64,12 @@ public interface SavedJobServiceV1 {
      * - API DELETE /api/v1/saved-jobs/{jobId}
      * - Candidate unsave Job
      * 
-     * Business Logic:
+     * Quy tắc nghiệp vụ:
      * - Kiểm tra SavedJob có tồn tại không
      * - Xóa SavedJob khỏi database (hard delete)
      * 
-     * @param jobId Job ID cần unsave
-     * @param username Username của Candidate đang authenticate
+     * @param jobId ID công việc cần bỏ lưu
+     * @param username Tên đăng nhập ứng viên đã xác thực
      * @throws ResourceNotFoundException nếu SavedJob không tìm thấy
      */
     void unsaveJob(Long jobId, String username);

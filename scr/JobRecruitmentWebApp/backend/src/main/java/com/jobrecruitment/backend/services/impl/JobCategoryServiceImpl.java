@@ -112,7 +112,6 @@ public class JobCategoryServiceImpl implements JobCategoryService {
     @Override
     @Transactional
     public JobCategoryResponse createCategory(JobCategoryRequest request) {
-        // Entity manipulation pattern: Create -> Set values -> Save
         JobCategory category = new JobCategory();
         category.setJcName(request.getJcName());
         category.setJcDescription(request.getJcDescription());
@@ -147,7 +146,6 @@ public class JobCategoryServiceImpl implements JobCategoryService {
     @Override
     @Transactional
     public JobCategoryResponse updateCategory(Integer jcId, JobCategoryRequest request) {
-        // Entity manipulation pattern: Find -> Validate -> Set -> Save
         JobCategory category = jobCategoryRepository.findById(jcId)
                 .orElseThrow(() -> new ResourceNotFoundException("Job category not found with ID: " + jcId));
         
@@ -179,7 +177,6 @@ public class JobCategoryServiceImpl implements JobCategoryService {
     @Override
     @Transactional
     public void deleteCategory(Integer jcId) {
-        // Entity manipulation pattern: Find -> Validate -> Delete
         JobCategory category = jobCategoryRepository.findById(jcId)
                 .orElseThrow(() -> new ResourceNotFoundException("Job category not found with ID: " + jcId));
         

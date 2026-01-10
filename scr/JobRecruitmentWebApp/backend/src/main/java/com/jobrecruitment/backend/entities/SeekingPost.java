@@ -68,7 +68,7 @@ public class SeekingPost {
      */
     @ManyToOne(fetch = FetchType.LAZY)
     @JoinColumn(name = "candidate_id", referencedColumnName = "candidateId", nullable = false)
-    @NotNull(message = "Ứng viên không được để trống")
+    @NotNull(message = "Candidate must not be null")
     private Candidate candidate;
 
     /**
@@ -86,8 +86,8 @@ public class SeekingPost {
      * - Độ dài: 10-200 ký tự
      * - Ví dụ: "Java Developer 3 Years Exp looking for Remote Job"
      */
-    @NotBlank(message = "Tiêu đề không được để trống")
-    @Size(min = 10, max = 200, message = "Tiêu đề phải từ 10 đến 200 ký tự")
+    @NotBlank(message = "Title must not be blank")
+    @Size(min = 10, max = 200, message = "Title must be between 10 and 200 characters")
     @Column(nullable = false, length = 200)
     private String skPostTitle;
 
@@ -97,7 +97,7 @@ public class SeekingPost {
      * - 0 = Thỏa thuận
      * - > 0 = Mức lương cụ thể (VNĐ)
      */
-    @Min(value = 0, message = "Mức lương phải >= 0")
+    @Min(value = 0, message = "Salary must be >= 0")
     @Column(nullable = false)
     private Double desiredSalary;
 
@@ -106,7 +106,7 @@ public class SeekingPost {
      * - Validation: @NotBlank
      * - Ví dụ: "TP. Hồ Chí Minh", "Remote", "Hà Nội"
      */
-    @NotBlank(message = "Địa điểm không được để trống")
+    @NotBlank(message = "Location must not be blank")
     @Column(nullable = false, length = 100)
     private String desiredLocation;
 
@@ -125,8 +125,8 @@ public class SeekingPost {
      * - Validation: @NotBlank, @Size
      * - Độ dài: 50-2000 ký tự
      */
-    @NotBlank(message = "Giới thiệu không được để trống")
-    @Size(min = 50, max = 2000, message = "Giới thiệu phải từ 50 đến 2000 ký tự")
+    @NotBlank(message = "Introduction must not be blank")
+    @Size(min = 50, max = 2000, message = "Introduction must be between 50 and 2000 characters")
     @Column(columnDefinition = "TEXT", nullable = false)
     private String skPostIntro;
 

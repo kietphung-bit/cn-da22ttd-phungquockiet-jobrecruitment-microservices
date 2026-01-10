@@ -1,6 +1,7 @@
 package com.jobrecruitment.backend.services.impl;
 
 import com.jobrecruitment.backend.dtos.response.DashboardStatsResponse;
+import com.jobrecruitment.backend.dtos.response.JobSeekPostResponse;
 import com.jobrecruitment.backend.dtos.response.UserResponse;
 import com.jobrecruitment.backend.entities.Company;
 import com.jobrecruitment.backend.entities.Job;
@@ -10,6 +11,7 @@ import com.jobrecruitment.backend.enums.CompanyStatus;
 import com.jobrecruitment.backend.enums.JobStatus;
 import com.jobrecruitment.backend.enums.SeekingPostStatus;
 import com.jobrecruitment.backend.exceptions.ResourceNotFoundException;
+import com.jobrecruitment.backend.mappers.SeekingPostMapper;
 import com.jobrecruitment.backend.mappers.UserMapper;
 import com.jobrecruitment.backend.repositories.*;
 import com.jobrecruitment.backend.services.AdminServiceV1;
@@ -24,7 +26,12 @@ import org.springframework.transaction.annotation.Transactional;
 import java.time.LocalDate;
 import java.time.LocalDateTime;
 import java.time.LocalTime;
+import java.time.YearMonth;
+import java.time.format.DateTimeFormatter;
+import java.util.ArrayList;
+import java.util.LinkedHashMap;
 import java.util.List;
+import java.util.Map;
 import java.util.stream.Collectors;
 
 /**
@@ -68,6 +75,7 @@ public class AdminServiceV1Impl implements AdminServiceV1 {
     private final CandidateRepository candidateRepository;
     private final ApplicationRepository applicationRepository;
     private final UserMapper userMapper;
+    private final SeekingPostMapper seekingPostMapper;
 
     /**
      * Lấy thống kê dashboard cho Admin
@@ -99,6 +107,11 @@ public class AdminServiceV1Impl implements AdminServiceV1 {
         LocalDateTime startOfMonth = LocalDateTime.of(LocalDate.now().withDayOfMonth(1), LocalTime.MIN);
         LocalDateTime now = LocalDateTime.now();
         
+        // Generate chart data for last 6 months
+        List<DashboardStatsResponse.ChartDataPoint> newUsersChart = generateUserGrowthChart();
+        List<DashboardStatsResponse.CategoryDataPoint> jobsByCategory = generateJobsByCategoryChart();
+        List<DashboardStatsResponse.ChartDataPoint> applicationsChart = generateApplicationsChart();
+        
         // Build comprehensive statistics
         DashboardStatsResponse stats = DashboardStatsResponse.builder()
                 // User Statistics
@@ -120,10 +133,112 @@ public class AdminServiceV1Impl implements AdminServiceV1 {
                 .totalApplications(applicationRepository.count())
                 .applicationsToday(applicationRepository.countByApplyTimeBetween(startOfToday, now))
                 .applicationsThisMonth(applicationRepository.countByApplyTimeBetween(startOfMonth, now))
+                
+                // Chart Data
+                .newUsersChart(newUsersChart)
+                .jobsByCategory(jobsByCategory)
+                .applicationsChart(applicationsChart)
                 .build();
         
         log.info("Dashboard stats retrieved - Total Users: {}, Total Jobs: {}", stats.getTotalUsers(), stats.getTotalJobs());
         return stats;
+    }
+    
+    /**
+     * Tạo dữ liệu biểu đồ tăng trưởng người dùng (6 tháng gần nhất)
+     * 
+     * @return List<ChartDataPoint> - Danh sách {date, count}
+     */
+    private List<DashboardStatsResponse.ChartDataPoint> generateUserGrowthChart() {
+        List<DashboardStatsResponse.ChartDataPoint> chartData = new ArrayList<>();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM");
+        
+        // Get all users
+        List<User> allUsers = userRepository.findAll();
+        
+        // Generate data for last 6 months
+        for (int i = 5; i >= 0; i--) {
+            YearMonth targetMonth = YearMonth.now().minusMonths(i);
+            LocalDateTime startOfMonth = targetMonth.atDay(1).atStartOfDay();
+            LocalDateTime endOfMonth = targetMonth.atEndOfMonth().atTime(23, 59, 59);
+            
+            // Count users created in this month
+            long count = allUsers.stream()
+                    .filter(user -> user.getCreatedAt() != null)
+                    .filter(user -> {
+                        LocalDateTime createdAt = user.getCreatedAt();
+                        return !createdAt.isBefore(startOfMonth) && !createdAt.isAfter(endOfMonth);
+                    })
+                    .filter(user -> !"ADM".equals(user.getRole().getRoleCode())) // Exclude admins
+                    .count();
+            
+            chartData.add(DashboardStatsResponse.ChartDataPoint.builder()
+                    .date(targetMonth.format(formatter))
+                    .count(count)
+                    .build());
+        }
+        
+        return chartData;
+    }
+    
+    /**
+     * Tạo dữ liệu biểu đồ phân bố công việc theo danh mục
+     * 
+     * @return List<CategoryDataPoint> - Danh sách {name, value}
+     */
+    private List<DashboardStatsResponse.CategoryDataPoint> generateJobsByCategoryChart() {
+        List<DashboardStatsResponse.CategoryDataPoint> chartData = new ArrayList<>();
+        
+        // Get all jobs
+        List<Job> allJobs = jobRepository.findAll();
+        
+        // Group by category and count
+        Map<String, Long> categoryMap = new LinkedHashMap<>();
+        for (Job job : allJobs) {
+            String categoryName = job.getJobCategory() != null ? job.getJobCategory().getJcName() : "Khác";
+            categoryMap.put(categoryName, categoryMap.getOrDefault(categoryName, 0L) + 1);
+        }
+        
+        // Convert to chart data
+        for (Map.Entry<String, Long> entry : categoryMap.entrySet()) {
+            chartData.add(DashboardStatsResponse.CategoryDataPoint.builder()
+                    .name(entry.getKey())
+                    .value(entry.getValue())
+                    .build());
+        }
+        
+        // Sort by value descending and limit to top 10
+        return chartData.stream()
+                .sorted((a, b) -> Long.compare(b.getValue(), a.getValue()))
+                .limit(10)
+                .collect(Collectors.toList());
+    }
+    
+    /**
+     * Tạo dữ liệu biểu đồ xu hướng đơn ứng tuyển (6 tháng gần nhất)
+     * 
+     * @return List<ChartDataPoint> - Danh sách {date, count}
+     */
+    private List<DashboardStatsResponse.ChartDataPoint> generateApplicationsChart() {
+        List<DashboardStatsResponse.ChartDataPoint> chartData = new ArrayList<>();
+        DateTimeFormatter formatter = DateTimeFormatter.ofPattern("yyyy-MM");
+        
+        // Generate data for last 6 months
+        for (int i = 5; i >= 0; i--) {
+            YearMonth targetMonth = YearMonth.now().minusMonths(i);
+            LocalDateTime startOfMonth = targetMonth.atDay(1).atStartOfDay();
+            LocalDateTime endOfMonth = targetMonth.atEndOfMonth().atTime(23, 59, 59);
+            
+            // Count applications in this month
+            long count = applicationRepository.countByApplyTimeBetween(startOfMonth, endOfMonth);
+            
+            chartData.add(DashboardStatsResponse.ChartDataPoint.builder()
+                    .date(targetMonth.format(formatter))
+                    .count(count)
+                    .build());
+        }
+        
+        return chartData;
     }
 
     /**
@@ -161,9 +276,11 @@ public class AdminServiceV1Impl implements AdminServiceV1 {
                     .collect(Collectors.toList());
             log.info("Filtered users by role '{}': {} users found", roleCode, allUsers.size());
         } else {
-            // Get all users
-            allUsers = userRepository.findAll();
-            log.info("Retrieved all users: {} total", allUsers.size());
+            // Get all users EXCLUDING admins (ROLE_ADM)
+            allUsers = userRepository.findAll().stream()
+                    .filter(user -> !"ADM".equals(user.getRole().getRoleCode()))
+                    .collect(Collectors.toList());
+            log.info("Retrieved all users (excluding admins): {} total", allUsers.size());
         }
         
         // Convert to responses
@@ -184,43 +301,41 @@ public class AdminServiceV1Impl implements AdminServiceV1 {
     }
 
     /**
-     * Khóa tài khoản người dùng (chặn đăng nhập)
+     * Khóa/Mở khóa tài khoản người dùng (toggle lock status)
      * 
      * Chức năng:
-     * - Đặt User.locked = true để chặn đăng nhập
-     * - Kiểm tra trạng thái hiện tại để tránh khóa lại tài khoản đã khóa
+     * - Toggle User.locked: true <-> false
+     * - Nếu đang ACTIVE -> đặt BLOCKED (locked = true)
+     * - Nếu đang BLOCKED -> đặt ACTIVE (locked = false)
      * 
      * Quy trình:
      * 1. Tìm User theo userId: userRepository.findById(userId)
      * 2. Nếu không tồn tại: Ném ResourceNotFoundException
-     * 3. Kiểm tra user.getLocked() == true: Ném IllegalStateException
-     * 4. Đặt user.setLocked(true)
-     * 5. Lưu: userRepository.save(user)
-     * 6. Trả về thông báo thành công
+     * 3. Toggle: user.setLocked(!user.getLocked())
+     * 4. Lưu: userRepository.save(user)
+     * 5. Trả về thông báo thành công
      * 
-     * @param userId ID người dùng cần khóa
-     * @return String - Thông báo khóa thành công
+     * @param userId ID người dùng cần khóa/mở
+     * @return String - Thông báo khóa/mở thành công
      * @throws ResourceNotFoundException Nếu không tìm thấy User
-     * @throws IllegalStateException Nếu User đã bị khóa trước đó
      */
     @Override
     @Transactional
     public String lockUser(Long userId) {
-        log.info("Locking user - UserId: {}", userId);
+        log.info("Toggling lock status for user - UserId: {}", userId);
         
-        // Entity manipulation pattern: Find -> Validate -> Set -> Save
+        // Entity manipulation pattern: Find -> Toggle -> Save
         User user = userRepository.findById(userId)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found with ID: " + userId));
         
-        if (user.getLocked()) {
-            throw new IllegalStateException("User is already locked");
-        }
-        
-        user.setLocked(true);
+        // Toggle lock status
+        boolean newLockStatus = !user.getLocked();
+        user.setLocked(newLockStatus);
         userRepository.save(user);
         
-        log.info("User locked successfully - Username: {}", user.getUsername());
-        return String.format("User '%s' has been locked", user.getUsername());
+        String action = newLockStatus ? "locked" : "unlocked";
+        log.info("User {} successfully - Username: {}", action, user.getUsername());
+        return String.format("User '%s' has been %s", user.getUsername(), action);
     }
 
     /**
@@ -438,5 +553,127 @@ public class AdminServiceV1Impl implements AdminServiceV1 {
         log.info("SeekingPost deleted by admin - PostCode: {}, Title: {}", postCode, postTitle);
         
         return String.format("Seeking post '%s' (Code: %s) has been removed due to policy violation", postTitle, postCode);
+    }
+    
+    /**
+     * Toggle trạng thái công việc (ACTIVE <-> HIDDEN)
+     * 
+     * Chức năng:
+     * - Toggle JobStatus: Nếu ACTIVE thì chuyển thành HIDDEN, nếu HIDDEN thì chuyển thành ACTIVE
+     * - Dùng để ẩn/hiện tin tuyển dụng nhanh chóng
+     * - Admin có thể toggle để quản lý nội dung vi phạm tạm thời
+     * 
+     * Quy trình:
+     * 1. Tìm Job theo jobId
+     * 2. Kiểm tra trạng thái hiện tại
+     * 3. Toggle: ACTIVE -> HIDDEN hoặc HIDDEN -> ACTIVE
+     * 4. Lưu và trả về thông báo
+     * 
+     * @param jobId ID công việc cần toggle
+     * @return String - Thông báo toggle thành công với trạng thái mới
+     * @throws ResourceNotFoundException Nếu không tìm thấy Job
+     */
+    @Override
+    @Transactional
+    public String toggleJobStatus(Long jobId) {
+        log.info("Toggling job status - JobId: {}", jobId);
+        
+        Job job = jobRepository.findById(jobId)
+                .orElseThrow(() -> new ResourceNotFoundException("Job not found with ID: " + jobId));
+        
+        JobStatus currentStatus = job.getJobStatus();
+        JobStatus newStatus;
+        
+        // Toggle logic: ACTIVE <-> HIDDEN
+        if (currentStatus == JobStatus.ACTIVE) {
+            newStatus = JobStatus.HIDDEN;
+        } else {
+            newStatus = JobStatus.ACTIVE;
+        }
+        
+        job.setJobStatus(newStatus);
+        jobRepository.save(job);
+        
+        log.info("Job status toggled - JobCode: {}, Old: {}, New: {}", 
+                job.getJobCode(), currentStatus, newStatus);
+        
+        String action = (newStatus == JobStatus.HIDDEN) ? "hide" : "show";
+        return String.format("Job was %s post '%s' successfully", action, job.getJobId());
+    }
+    
+    /**
+     * Lấy tất cả tin đăng tìm việc (Admin)
+     * 
+     * Chức năng:
+     * - Lấy tất cả SeekingPost bao gồm ACTIVE, HIDDEN, CLOSED
+     * - Phân trang và sắp xếp theo thời gian tạo mới nhất
+     * - Chỉ dành cho Admin để quản lý nội dung
+     * - Convert entities sang DTOs sử dụng SeekingPostMapper
+     * 
+     * Quy trình:
+     * 1. Gọi repository.findAllByOrderByCreatedAtDesc(pageable)
+     * 2. Convert Page<SeekingPost> -> Page<JobSeekPostResponse>
+     * 3. Trả về page result
+     * 
+     * @param pageable Tham số phân trang
+     * @return Page<JobSeekPostResponse> - Danh sách tin đăng tìm việc phân trang
+     */
+    @Override
+    @Transactional(readOnly = true)
+    public Page<JobSeekPostResponse> getAllSeekingPosts(Pageable pageable) {
+        log.info("Admin fetching all seeking posts - Page: {}, Size: {}", 
+                pageable.getPageNumber(), pageable.getPageSize());
+        
+        Page<SeekingPost> seekingPosts = seekingPostRepository.findAllByOrderByCreatedAtDesc(pageable);
+        
+        log.info("Found {} seeking posts", seekingPosts.getTotalElements());
+        
+        return seekingPosts.map(seekingPostMapper::toFullResponse);
+    }
+    
+    /**
+     * Toggle trạng thái tin đăng tìm việc (ACTIVE <-> HIDDEN)
+     * 
+     * Chức năng:
+     * - Toggle SKPostStatus: Nếu ACTIVE thì chuyển thành HIDDEN, nếu HIDDEN thì chuyển thành ACTIVE
+     * - Dùng để ẩn/hiện tin tìm việc nhanh chóng
+     * - Admin có thể toggle để quản lý nội dung vi phạm tạm thời
+     * 
+     * Quy trình:
+     * 1. Tìm SeekingPost theo seekingPostId
+     * 2. Kiểm tra trạng thái hiện tại
+     * 3. Toggle: ACTIVE -> HIDDEN hoặc HIDDEN -> ACTIVE
+     * 4. Lưu và trả về thông báo
+     * 
+     * @param seekingPostId ID tin đăng tìm việc cần toggle
+     * @return String - Thông báo toggle thành công với trạng thái mới
+     * @throws ResourceNotFoundException Nếu không tìm thấy SeekingPost
+     */
+    @Override
+    @Transactional
+    public String toggleSeekingPostStatus(Long seekingPostId) {
+        log.info("Toggling seeking post status - SeekingPostId: {}", seekingPostId);
+        
+        SeekingPost seekingPost = seekingPostRepository.findById(seekingPostId)
+                .orElseThrow(() -> new ResourceNotFoundException("SeekingPost not found with ID: " + seekingPostId));
+        
+        SeekingPostStatus currentStatus = seekingPost.getSkPostStatus();
+        SeekingPostStatus newStatus;
+        
+        // Toggle logic: ACTIVE <-> HIDDEN
+        if (currentStatus == SeekingPostStatus.ACTIVE) {
+            newStatus = SeekingPostStatus.HIDDEN;
+        } else {
+            newStatus = SeekingPostStatus.ACTIVE;
+        }
+        
+        seekingPost.setSkPostStatus(newStatus);
+        seekingPostRepository.save(seekingPost);
+        
+        log.info("Seeking post status toggled - PostCode: {}, Old: {}, New: {}", 
+                seekingPost.getSkPostCode(), currentStatus, newStatus);
+        
+        String action = (newStatus == SeekingPostStatus.HIDDEN) ? "hide" : "show";
+        return String.format("Seeking post was %s post '%s' successfully", action, seekingPost.getSkPostId());
     }
 }

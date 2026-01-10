@@ -84,16 +84,16 @@ public class CompanyServiceV1Impl implements CompanyServiceV1 {
         Page<Company> companyPage;
         
         if (name != null && !name.trim().isEmpty()) {
-            // Search by name (case-insensitive partial match)
+            // Tìm kiếm theo tên (không phân biệt hoa thường, khớp một phần)
             companyPage = companyRepository.findByCompanyNameContainingIgnoreCase(name, pageable);
             log.info("Found {} companies matching '{}'", companyPage.getTotalElements(), name);
         } else {
-            // Get all companies
+            // Lấy tất cả doanh nghiệp
             companyPage = companyRepository.findAll(pageable);
             log.info("Found {} total companies", companyPage.getTotalElements());
         }
         
-        // Map entities to DTOs
+        // Chuyển đổi entities sang DTOs
         return companyPage.map(companyMapper::toResponse);
     }
 
@@ -189,7 +189,7 @@ public class CompanyServiceV1Impl implements CompanyServiceV1 {
         Company company = companyRepository.findByUserUserId(user.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("Company profile not found for user: " + username));
         
-        // Update company fields using mapper
+        // Cập nhật các trường của doanh nghiệp sử dụng mapper
         companyMapper.updateEntityFromRequest(company, request);
         
         Company updatedCompany = companyRepository.save(company);
@@ -227,21 +227,21 @@ public class CompanyServiceV1Impl implements CompanyServiceV1 {
         log.info("Uploading company logo for user: {} - File: {}, Size: {} bytes", 
                 username, file.getOriginalFilename(), file.getSize());
         
-        // 1. Find User by username
+        // 1. Tìm User theo username
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
         
-        // 2. Find Company profile by User
+        // 2. Tìm profile Company theo User
         Company company = companyRepository.findByUserUserId(user.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("Company profile not found for user: " + username));
         
-        // 3. Upload file to logos directory
+        // 3. Upload file vào thư mục logos
         String relativePath = fileStorageService.storeFile(file, "logos");
-        // Prepend /uploads/ to make it accessible via static resource mapping
+        // Thêm tiền tố /uploads/ để có thể truy cập qua static resource mapping
         String newLogoUrl = "/uploads/" + relativePath;
         log.info("Logo file uploaded successfully: {}", newLogoUrl);
         
-        // 4. Delete old logo if exists
+        // 4. Xóa logo cũ nếu tồn tại
         String oldLogoUrl = company.getLogoURL();
         if (oldLogoUrl != null && !oldLogoUrl.isEmpty()) {
             try {
@@ -249,11 +249,11 @@ public class CompanyServiceV1Impl implements CompanyServiceV1 {
                 log.info("Old logo deleted: {}", oldLogoUrl);
             } catch (Exception e) {
                 log.warn("Failed to delete old logo: {} - Error: {}", oldLogoUrl, e.getMessage());
-                // Continue anyway - new logo is already uploaded
+                // Tiếp tục dù lỗi - logo mới đã được upload
             }
         }
         
-        // 5. Update logo URL in database
+        // 5. Cập nhật URL logo trong cơ sở dữ liệu
         company.setLogoURL(newLogoUrl);
         
         Company updatedCompany = companyRepository.save(company);

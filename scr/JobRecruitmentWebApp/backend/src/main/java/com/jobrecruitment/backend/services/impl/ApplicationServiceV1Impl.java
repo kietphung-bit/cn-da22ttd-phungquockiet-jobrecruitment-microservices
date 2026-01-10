@@ -121,12 +121,12 @@ public class ApplicationServiceV1Impl implements ApplicationServiceV1 {
         log.info("Fetching applications with filters - status: {}, candidateId: {}, jobId: {}, companyId: {}, time: {}-{}",
                 status, candidateId, jobId, companyId, startTime, endTime);
         
-        // Build dynamic specification using filter criteria
+        // Xây dựng specification động dựa trên tiêu chí lọc
         Specification<Application> spec = ApplicationSpecification.withFilters(
                 status, candidateId, jobId, companyId, startTime, endTime
         );
         
-        // Execute query with specification and pagination
+        // Thực thi truy vấn với specification và phân trang
         Page<Application> applicationPage = applicationRepository.findAll(spec, pageable);
         
         log.info("Found {} applications (page {} of {})", 
@@ -134,7 +134,7 @@ public class ApplicationServiceV1Impl implements ApplicationServiceV1 {
                 applicationPage.getNumber() + 1, 
                 applicationPage.getTotalPages());
         
-        // Map entities to DTOs
+        // Chuyển đổi entities sang DTOs
         return applicationPage.map(applicationMapper::toResponse);
     }
     
@@ -168,7 +168,7 @@ public class ApplicationServiceV1Impl implements ApplicationServiceV1 {
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Application not found with ID: " + applicationId));
         
-        // IDOR Protection: Verify user has permission to view this application
+        // Bảo vệ IDOR: Xác minh user có quyền xem application này
         verifyApplicationAccess(application, username);
         
         return applicationMapper.toResponse(application);
@@ -230,7 +230,7 @@ public class ApplicationServiceV1Impl implements ApplicationServiceV1 {
             return;
         }
         
-        // Unknown role - deny access
+        // Vai trò không xác định - từ chối truy cập
         log.warn("Access denied: Unknown role {} for user {}", roleCode, username);
         throw new ValidationException("Access denied: Invalid role");
     }
@@ -266,23 +266,23 @@ public class ApplicationServiceV1Impl implements ApplicationServiceV1 {
     public ApplicationResponse applyToJob(ApplicationRequest request, String username) {
         log.info("Processing job application for candidate: {}", username);
         
-        // Get authenticated user and their candidate profile
+        // Lấy user đã xác thực và hồ sơ ứng viên của họ
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
         
         Candidate candidate = candidateRepository.findByUserUserId(user.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("Candidate profile not found for user: " + username));
 
-        // Get job
+        // Lấy job
         Job job = jobRepository.findById(request.getJobId())
                 .orElseThrow(() -> new ResourceNotFoundException("Job not found with ID: " + request.getJobId()));
 
-        // Validation 1: Check if job is ACTIVE (RBNT rule)
+        // Bước xác thực 1: Kiểm tra Job có trạng thái ACTIVE (RBNT rule)
         if (job.getJobStatus() != JobStatus.ACTIVE) {
             throw new ValidationException("Job is not active. Cannot apply to this job.");
         }
 
-        // Validation 2: Check if current date is within job date range (RBNT rule)
+        // Bước xác thực 2: Kiểm tra thời gian apply nằm trong khoảng [StartDate, EndDate] (RBNT rule)
         LocalDate currentDate = LocalDate.now();
         if (currentDate.isBefore(job.getStartDate()) || currentDate.isAfter(job.getEndDate())) {
             throw new ValidationException(
@@ -291,29 +291,29 @@ public class ApplicationServiceV1Impl implements ApplicationServiceV1 {
             );
         }
 
-        // Get CV
+        // Lấy CV
         CV cv = cvRepository.findById(request.getCvId())
                 .orElseThrow(() -> new ResourceNotFoundException("CV not found with ID: " + request.getCvId()));
 
-        // Validation 3: Check if CV belongs to candidate
+        // Bước xác thực 3: Kiểm tra CV có thuộc về ứng viên
         if (!cv.getCandidate().getCandidateId().equals(candidate.getCandidateId())) {
             throw new ValidationException("CV does not belong to you");
         }
 
-        // Validation 4: Check if CV is ACTIVE (RBCV rule)
+        // Bước xác thực 4: Kiểm tra CV có trạng thái ACTIVE (RBCV rule)
         if (cv.getCvStatus() != CVStatus.ACTIVE) {
             throw new ValidationException("CV is not active. Please activate your CV before applying.");
         }
 
-        // Validation 5: Check if candidate has already applied to this job
+        // Bước xác thực 5: Kiểm tra ứng viên đã nộp đơn cho công việc này chưa
         if (applicationRepository.existsByJobIdAndCandidateId(job.getJobId(), candidate.getCandidateId())) {
             throw new ValidationException("You have already applied to this job");
         }
 
-        // Generate unique ApplicationCode
+        // Tạo mã đơn ứng tuyển duy nhất
         String applicationCode = codeGenerator.generateApplicationCode(code -> applicationRepository.existsByApplicationCode(code));
 
-        // Create application entity
+        // Tạo entity đơn ứng tuyển
         Application application = new Application();
         application.setJob(job);
         application.setCv(cv);
@@ -328,20 +328,20 @@ public class ApplicationServiceV1Impl implements ApplicationServiceV1 {
     }
     
     /**
-     * Update application status (Employer only)
+     * Cập nhật trạng thái đơn ứng tuyển (Chỉ dành cho nhà tuyển dụng - Role DN).
      */
     @Override
     public ApplicationResponse updateApplicationStatus(Long applicationId, ApplicationStatus newStatus, String username) {
         log.info("Updating status of application {} to {} by employer: {}", applicationId, newStatus, username);
         
-        // Get application
+        // Lấy đơn ứng tuyển
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Application not found with ID: " + applicationId));
         
-        // Verify employer owns the job
+        // Kiểm tra nhà tuyển dụng sở hữu công việc liên quan
         verifyJobOwnership(application.getJob(), username);
         
-        // Update status
+        // Cập nhật trạng thái đơn ứng tuyển
         application.setApplicationStatus(newStatus);
         Application updatedApplication = applicationRepository.save(application);
         
@@ -350,44 +350,44 @@ public class ApplicationServiceV1Impl implements ApplicationServiceV1 {
     }
     
     /**
-     * Withdraw application (Candidate only)
+     * Rút đơn ứng tuyển (Chỉ dành cho ứng viên - Role UV).
      */
     @Override
     public void withdrawApplication(Long applicationId, String username) {
         log.info("Withdrawing application {} by candidate: {}", applicationId, username);
         
-        // Get application
+        // Lấy đơn ứng tuyển
         Application application = applicationRepository.findById(applicationId)
                 .orElseThrow(() -> new ResourceNotFoundException("Application not found with ID: " + applicationId));
         
-        // Verify candidate owns the application
+        // Kiểm tra ứng viên sở hữu đơn ứng tuyển
         verifyCandidateOwnership(application, username);
         
-        // Delete application (hard delete for withdrawal)
+        // Xóa đơn ứng tuyển (xóa cứng cho rút đơn)
         applicationRepository.delete(application);
         
         log.info("Application {} withdrawn successfully", applicationId);
     }
     
     /**
-     * Get applications by authenticated candidate with pagination
+     * Lấy các đơn ứng tuyển của ứng viên đã xác thực với phân trang
      */
     @Override
     @Transactional(readOnly = true)
     public Page<ApplicationResponse> getMyApplications(Pageable pageable, String username) {
         log.info("Fetching applications for candidate: {}", username);
         
-        // Get candidate
+        // Lấy ứng viên
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
         
         Candidate candidate = candidateRepository.findByUserUserId(user.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("Candidate profile not found for user: " + username));
         
-        // Build specification to filter by candidate
+        // Xây dựng specification để lọc theo ứng viên
         Specification<Application> spec = ApplicationSpecification.hasCandidateId(candidate.getCandidateId());
         
-        // Execute query with pagination
+        // Thực hiện truy vấn với phân trang
         Page<Application> applicationPage = applicationRepository.findAll(spec, pageable);
         
         log.info("Found {} applications for candidate (page {} of {})",
@@ -395,13 +395,13 @@ public class ApplicationServiceV1Impl implements ApplicationServiceV1 {
                 applicationPage.getNumber() + 1,
                 applicationPage.getTotalPages());
         
-        // Map to DTOs
+        // Chuyển đổi sang DTOs
         return applicationPage.map(applicationMapper::toResponse);
     }
     
     /**
-     * Get applications for jobs posted by authenticated employer with pagination
-     * Performance: Uses JOIN FETCH để tránh N+1 queries
+     * Lấy các đơn ứng tuyển cho các công việc do nhà tuyển dụng đã xác thực đăng với phân trang
+     * Hiệu năng: Sử dụng JOIN FETCH để tránh N+1 queries
      */
     @Override
     @Transactional(readOnly = true)
@@ -413,14 +413,14 @@ public class ApplicationServiceV1Impl implements ApplicationServiceV1 {
     ) {
         log.info("Fetching applications for employer: {} (jobId: {}, status: {})", username, jobId, status);
         
-        // Get employer
+        // Lấy nhà tuyển dụng
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
         
         Company company = companyRepository.findByUserUserId(user.getUserId())
                 .orElseThrow(() -> new ResourceNotFoundException("Company profile not found for user: " + username));
         
-        // Use optimized query with JOIN FETCH (tránh N+1 queries)
+        // Sử dụng truy vấn tối ưu với JOIN FETCH (tránh N+1 queries)
         List<Application> applications = applicationRepository.findByCompanyIdWithDetailsFiltered(
             company.getCompanyId(),
             jobId,
@@ -429,7 +429,7 @@ public class ApplicationServiceV1Impl implements ApplicationServiceV1 {
         
         log.info("Found {} applications for employer (using JOIN FETCH)", applications.size());
         
-        // Manual pagination (vì JOIN FETCH không support Page trực tiếp)
+        // Phân trang thủ công (vì JOIN FETCH không hỗ trợ Page trực tiếp)
         int pageSize = pageable.getPageSize();
         int currentPage = pageable.getPageNumber();
         int startItem = currentPage * pageSize;
@@ -442,7 +442,7 @@ public class ApplicationServiceV1Impl implements ApplicationServiceV1 {
             pageContent = applications.subList(startItem, toIndex);
         }
         
-        // Map to DTOs
+        // Chuyển đổi sang DTOs
         List<ApplicationResponse> responses = pageContent.stream()
                 .map(applicationMapper::toResponse)
                 .toList();
@@ -462,7 +462,7 @@ public class ApplicationServiceV1Impl implements ApplicationServiceV1 {
     }
     
     /**
-     * Verify job ownership by employer
+     * Kiểm tra quyền sở hữu công việc bởi nhà tuyển dụng
      */
     private void verifyJobOwnership(Job job, String username) {
         User employer = userRepository.findByUsername(username)
@@ -477,7 +477,7 @@ public class ApplicationServiceV1Impl implements ApplicationServiceV1 {
     }
     
     /**
-     * Verify application ownership by candidate
+     * Kiểm tra quyền sở hữu đơn ứng tuyển bởi ứng viên
      */
     private void verifyCandidateOwnership(Application application, String username) {
         User user = userRepository.findByUsername(username)

@@ -23,7 +23,7 @@ public class ApplicationSpecification {
     public static Specification<Application> hasStatus(ApplicationStatus status) {
         return (root, query, criteriaBuilder) -> {
             if (status == null) {
-                return criteriaBuilder.conjunction(); // Always true
+                return criteriaBuilder.conjunction(); // Luôn true
             }
             return criteriaBuilder.equal(root.get("applicationStatus"), status);
         };

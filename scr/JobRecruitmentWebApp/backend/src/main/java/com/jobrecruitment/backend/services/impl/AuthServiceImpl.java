@@ -108,14 +108,14 @@ public class AuthServiceImpl implements AuthService {
             throw new ValidationException("Company email already exists");
         }
 
-        // Get DN role
+        // Lấy role DN
         Role dnRole = roleRepository.findByRoleCode("DN")
                 .orElseThrow(() -> new ResourceNotFoundException("Role DN not found"));
 
-        // Generate unique CompanyCode
+        // Tạo mã công ty duy nhất
         String companyCode = codeGenerator.generateCompanyCode(code -> companyRepository.existsByCompanyCode(code));
 
-        // Create User with UserCode = CompanyCode (Section 4.5.C)
+        // Tạo User với UserCode = CompanyCode
         User user = new User();
         user.setUserCode(companyCode);
         user.setUsername(request.getCompanyEmail());
@@ -123,7 +123,7 @@ public class AuthServiceImpl implements AuthService {
         user.setRole(dnRole);
         User savedUser = userRepository.save(user);
 
-        // Create Company
+        // Tạo Company
         Company company = new Company();
         company.setUser(savedUser);
         company.setCompanyCode(companyCode);
@@ -136,7 +136,7 @@ public class AuthServiceImpl implements AuthService {
         company.setCompanyStatus(CompanyStatus.PENDING);
         companyRepository.save(company);
 
-        // Generate JWT token
+        // Khởi tạo JWT token
         String token = jwtUtils.generateToken(savedUser.getUsername());
 
         return AuthResponse.builder()
@@ -186,14 +186,14 @@ public class AuthServiceImpl implements AuthService {
             throw new ValidationException("Candidate email already exists");
         }
 
-        // Get UV role
+        // Lấy role UV
         Role uvRole = roleRepository.findByRoleCode("UV")
                 .orElseThrow(() -> new ResourceNotFoundException("Role UV not found"));
 
-        // Generate unique CandidateCode
+        // Tạo mã ứng viên duy nhất
         String candidateCode = codeGenerator.generateCandidateCode(code -> candidateRepository.existsByCandidateCode(code));
 
-        // Create User with UserCode = CandidateCode (Section 4.5.C)
+        // Tạo User với UserCode = CandidateCode
         User user = new User();
         user.setUserCode(candidateCode);
         user.setUsername(request.getCandidateEmail());
@@ -201,7 +201,7 @@ public class AuthServiceImpl implements AuthService {
         user.setRole(uvRole);
         User savedUser = userRepository.save(user);
 
-        // Create Candidate
+        // Tạo Candidate
         Candidate candidate = new Candidate();
         candidate.setUser(savedUser);
         candidate.setCandidateCode(candidateCode);
@@ -216,7 +216,7 @@ public class AuthServiceImpl implements AuthService {
         candidate.setCandidateSkills(request.getCandidateSkills());
         candidateRepository.save(candidate);
 
-        // Generate JWT token
+        // Khởi tạo JWT token
         String token = jwtUtils.generateToken(savedUser.getUsername());
 
         return AuthResponse.builder()
@@ -262,17 +262,17 @@ public class AuthServiceImpl implements AuthService {
                 )
         );
 
-        // Get authenticated username from the authentication object
+        // Lấy username đã xác thực từ đối tượng authentication
         String authenticatedUsername = authentication.getName();
 
-        // Get authenticated user
+        // Lấy user đã xác thực
         User user = userRepository.findByUsername(authenticatedUsername)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found"));
 
-        // Generate JWT token
+        // Khởi tạo JWT token
         String token = jwtUtils.generateToken(authenticatedUsername);
 
-        // Build base response
+        // Cấu hình response theo vai trò
         AuthResponse.AuthResponseBuilder responseBuilder = AuthResponse.builder()
                 .token(token)
                 .username(user.getUsername())
@@ -281,16 +281,16 @@ public class AuthServiceImpl implements AuthService {
                 .roleName(user.getRole().getRoleName())
                 .message("Login successful");
 
-        // Add role-specific information
+        // Thêm thông tin theo vai trò
         if ("UV".equals(user.getRole().getRoleCode())) {
-            // Candidate - fetch candidate info
+            // Ứng viên - lấy thông tin ứng viên
             candidateRepository.findByUserUserId(user.getUserId())
                     .ifPresent(candidate -> {
                         responseBuilder.candidateName(candidate.getCandidateName());
                         responseBuilder.candidateCode(candidate.getCandidateCode());
                     });
         } else if ("DN".equals(user.getRole().getRoleCode())) {
-            // Employer - fetch company info
+            // Nhà tuyển dụng - lấy thông tin công ty
             companyRepository.findByUserUserId(user.getUserId())
                     .ifPresent(company -> {
                         responseBuilder.companyName(company.getCompanyName());
@@ -322,26 +322,26 @@ public class AuthServiceImpl implements AuthService {
     public void changePassword(ChangePasswordRequest request, String username) {
         log.info("Changing password for user: {}", username);
         
-        // Get user
+        // Lấy user
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
         
-        // Verify old password
+        // Xác minh mật khẩu cũ
         if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
             throw new ValidationException("Mật khẩu cũ không đúng");
         }
         
-        // Validate new password != old password
+        // Kiểm tra new password != old password
         if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
             throw new ValidationException("Mật khẩu mới phải khác mật khẩu cũ");
         }
         
-        // Validate new password == confirm password
+        // Kiểm tra new password == confirm password
         if (!request.getNewPassword().equals(request.getConfirmPassword())) {
             throw new ValidationException("Xác nhận mật khẩu không khớp");
         }
         
-        // Update password
+        // Cập nhật mật khẩu mới
         user.setPassword(passwordEncoder.encode(request.getNewPassword()));
         userRepository.save(user);
         
@@ -365,11 +365,11 @@ public class AuthServiceImpl implements AuthService {
     public void logoutAllSessions(String username) {
         log.info("Logout all sessions for user: {}", username);
         
-        // Get user
+        // Lấy user
         User user = userRepository.findByUsername(username)
                 .orElseThrow(() -> new ResourceNotFoundException("User not found: " + username));
         
-        // Update lastLogout timestamp
+        // Cập nhật lastLogout timestamp
         user.setLastLogout(LocalDateTime.now());
         userRepository.save(user);
         

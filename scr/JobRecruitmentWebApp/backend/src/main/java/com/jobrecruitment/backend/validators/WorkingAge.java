@@ -25,9 +25,6 @@ import jakarta.validation.Payload;
  * - @WorkingAge private LocalDate candidateBirthDate;
  * - @WorkingAge(minAge = 21) private LocalDate birthDate;
  * 
- * Tham khảo:
- * - Section 4.6.C - RBNS Rule (Registration Business Validation)
- * 
  * @see WorkingAgeValidator
  */
 @Documented

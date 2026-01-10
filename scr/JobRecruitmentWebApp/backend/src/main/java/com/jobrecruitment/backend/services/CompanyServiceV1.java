@@ -14,13 +14,13 @@ import org.springframework.web.multipart.MultipartFile;
  * - Public/Candidate: Xem danh sách công ty, tìm kiếm theo tên
  * - Admin: Quản lý tất cả công ty
  * 
- * Business Rules:
+ * Quy tắc nghiệp vụ:
  * - Mỗi User chỉ có 1 Company profile (One-to-One)
  * - Employer chỉ cập nhật được hồ sơ của mình
  * 
- * Features:
- * - Pagination: Spring Data JPA Pageable
- * - Search: Tìm kiếm theo tên (ignore case, LIKE %keyword%)
+ * Tính năng:
+ * - Phân trang: Spring Data JPA Pageable
+ * - Tìm kiếm: Tìm kiếm theo tên (ignore case, LIKE %keyword%)
  * 
  * @see CompanyServiceV1Impl
  */
@@ -70,9 +70,9 @@ public interface CompanyServiceV1 {
      * Sử dụng:
      * - API PUT /api/v1/companies/profile
      * 
-     * Business Logic:
-     * - Partial update: Chỉ cập nhật field khác null
-     * - Validate: Email không trùng
+     * Quy tắc nghiệp vụ:
+     * - Cập nhật một phần: Chỉ cập nhật field khác null
+     * - Xác minh: Email không trùng
      * 
      * @param request CompanyProfileRequest (companyName, description, address, website, email...)
      * @param username Username của Employer đang authenticate
@@ -88,9 +88,9 @@ public interface CompanyServiceV1 {
      * - API PATCH /api/v1/companies/me/logo
      * - Employer upload logo công ty
      * 
-     * Business Logic:
-     * 1. Validate ownership: User phải là chủ Company
-     * 2. Validate file: Extension (jpg, jpeg, png, gif), size (max 10MB)
+     * Quy tắc nghiệp vụ:
+     * 1. Xác minh quyền sở hữu: User phải là chủ Company
+     * 2. Xác minh file: Extension (jpg, jpeg, png, gif), size (max 10MB)
      * 3. Upload file vào uploads/logos/ với FileStorageService
      * 4. Xóa logo cũ nếu tồn tại
      * 5. Cập nhật logoURL trong database

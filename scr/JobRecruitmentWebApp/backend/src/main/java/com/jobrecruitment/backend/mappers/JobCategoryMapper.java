@@ -75,7 +75,7 @@ public class JobCategoryMapper {
     }
     
     /**
-     * Update JobCategory entity from JobCategoryRequest
+     * Cập nhật JobCategory entity từ JobCategoryRequest
      */
     public void updateEntityFromRequest(JobCategory jobCategory, JobCategoryRequest request) {
         if (request.getJcName() != null) {

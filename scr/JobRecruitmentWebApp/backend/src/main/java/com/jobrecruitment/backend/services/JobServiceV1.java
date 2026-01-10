@@ -14,32 +14,32 @@ import org.springframework.data.domain.Pageable;
  * - Candidate/Public: Xem, tìm kiếm tin tuyển dụng (phân trang + filter)
  * - Admin: Quản lý tất cả tin tuyển dụng
  * 
- * Business Rules:
+ * Quy tắc nghiệp vụ:
  * - Employer chỉ quản lý được Job của mình
  * - Job có 3 trạng thái: OPEN (mở), CLOSED (đóng), HIDDEN (ẩn)
  * - Xóa Job = soft delete (set JobStatus = HIDDEN)
  * 
- * Features:
- * - Pagination: Spring Data JPA Pageable
- * - Dynamic filtering: JPA Specifications (title, location, category, salary range, status...)
- * - Code generation: JobCode = JOB + 8 số
+ * Tính năng:
+ * - Phân trang: Spring Data JPA Pageable
+ * - Lọc động: JPA Specifications (title, location, category, salary range, status...)
+ * - Tạo mã: JobCode = JOB + 8 số
  * 
  * @see JobServiceV1Impl
  */
 public interface JobServiceV1 {
     
     /**
-     * Get all jobs with pagination and dynamic filtering
+     * Lấy tất cả công việc với phân trang và lọc động
      * 
-     * @param pageable Pagination parameters (page, size, sort)
-     * @param jobTitle Filter by job title (partial match)
-     * @param jobStatus Filter by job status
-     * @param jobLocation Filter by location (partial match)
-     * @param companyId Filter by company ID
-     * @param jcId Filter by category ID
-     * @param minSalary Minimum salary filter
-     * @param maxSalary Maximum salary filter
-     * @return Page of JobResponse DTOs
+     * @param pageable Tham số phân trang (trang, kích thước, sắp xếp)
+     * @param jobTitle Lọc theo tiêu đề công việc (tìm kiếm gần đúng)
+     * @param jobStatus Lọc theo trạng thái công việc
+     * @param jobLocation Lọc theo địa điểm (tìm kiếm gần đúng)
+     * @param companyId Lọc theo ID công ty
+     * @param jcId Lọc theo ID danh mục
+     * @param minSalary Lọc theo mức lương tối thiểu
+     * @param maxSalary Lọc theo mức lương tối đa
+     * @return Trang các đối tượng JobResponse
      */
     Page<JobResponse> getAllJobs(
             Pageable pageable,
@@ -53,56 +53,56 @@ public interface JobServiceV1 {
     );
     
     /**
-     * Get job by ID
+     * Lấy công việc theo ID
      * 
-     * @param jobId Job ID
-     * @return JobResponse DTO
+     * @param jobId ID công việc
+     * @return DTO JobResponse
      */
     JobResponse getJobById(Long jobId);
     
     /**
-     * Create new job posting (Employer only)
+     * Tạo tin tuyển dụng mới (Chỉ nhà tuyển dụng)
      * 
-     * @param request Job creation request
-     * @param username Authenticated employer username
-     * @return Created JobResponse DTO
+     * @param request Yêu cầu tạo công việc
+     * @param username Tên đăng nhập nhà tuyển dụng đã xác thực
+     * @return DTO JobResponse đã tạo
      */
     JobResponse createJob(JobRequest request, String username);
     
     /**
-     * Update existing job (Employer only - own jobs)
+     * Cập nhật tin tuyển dụng (Chỉ nhà tuyển dụng - tin của mình)
      * 
-     * @param jobId Job ID
-     * @param request Job update request
-     * @param username Authenticated employer username
-     * @return Updated JobResponse DTO
+     * @param jobId ID công việc
+     * @param request Yêu cầu cập nhật công việc
+     * @param username Tên đăng nhập nhà tuyển dụng đã xác thực
+     * @return DTO JobResponse đã cập nhật
      */
     JobResponse updateJob(Long jobId, JobRequest request, String username);
     
     /**
-     * Update job status (Employer only - own jobs)
+     * Cập nhật trạng thái công việc (Chỉ nhà tuyển dụng - tin của mình)
      * 
-     * @param jobId Job ID
-     * @param newStatus New job status
-     * @param username Authenticated employer username
-     * @return Updated JobResponse DTO
+     * @param jobId ID công việc
+     * @param newStatus Trạng thái công việc mới
+     * @param username Tên đăng nhập nhà tuyển dụng đã xác thực
+     * @return DTO JobResponse đã cập nhật
      */
     JobResponse updateJobStatus(Long jobId, JobStatus newStatus, String username);
     
     /**
-     * Delete job (Soft delete - change to HIDDEN)
+     * Xóa công việc (Soft delete - chuyển trạng thái thành HIDDEN)
      * 
-     * @param jobId Job ID
-     * @param username Authenticated employer username
+     * @param jobId ID công việc
+     * @param username Tên đăng nhập nhà tuyển dụng đã xác thực
      */
     void deleteJob(Long jobId, String username);
     
     /**
-     * Get jobs posted by authenticated employer with pagination
+     * Lấy các công việc do nhà tuyển dụng đã xác thực đăng với phân trang
      * 
-     * @param pageable Pagination parameters
-     * @param username Authenticated employer username
-     * @return Page of JobResponse DTOs
+     * @param pageable Tham số phân trang
+     * @param username Tên đăng nhập nhà tuyển dụng đã xác thực
+     * @return Trang các DTO JobResponse
      */
     Page<JobResponse> getMyJobs(Pageable pageable, String username);
 }

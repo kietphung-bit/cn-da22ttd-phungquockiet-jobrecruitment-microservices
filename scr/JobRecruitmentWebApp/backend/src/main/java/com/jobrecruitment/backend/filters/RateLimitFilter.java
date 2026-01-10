@@ -116,6 +116,14 @@ public class RateLimitFilter extends OncePerRequestFilter {
                                     HttpServletResponse response, 
                                     FilterChain filterChain) throws ServletException, IOException {
         
+        // Whitelist: Skip rate limiting for certain endpoints
+        String requestURI = request.getRequestURI();
+        if (isWhitelisted(requestURI)) {
+            log.debug("Rate limit bypassed for whitelisted endpoint: {}", requestURI);
+            filterChain.doFilter(request, response);
+            return;
+        }
+        
         // Bước 1: Xác định key và bucket type
         String key;
         final boolean isAuthenticated;
@@ -149,6 +157,18 @@ public class RateLimitFilter extends OncePerRequestFilter {
     }
     
     /**
+     * Kiểm tra endpoint có nên bỏ qua giới hạn tốc độ hay không
+     * Danh sách trắng các endpoint công khai chỉ đọc không thay đổi dữ liệu
+     * 
+     * @param requestURI URI của request
+     * @return true nếu endpoint nằm trong danh sách trắng, false nếu không
+     */
+    private boolean isWhitelisted(String requestURI) {
+        // Danh sách trắng: Các endpoint công khai chỉ đọc không thay đổi dữ liệu
+        return false;
+    }
+    
+    /**
      * Tạo bucket mới với cấu hình tương ứng
      * 
      * @param isAuthenticated true nếu user đã authenticate, false nếu public
@@ -158,7 +178,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
         Bandwidth bandwidth;
         
         if (isAuthenticated) {
-            // Authenticated user: High trust, more requests allowed
+            // Người dùng đã xác thực: Độ tin cậy cao, cho phép nhiều yêu cầu hơn
             long capacity = rateLimitConfig.getAuthenticated().getCapacity();
             long tokens = rateLimitConfig.getAuthenticated().getRefill().getTokens();
             long minutes = rateLimitConfig.getAuthenticated().getRefill().getMinutes();
@@ -171,7 +191,7 @@ public class RateLimitFilter extends OncePerRequestFilter {
             log.debug("Created authenticated bucket: capacity={}, refill={} tokens/{} minutes", 
                      capacity, tokens, minutes);
         } else {
-            // Public/Anonymous: Low trust, fewer requests allowed
+            // Public/Anonymous: Độ tin cậy thấp, ít yêu cầu hơn
             long capacity = rateLimitConfig.getPublicLimit().getCapacity();
             long tokens = rateLimitConfig.getPublicLimit().getRefill().getTokens();
             long minutes = rateLimitConfig.getPublicLimit().getRefill().getMinutes();

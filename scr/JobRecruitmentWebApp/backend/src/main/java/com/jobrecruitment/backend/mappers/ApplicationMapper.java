@@ -38,7 +38,7 @@ public class ApplicationMapper {
             return null;
         }
         
-        // Extract candidate info from CV
+        // Trích xuất thông tin ứng viên từ CV
         Long candidateId = null;
         String candidateName = null;
         String candidateEmail = null;

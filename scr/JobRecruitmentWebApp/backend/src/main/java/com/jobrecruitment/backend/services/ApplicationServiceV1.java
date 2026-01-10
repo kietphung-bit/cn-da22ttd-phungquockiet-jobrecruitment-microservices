@@ -16,15 +16,15 @@ import java.time.LocalDateTime;
  * - Employer: Xem danh sách đơn cho job của mình, duyệt/từ chối đơn
  * - Admin: Xem tất cả đơn (phân trang, filter)
  * 
- * Business Rules:
+ * Quy tắc nghiệp vụ:
  * - 1 Candidate chỉ nộp được 1 đơn cho 1 Job
  * - Chỉ Employer sở hữu Job mới có thể duyệt/từ chối đơn
  * - Chỉ Candidate sở hữu đơn mới có thể rút đơn
  * 
- * Features:
- * - Pagination: Spring Data JPA Pageable
- * - Dynamic filtering: JPA Specifications (status, candidateId, jobId, companyId, time range)
- * - Code generation: ApplicationCode = APP + 8 số
+ * Tính năng:
+ * - Phân trang: Spring Data JPA Pageable
+ * - Lọc động: JPA Specifications (status, candidateId, jobId, companyId, khoảng thời gian)
+ * - Tạo mã: ApplicationCode = APP + 8 số
  * 
  * @see ApplicationServiceV1Impl
  */

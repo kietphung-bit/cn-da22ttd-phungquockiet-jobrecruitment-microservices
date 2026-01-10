@@ -10,7 +10,7 @@ import com.jobrecruitment.backend.dtos.response.CandidateResponse;
  * - Candidate: Xem/cập nhật hồ sơ của mình
  * - Employer/Admin: Xem hồ sơ Candidate (public access)
  * 
- * Business Rules:
+ * Quy tắc nghiệp vụ:
  * - Mỗi User chỉ có 1 Candidate profile (One-to-One)
  * - Candidate chỉ cập nhật được hồ sơ của mình
  * 

@@ -94,7 +94,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                 // Xác thực token
                 if (jwtUtils.validateToken(jwt, userDetails)) {
                     
-                    // Check if token was issued before user's lastLogout (logout all sessions)
+                    // Kiểm tra nếu token được phát hành trước thời điểm lastLogout của người dùng (đăng xuất tất cả phiên)
                     User user = userRepository.findByUsername(username).orElse(null);
                     if (user != null && user.getLastLogout() != null) {
                         Date tokenIssuedAt = jwtUtils.extractIssuedAt(jwt);
@@ -103,7 +103,7 @@ public class JwtAuthenticationFilter extends OncePerRequestFilter {
                                 .format(tokenIssuedAt)
                         ).toLocalDateTime();
                         
-                        // Reject token if it was issued before lastLogout
+                        // Từ chối token nếu nó được phát hành trước lastLogout
                         if (tokenIssuedTime.isBefore(user.getLastLogout())) {
                             log.warn("Token rejected - issued before logout all: {}", username);
                             filterChain.doFilter(request, response);

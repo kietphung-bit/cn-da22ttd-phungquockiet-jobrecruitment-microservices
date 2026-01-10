@@ -36,6 +36,7 @@ public class DataSeeder implements CommandLineRunner {
     private final JobRepository jobRepository;
     private final CVRepository cvRepository;
     private final ApplicationRepository applicationRepository;
+    private final SeekingPostRepository seekingPostRepository;
     private final PasswordEncoder passwordEncoder;
     private final CodeGenerator codeGenerator;
 
@@ -48,6 +49,7 @@ public class DataSeeder implements CommandLineRunner {
         seedCandidates();
         seedCVs();
         seedApplications();
+        seedSeekingPosts();
         
         log.info("=== DATA SEEDING COMPLETED ===");
         log.info("Total Users: {}", userRepository.count());
@@ -57,6 +59,7 @@ public class DataSeeder implements CommandLineRunner {
         log.info("Total Jobs: {}", jobRepository.count());
         log.info("Total CVs: {}", cvRepository.count());
         log.info("Total Applications: {}", applicationRepository.count());
+        log.info("Total Seeking Posts: {}", seekingPostRepository.count());
     }
 
     private void seedRoles() {
@@ -146,7 +149,7 @@ public class DataSeeder implements CommandLineRunner {
         Role companyRole = roleRepository.findByRoleCode("DN")
                 .orElseThrow(() -> new RuntimeException("DN role not found"));
 
-        // Employer 1: Tech Corp
+        // Doanh nghiệp 1: Tech Corp
         String companyCode1 = codeGenerator.generateCode("DN", code -> 
                 companyRepository.findByCompanyCode(code).isPresent());
         
@@ -169,7 +172,7 @@ public class DataSeeder implements CommandLineRunner {
         company1.setCompanyStatus(CompanyStatus.ACTIVE);
         companyRepository.save(company1);
 
-        // Jobs for FPT Software
+        // Việc làm cho FPT Software
         JobCategory itCategory = jobCategoryRepository.findAll().stream()
                 .filter(jc -> jc.getJcName().equals("Công nghệ thông tin"))
                 .findFirst()
@@ -257,7 +260,7 @@ public class DataSeeder implements CommandLineRunner {
 
         log.info("✓ Created Employer 1: FPT Software - Username: techcorp@example.com | Password: company123");
 
-        // Employer 2: VCCorp
+        // Doanh nghiệp 2: VCCorp
         String companyCode2 = codeGenerator.generateCode("DN", code -> 
                 companyRepository.findByCompanyCode(code).isPresent());
         
@@ -280,7 +283,7 @@ public class DataSeeder implements CommandLineRunner {
         company2.setCompanyStatus(CompanyStatus.ACTIVE);
         companyRepository.save(company2);
 
-        // Jobs for VCCorp
+        // Việc làm cho VCCorp
         JobCategory marketingCategory = jobCategoryRepository.findAll().stream()
                 .filter(jc -> jc.getJcName().equals("Truyền thông & Marketing"))
                 .findFirst()
@@ -376,6 +379,7 @@ public class DataSeeder implements CommandLineRunner {
         String companyCode3 = codeGenerator.generateCode("DN", code -> 
                 companyRepository.findByCompanyCode(code).isPresent());
         
+        // Doanh nghiệp 3: Bosch Vietnam
         User user3 = new User();
         user3.setUserCode(companyCode3);
         user3.setUsername("recruitment@bosch.com");
@@ -395,7 +399,7 @@ public class DataSeeder implements CommandLineRunner {
         company3.setCompanyStatus(CompanyStatus.ACTIVE);
         companyRepository.save(company3);
 
-        // Jobs for Bosch Vietnam
+        // Việc làm cho Bosch Vietnam
         Job job11 = new Job();
         job11.setCompany(company3);
         job11.setJobCategory(itCategory);
@@ -481,6 +485,7 @@ public class DataSeeder implements CommandLineRunner {
         String companyCode4 = codeGenerator.generateCode("DN", code -> 
                 companyRepository.findByCompanyCode(code).isPresent());
         
+        // Doanh nghiệp 4: BEAT Vietnam
         User user4 = new User();
         user4.setUserCode(companyCode4);
         user4.setUsername("recruitment@beat.vn");
@@ -500,7 +505,7 @@ public class DataSeeder implements CommandLineRunner {
         company4.setCompanyStatus(CompanyStatus.ACTIVE);
         companyRepository.save(company4);
 
-        // Jobs for BEAT Vietnam
+        // Việc làm cho BEAT Vietnam
         Job job16 = new Job();
         job16.setCompany(company4);
         job16.setJobCategory(itCategory);
@@ -570,6 +575,7 @@ public class DataSeeder implements CommandLineRunner {
         String companyCode5 = codeGenerator.generateCode("DN", code -> 
                 companyRepository.findByCompanyCode(code).isPresent());
         
+        // Doanh nghiệp 5: MB Bank
         User user5 = new User();
         user5.setUserCode(companyCode5);
         user5.setUsername("recruitment@mbbank.com");
@@ -589,7 +595,7 @@ public class DataSeeder implements CommandLineRunner {
         company5.setCompanyStatus(CompanyStatus.ACTIVE);
         companyRepository.save(company5);
 
-        // Jobs for MB Bank
+        // Việc làm cho MB Bank
         Job job20 = new Job();
         job20.setCompany(company5);
         job20.setJobCategory(itCategory);       
@@ -622,7 +628,7 @@ public class DataSeeder implements CommandLineRunner {
         Role candidateRole = roleRepository.findByRoleCode("UV")
                 .orElseThrow(() -> new RuntimeException("UV role not found"));
 
-        // Candidate 1
+        // Ứng viên 1
         String candidateCode1 = codeGenerator.generateCode("UV", code -> 
                 candidateRepository.findByCandidateCode(code).isPresent());
         
@@ -649,7 +655,7 @@ public class DataSeeder implements CommandLineRunner {
 
         log.info("✓ Created Candidate 1: Nguyen Van A - Username: nguyenvana@example.com | Password: candidate123");
 
-        // Candidate 2
+        // Ứng viên 2
         String candidateCode2 = codeGenerator.generateCode("UV", code -> 
                 candidateRepository.findByCandidateCode(code).isPresent());
         
@@ -685,7 +691,7 @@ public class DataSeeder implements CommandLineRunner {
 
         log.info("Seeding CVs...");
 
-        // Get candidates via users
+        // Lấy ứng viên qua người dùng
         User user1 = userRepository.findByUsername("nguyenvana@example.com")
                 .orElseThrow(() -> new RuntimeException("Candidate user 1 not found"));
         Candidate candidate1 = candidateRepository.findByUserUserId(user1.getUserId())
@@ -696,7 +702,7 @@ public class DataSeeder implements CommandLineRunner {
         Candidate candidate2 = candidateRepository.findByUserUserId(user2.getUserId())
                 .orElseThrow(() -> new RuntimeException("Candidate 2 not found"));
 
-        // CV for Candidate 1
+        // CV cho Ứng viên 1
         CV cv1 = new CV();
         cv1.setCandidate(candidate1);
         cv1.setCvCode(codeGenerator.generateCode("CV", code -> 
@@ -705,7 +711,7 @@ public class DataSeeder implements CommandLineRunner {
         cv1.setCvStatus(CVStatus.ACTIVE);
         cvRepository.save(cv1);
 
-        // Second CV for Candidate 1 (hidden)
+        // CV thứ hai cho Ứng viên 1 (ẩn)
         CV cv2 = new CV();
         cv2.setCandidate(candidate1);
         cv2.setCvCode(codeGenerator.generateCode("CV", code -> 
@@ -714,7 +720,7 @@ public class DataSeeder implements CommandLineRunner {
         cv2.setCvStatus(CVStatus.HIDDEN);
         cvRepository.save(cv2);
 
-        // CV for Candidate 2
+        // CV cho Ứng viên 2
         CV cv3 = new CV();
         cv3.setCandidate(candidate2);
         cv3.setCvCode(codeGenerator.generateCode("CV", code -> 
@@ -734,7 +740,7 @@ public class DataSeeder implements CommandLineRunner {
 
         log.info("Seeding applications...");
 
-        // Get candidates
+        // Lấy ứng viên qua người dùng
         User candidateUser1 = userRepository.findByUsername("nguyenvana@example.com")
                 .orElseThrow(() -> new RuntimeException("Candidate user 1 not found"));
         Candidate candidate1 = candidateRepository.findByUserUserId(candidateUser1.getUserId())
@@ -745,7 +751,7 @@ public class DataSeeder implements CommandLineRunner {
         Candidate candidate2 = candidateRepository.findByUserUserId(candidateUser2.getUserId())
                 .orElseThrow(() -> new RuntimeException("Candidate 2 not found"));
 
-        // Get CVs
+        // Lấy CVs
         CV cv1 = cvRepository.findAll().stream()
                 .filter(cv -> cv.getCandidate().getCandidateId().equals(candidate1.getCandidateId()) 
                         && cv.getCvStatus() == CVStatus.ACTIVE)
@@ -758,7 +764,7 @@ public class DataSeeder implements CommandLineRunner {
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("Active CV for candidate 2 not found"));
 
-        // Get jobs
+        // Lấy việc làm
         Job job1 = jobRepository.findAll().stream()
                 .filter(j -> j.getJobTitle().contains("Java Senior"))
                 .findFirst()
@@ -774,7 +780,7 @@ public class DataSeeder implements CommandLineRunner {
                 .findFirst()
                 .orElseThrow(() -> new RuntimeException("Sales job not found"));
 
-        // Application 1: Candidate 1 applies to Java job (PENDING)
+        // Đơn ứng tuyển 1: Ứng viên 1 ứng tuyển vào việc làm Java (ĐANG CHỜ)
         Application app1 = new Application();
         app1.setJob(job1);
         app1.setCv(cv1);
@@ -784,7 +790,7 @@ public class DataSeeder implements CommandLineRunner {
         app1.setApplicationStatus(ApplicationStatus.PENDING);
         applicationRepository.save(app1);
 
-        // Application 2: Candidate 2 applies to Marketing job (PENDING)
+        // Đơn ứng tuyển 2: Ứng viên 2 ứng tuyển vào việc làm Marketing (ĐANG CHỜ)
         Application app2 = new Application();
         app2.setJob(job3);
         app2.setCv(cv3);
@@ -794,7 +800,7 @@ public class DataSeeder implements CommandLineRunner {
         app2.setApplicationStatus(ApplicationStatus.PENDING);
         applicationRepository.save(app2);
 
-        // Application 3: Candidate 2 applies to Sales job (APPROVED)
+        // Đơn ứng tuyển 3: Ứng viên 2 ứng tuyển vào việc làm Kinh doanh (ĐÃ DUYỆT)
         Application app3 = new Application();
         app3.setJob(job4);
         app3.setCv(cv3);
@@ -808,6 +814,84 @@ public class DataSeeder implements CommandLineRunner {
         log.info("  - Nguyen Van A → Java job (PENDING)");
         log.info("  - Tran Thi B → Marketing job (PENDING)");
         log.info("  - Tran Thi B → Sales job (APPROVED)");
+    }
+
+    private void seedSeekingPosts() {
+        if (seekingPostRepository.count() > 0) {
+            log.info("Seeking posts already seeded. Skipping...");
+            return;
+        }
+
+        log.info("Seeding seeking posts...");
+
+        // Lấy ứng viên qua email (qua quan hệ Người dùng → Ứng viên)
+        User user1 = userRepository.findByUsername("nguyenvana@example.com")
+                .orElseThrow(() -> new RuntimeException("User nguyenvana@example.com not found"));
+        Candidate candidate1 = candidateRepository.findByUserUserId(user1.getUserId())
+                .orElseThrow(() -> new RuntimeException("Candidate 1 not found"));
+        
+        User user2 = userRepository.findByUsername("tranthib@example.com")
+                .orElseThrow(() -> new RuntimeException("User tranthib@example.com not found"));
+        Candidate candidate2 = candidateRepository.findByUserUserId(user2.getUserId())
+                .orElseThrow(() -> new RuntimeException("Candidate 2 not found"));
+
+        // Bài đăng tìm việc 1 - Senior Java Developer
+        SeekingPost seekingPost1 = new SeekingPost();
+        seekingPost1.setCandidate(candidate1);
+        seekingPost1.setSkPostCode(codeGenerator.generateCode("BV", code -> 
+                seekingPostRepository.findBySkPostCode(code).isPresent()));
+        seekingPost1.setSkPostTitle("Senior Java Developer Seeking Opportunities in Product Companies");
+        seekingPost1.setSkPostIntro("Experienced backend developer with 5+ years expertise in Java/Spring Boot ecosystem. " +
+                "Seeking challenging opportunities in product companies where I can contribute to large-scale systems. " +
+                "Strong background in microservices architecture, cloud technologies, and agile methodologies. " +
+                "Passionate about clean code, system design, and mentoring junior developers. Open to remote or hybrid positions.");
+        seekingPost1.setSkPostSkills("Java, Spring Boot, PostgreSQL, Docker, Kubernetes, Microservices, Redis, Kafka, AWS, Git");
+        seekingPost1.setDesiredSalary(2500.0);
+        seekingPost1.setDesiredLocation("Ho Chi Minh City");
+        seekingPost1.setExpiryDate(LocalDate.now().plusMonths(3));
+        seekingPost1.setSkPostStatus(SeekingPostStatus.ACTIVE);
+        seekingPostRepository.save(seekingPost1);
+
+        log.info("✓ Created Seeking Post 1: Senior Java Developer - Nguyen Van A (Code: {})", seekingPost1.getSkPostCode());
+
+        // Bài đăng tìm việc 2 - Chuyên gia Digital Marketing
+        SeekingPost seekingPost2 = new SeekingPost();
+        seekingPost2.setCandidate(candidate2);
+        seekingPost2.setSkPostCode(codeGenerator.generateCode("BV", code -> 
+                seekingPostRepository.findBySkPostCode(code).isPresent()));
+        seekingPost2.setSkPostTitle("Digital Marketing Specialist with 3+ Years Experience");
+        seekingPost2.setSkPostIntro("Creative marketing professional with proven track record in SEO/SEM and social media management. " +
+                "3 years experience managing multi-channel digital campaigns with measurable ROI-driven results. " +
+                "Specialized in content strategy, performance analytics, and brand building. Currently looking for growth opportunities " +
+                "in dynamic companies where I can lead marketing initiatives and drive business growth through digital channels.");
+        seekingPost2.setSkPostSkills("SEO, SEM, Facebook Ads, Google Analytics, Content Marketing, Social Media Management, Copywriting, Email Marketing");
+        seekingPost2.setDesiredSalary(1000.0);
+        seekingPost2.setDesiredLocation("Ha Noi");
+        seekingPost2.setExpiryDate(LocalDate.now().plusMonths(2));
+        seekingPost2.setSkPostStatus(SeekingPostStatus.ACTIVE);
+        seekingPostRepository.save(seekingPost2);
+
+        log.info("✓ Created Seeking Post 2: Digital Marketing Specialist - Tran Thi B (Code: {})", seekingPost2.getSkPostCode());
+
+        // Bài đăng tìm việc 3 - Full Stack Developer (ẨN - ứng viên chuyển sang backend only)
+        SeekingPost seekingPost3 = new SeekingPost();
+        seekingPost3.setCandidate(candidate1);
+        seekingPost3.setSkPostCode(codeGenerator.generateCode("BV", code -> 
+                seekingPostRepository.findBySkPostCode(code).isPresent()));
+        seekingPost3.setSkPostTitle("Full Stack Developer Open to New Roles");
+        seekingPost3.setSkPostIntro("Versatile developer proficient in both frontend and backend technologies with strong problem-solving skills. " +
+                "Experience with React, Node.js, and Spring Boot. Passionate about building scalable applications and modern UI/UX. " +
+                "Interested in startups and innovative tech companies where I can wear multiple hats and contribute to product development.");
+        seekingPost3.setSkPostSkills("JavaScript, React, Node.js, Spring Boot, MongoDB, MySQL, AWS, CI/CD, Docker, REST APIs");
+        seekingPost3.setDesiredSalary(2000.0);
+        seekingPost3.setDesiredLocation("Da Nang");
+        seekingPost3.setExpiryDate(LocalDate.now().plusMonths(1));
+        seekingPost3.setSkPostStatus(SeekingPostStatus.HIDDEN);
+        seekingPostRepository.save(seekingPost3);
+
+        log.info("✓ Created Seeking Post 3: Full Stack Developer - Nguyen Van A (HIDDEN) (Code: {})", seekingPost3.getSkPostCode());
+
+        log.info("✓ Created 3 seeking posts (2 ACTIVE, 1 HIDDEN)");
     }
         
 }
