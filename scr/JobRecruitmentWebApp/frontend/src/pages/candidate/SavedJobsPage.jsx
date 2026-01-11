@@ -7,16 +7,16 @@ import savedJobService from '../../services/savedJob.service';
 
 /**
  * SavedJobsPage Component
- * Displays candidate's saved/bookmarked jobs using JobCard component
+ * Hiển thị danh sách việc làm đã lưu của ứng viên sử dụng component JobCard
  * 
- * Features:
- * - Grid layout of saved job cards
- * - Reuses existing JobCard component with bookmark functionality
- * - Pagination support
- * - Empty state with call-to-action
+ * Tính năng:
+ * - Bố cục lưới các thẻ việc làm đã lưu
+ * - Tái sử dụng component JobCard với chức năng đánh dấu
+ * - Hỗ trợ phân trang
+ * - Trạng thái trống với lời kêu gọi hành động khi không có việc làm đã lưu
  * - API: GET /api/v1/saved-jobs/me
  * 
- * Note: Based on SYSTEM_DESIGN.md SavedJob entity structure
+ * Lưu ý: Dựa trên cấu trúc thực thể SavedJob trong SYSTEM_DESIGN.md
  */
 const SavedJobsPage = () => {
   const [savedJobs, setSavedJobs] = useState([]);
@@ -45,16 +45,16 @@ const SavedJobsPage = () => {
 
       console.log('SavedJobs API Response:', response);
       
-      // Check if response has nested data (ApiResponse wrapper) or direct Page data
+      // Kiểm tra nếu response có dữ liệu lồng nhau (ApiResponse wrapper) hoặc dữ liệu Page trực tiếp
       let pageData;
       if (response.data && response.data.data) {
-        // Wrapped in ApiResponse
+        // Dữ liệu được đóng gói trong ApiResponse
         pageData = response.data.data;
       } else if (response.data) {
-        // Direct Page data
+        // Dữ liệu Page trực tiếp
         pageData = response.data;
       } else {
-        // Response itself is the Page
+        // Phản hồi trực tiếp từ service
         pageData = response;
       }
       
@@ -87,7 +87,7 @@ const SavedJobsPage = () => {
     try {
       await savedJobService.unsaveJob(jobId);
       toast.success('Đã bỏ lưu công việc');
-      // Refresh the current page
+      // Làm mới trang hiện tại
       fetchSavedJobs(pagination.currentPage);
     } catch (err) {
       console.error('Error removing saved job:', err);
@@ -96,9 +96,9 @@ const SavedJobsPage = () => {
     }
   };
 
-  // Transform SavedJobResponse to JobCard compatible format
+  // Chuyển đổi SavedJobResponse sang định dạng tương thích với JobCard
   const transformToJobCardFormat = (savedJob) => {
-    // The backend returns SavedJobResponse with nested job object
+    // Backend trả về SavedJobResponse với đối tượng job lồng nhau
     const jobData = savedJob.job || savedJob;
     
     console.log('Transforming saved job:', { savedJob, jobData });

@@ -4,17 +4,17 @@ import { Building2 } from 'lucide-react';
 
 /**
  * CompanyCard Component
- * Simple square card with centered logo placeholder and company name below
+ * Hình vuông với logo ở giữa và tên công ty bên dưới
  * 
  * @param {Object} props
- * @param {Object} props.company - Company object with companyId, name, logo
+ * @param {Object} props.company - Đối tượng công ty với companyId, name, logo
  */
 const CompanyCard = ({ company }) => {
-  // Utility function to construct full backend URL for uploaded files
+  // Hàm để tạo URL đầy đủ cho file tải lên từ backend
   const getBackendFileUrl = (filePath) => {
     if (!filePath) return null;
     if (filePath.startsWith('http')) return filePath;
-    const baseUrl = import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:8080';
+    const baseUrl = import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:5000';
     return `${baseUrl}${filePath}`;
   };
 

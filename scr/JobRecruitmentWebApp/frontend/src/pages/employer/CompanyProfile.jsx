@@ -7,30 +7,30 @@ import StarterKit from '@tiptap/starter-kit';
 
 /**
  * CompanyProfile Component
- * Form for employer to view and update company information
+ * Biểu mẫu cho nhà tuyển dụng xem và cập nhật thông tin công ty của họ
  * 
- * Features:
- * - Fetch company data: GET /api/v1/companies/me
- * - Update company data: PUT /api/v1/companies/me
- * - Upload company logo: PATCH /api/v1/companies/me/logo
- * - Rich text editor for description (TipTap)
- * - Form validation
+ * Tinh năng:
+ * - Lấy dữ liệu công ty: GET /api/v1/companies/me
+ * - Cập nhật dữ liệu công ty: PUT /api/v1/companies/me
+ * - Tải lên logo công ty: PATCH /api/v1/companies/me/logo
+ * - Trình soạn thảo văn bản phong phú cho mô tả (TipTap)
+ * - Xác thực biểu mẫu cơ bản
  * 
- * Fields:
- * - Company Name (required)
- * - Website URL
- * - Email (required)
- * - Address
- * - Phone
- * - Description (Rich Text)
- * - Logo (Image upload)
+ * Trường dữ liệu công ty:
+ * - Tên công ty (bắt buộc)
+ * - URL trang web
+ * - Email (bắt buộc)
+ * - Địa chỉ
+ * - Số điện thoại
+ * - Mô tả (Văn bản phong phú)
+ * - Logo (Tải lên ảnh)
  */
 const CompanyProfile = () => {
-  // Utility function to construct full backend URL for uploaded files
+  // Hàm tiện ích để tạo URL đầy đủ cho các tệp đã tải lên từ backend
   const getBackendFileUrl = (filePath) => {
     if (!filePath) return null;
-    if (filePath.startsWith('http')) return filePath; // Already full URL
-    const baseUrl = import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:8080';
+    if (filePath.startsWith('http')) return filePath; // Đã là URL đầy đủ
+    const baseUrl = import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:5000';
     return `${baseUrl}${filePath}`;
   };
 
@@ -50,7 +50,7 @@ const CompanyProfile = () => {
 
   const [errors, setErrors] = useState({});
 
-  // TipTap editor
+  // Trình soạn thảo TipTap
   const editor = useEditor({
     extensions: [StarterKit],
     content: '',
@@ -65,12 +65,12 @@ const CompanyProfile = () => {
     },
   });
 
-  // Fetch company data on mount
+  // Lấy dữ liệu công ty khi component được mount
   useEffect(() => {
     fetchCompanyProfile();
   }, []);
 
-  // Update editor content when description changes
+  // Cập nhật nội dung trình soạn thảo khi mô tả thay đổi
   useEffect(() => {
     if (editor && formData.companyDescription !== editor.getHTML()) {
       editor.commands.setContent(formData.companyDescription);
@@ -90,7 +90,7 @@ const CompanyProfile = () => {
         companyAddress: company.companyAddress || '',
         companyPhone: company.companyPhone || '',
         companyDescription: company.companyDescription || '',
-        logoUrl: company.logoURL || company.logoUrl || null, // Backend returns logoURL
+        logoUrl: company.logoURL || company.logoUrl || null,
       });
     } catch (error) {
       console.error('Error fetching company profile:', error);
@@ -103,7 +103,7 @@ const CompanyProfile = () => {
   const handleInputChange = (e) => {
     const { name, value } = e.target;
     setFormData(prev => ({ ...prev, [name]: value }));
-    // Clear error when user types
+    // Xóa lỗi khi người dùng nhập lại
     if (errors[name]) {
       setErrors(prev => ({ ...prev, [name]: '' }));
     }
@@ -113,13 +113,13 @@ const CompanyProfile = () => {
     const file = e.target.files[0];
     if (!file) return;
 
-    // Validate file type
+    // Xác thực loại file (chỉ cho phép ảnh)
     if (!file.type.startsWith('image/')) {
       toast.error('Vui lòng chọn file ảnh');
       return;
     }
 
-    // Validate file size (max 5MB)
+    // Xác thực kích thước file (tối đa 5MB)
     if (file.size > 5 * 1024 * 1024) {
       toast.error('Kích thước ảnh không được vượt quá 5MB');
       return;
@@ -129,7 +129,7 @@ const CompanyProfile = () => {
       setUploadingLogo(true);
       
       const formData = new FormData();
-      formData.append('file', file); // Backend expects 'file' parameter
+      formData.append('file', file);
 
       const response = await axiosClient.patch('/companies/me/logo', formData, {
         headers: {
@@ -137,7 +137,7 @@ const CompanyProfile = () => {
         },
       });
 
-      // Backend returns logoURL in data object
+      // Backend trả về logoURL trong đối tượng data
       const responseData = response.data.data || response.data;
       const updatedLogoUrl = responseData.logoURL || responseData.logoUrl;
       
@@ -206,7 +206,7 @@ const CompanyProfile = () => {
     }
   };
 
-  // TipTap editor toolbar buttons
+  // Các nút thanh công cụ trình soạn thảo TipTap
   const EditorToolbar = () => {
     if (!editor) return null;
 
@@ -270,7 +270,7 @@ const CompanyProfile = () => {
     );
   };
 
-  // Quill modules configuration
+  // Cấu hình modules cho Quill
   const modules = {
     toolbar: [
       [{ header: [1, 2, 3, false] }],
@@ -379,7 +379,8 @@ const CompanyProfile = () => {
                     name="companyEmail"
                     value={formData.companyEmail}
                     onChange={handleInputChange}
-                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary ${
+                    readOnly
+                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary bg-gray-50 cursor-not-allowed ${
                       errors.companyEmail ? 'border-red-500' : 'border-neutral-300'
                     }`}
                     placeholder="contact@company.com"

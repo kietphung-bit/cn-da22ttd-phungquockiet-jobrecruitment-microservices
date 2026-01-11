@@ -71,4 +71,25 @@ public class UserResponse {
      * Thời gian cập nhật gần nhất
      */
     private LocalDateTime updatedAt;
+    
+    // ========== Company-specific fields (for role DN) ==========
+    
+    /**
+     * ID công ty (chỉ có khi roleCode = DN)
+     * - Null nếu không phải Employer
+     */
+    private Long companyId;
+    
+    /**
+     * Tên công ty (chỉ có khi roleCode = DN)
+     */
+    private String companyName;
+    
+    /**
+     * Trạng thái công ty (chỉ có khi roleCode = DN)
+     * - PENDING: Chờ xét duyệt
+     * - ACTIVE: Đang hoạt động
+     * - BLOCKED: Bị khóa
+     */
+    private String companyStatus;
 }

@@ -1,95 +1,90 @@
 /**
  * Application Service
  * 
- * API integration for job application management
- * Handles:
- * - Submit application (POST /api/v1/applications)
- * - Get candidate's applications (GET /api/v1/applications/me)
- * - Get applications for a job (GET /api/v1/applications/job/{jobId})
+ * Khởi tạo dịch vụ quản lý ứng tuyển việc làm
+ * Xử lý các tương tác với API liên quan đến ứng tuyển
+ * 
+ * Các chức năng chính:
+ * - Nộp đơn ứng tuyển (POST /api/v1/applications)
+ * - Lấy các đơn ứng tuyển của ứng viên (GET /api/v1/applications/me)
+ * - Lấy các đơn ứng tuyển cho một việc làm (GET /api/v1/applications/job/{jobId})
  */
 
 import axiosClient from '../api/axiosClient';
 
 const applicationService = {
   /**
-   * Submit a job application
+   * Nộp đơn ứng tuyển cho một việc làm
    * Endpoint: POST /api/v1/applications
    * Request: { jobId: Long, cvId: Long }
    * Response: ApplicationResponse
    * 
-   * Business Rules:
-   * - Job must be ACTIVE and within posting period
-   * - CV must belong to candidate and be ACTIVE
-   * - No duplicate applications
+   * Quy tắc nghiệp vụ:
+   * - Việc làm phải ở trạng thái ACTIVE và trong thời gian đăng tuyển
+   * - CV phải thuộc về ứng viên và ở trạng thái ACTIVE
+   * - Không được nộp đơn trùng lặp
    * 
-   * @param {Object} data - Application data
-   * @param {number} data.jobId - Job ID to apply
-   * @param {number} data.cvId - CV ID to use
-   * @returns {Promise<Object>} Application response
+   * @param {Object} data - Dữ liệu ứng tuyển
+   * @param {number} data.jobId - ID việc làm để ứng tuyển
+   * @param {number} data.cvId - ID CV để sử dụng
+   * @returns {Promise<Object>} Phản hồi ứng tuyển
    */
   async applyToJob(data) {
     try {
-      console.log('ApplicationService - Submitting application:', data);
       const response = await axiosClient.post('/applications', data);
-      console.log('ApplicationService - Application submitted:', response.data);
       
-      // Handle ApiResponse wrapper
+      // Xử lý ApiResponse wrapper
       if (response.data && response.data.data) {
         return response.data.data;
       }
       
       return response.data;
     } catch (error) {
-      console.error('ApplicationService - Apply failed:', error.response?.data || error);
       throw error;
     }
   },
 
   /**
-   * Get all applications submitted by current candidate
+   * Lấy tất cả đơn ứng tuyển của ứng viên hiện tại
    * Endpoint: GET /api/v1/applications/me
    * Response: Page<ApplicationResponse>
    * 
-   * @param {Object} params - Query parameters
-   * @param {number} params.page - Page number (0-indexed)
-   * @param {number} params.size - Page size
-   * @param {string} params.status - Filter by status (PENDING, APPROVED, REJECTED)
-   * @returns {Promise<Object>} Paginated applications
+   * @param {Object} params - Tham số truy vấn
+   * @param {number} params.page - Số trang (bắt đầu từ 0)
+   * @param {number} params.size - Kích thước trang
+   * @param {string} params.status - Lọc theo trạng thái (PENDING, APPROVED, REJECTED)
+   * @returns {Promise<Object>} Danh sách ứng tuyển phân trang
    */
   async getMyApplications(params = {}) {
     try {
-      console.log('ApplicationService - Fetching my applications:', params);
       const response = await axiosClient.get('/applications/me', { params });
-      console.log('ApplicationService - My applications:', response.data);
       
-      // Handle ApiResponse wrapper
+      // Xử lý ApiResponse wrapper
       if (response.data && response.data.data) {
         return response.data.data;
       }
       
       return response.data;
     } catch (error) {
-      console.error('ApplicationService - Fetch failed:', error.response?.data || error);
       throw error;
     }
   },
 
   /**
-   * Check if candidate has already applied to a job
+   * Kiểm tra xem ứng viên đã nộp đơn cho việc làm chưa
    * Endpoint: GET /api/v1/applications/me
-   * Filter locally by jobId
+   * Lọc cục bộ theo jobId
    * 
-   * @param {number} jobId - Job ID to check
-   * @returns {Promise<boolean>} True if already applied
+   * @param {number} jobId - ID việc làm để kiểm tra
+   * @returns {Promise<boolean>} True nếu đã nộp đơn, ngược lại false
    */
   async hasApplied(jobId) {
     try {
       const jobIdNum = typeof jobId === 'string' ? parseInt(jobId, 10) : jobId;
-      console.log('ApplicationService - Checking if applied:', { jobId, jobIdNum });
       
       const applications = await this.getMyApplications({ size: 1000 });
       
-      // Handle different response structures
+      // Xử lý các cấu trúc phản hồi khác nhau
       let applicationsList = [];
       if (Array.isArray(applications)) {
         applicationsList = applications;
@@ -102,120 +97,106 @@ const applicationService = {
         return appJobId === jobIdNum || appJobId === jobId;
       });
       
-      console.log('ApplicationService - Has applied result:', applied);
       return applied;
     } catch (error) {
-      console.error('ApplicationService - Check failed:', error);
       return false;
     }
   },
 
   /**
-   * Get all applications for a specific job (Employer view)
+   * Lấy tất cả đơn ứng tuyển cho một việc làm cụ thể (giao diện nhà tuyển dụng)
    * Endpoint: GET /api/v1/applications/job/{jobId}
    * Response: Page<ApplicationResponse>
    * 
-   * @param {number} jobId - Job ID
-   * @param {Object} params - Query parameters
-   * @param {number} params.page - Page number (0-indexed)
-   * @param {number} params.size - Page size
-   * @param {string} params.status - Filter by status
-   * @returns {Promise<Object>} Paginated applications
+   * @param {number} jobId - ID việc làm
+   * @param {Object} params - Tham số truy vấn
+   * @param {number} params.page - Số trang (bắt đầu từ 0)
+   * @param {number} params.size - Kích thước trang
+   * @param {string} params.status - Lọc theo trạng thái
+   * @returns {Promise<Object>} Danh sách ứng tuyển phân trang
    */
   async getApplicationsByJob(jobId, params = {}) {
     try {
-      console.log('ApplicationService - Fetching applications for job:', { jobId, params });
       const response = await axiosClient.get(`/applications/job/${jobId}`, { params });
-      console.log('ApplicationService - Job applications:', response.data);
       
-      // Handle ApiResponse wrapper
+      // Xử lý ApiResponse wrapper
       if (response.data && response.data.data) {
         return response.data.data;
       }
       
       return response.data;
     } catch (error) {
-      console.error('ApplicationService - Fetch failed:', error.response?.data || error);
       throw error;
     }
   },
 
   /**
-   * Update application status (Employer action)
+   * Cập nhật trạng thái đơn ứng tuyển (Hành động của nhà tuyển dụng)
    * Endpoint: PATCH /api/v1/applications/{id}/status
-   * Request Params: status (PENDING, APPROVED, REJECTED)
+   * Tham số yêu cầu: status (PENDING, APPROVED, REJECTED)
    * 
-   * @param {number} applicationId - Application ID
-   * @param {string} status - New status (PENDING, APPROVED, REJECTED)
-   * @returns {Promise<Object>} Updated application
+   * @param {number} applicationId - ID đơn ứng tuyển
+   * @param {string} status - Trạng thái mới (PENDING, APPROVED, REJECTED)
+   * @returns {Promise<Object>} Đơn ứng tuyển đã được cập nhật
    */
   async updateApplicationStatus(applicationId, status) {
     try {
-      console.log('ApplicationService - Updating status:', { applicationId, status });
       const response = await axiosClient.patch(
         `/applications/${applicationId}/status`,
         null,
         { params: { status } }
       );
-      console.log('ApplicationService - Status updated:', response.data);
       
-      // Handle ApiResponse wrapper
+      // Xử lý ApiResponse wrapper
       if (response.data && response.data.data) {
         return response.data.data;
       }
       
       return response.data;
     } catch (error) {
-      console.error('ApplicationService - Update failed:', error.response?.data || error);
       throw error;
     }
   },
 
   /**
-   * Withdraw/Cancel application (Candidate action)
+   * Rút lui/Hủy đơn ứng tuyển (Hành động của ứng viên)
    * Endpoint: DELETE /api/v1/applications/{id}
    * 
-   * @param {number} applicationId - Application ID to withdraw
-   * @returns {Promise<void>} No content on success
+   * @param {number} applicationId - ID đơn ứng tuyển để rút lui
+   * @returns {Promise<void>} Không có nội dung khi thành công
    */
   async withdrawApplication(applicationId) {
     try {
-      console.log('ApplicationService - Withdrawing application:', applicationId);
       const response = await axiosClient.delete(`/applications/${applicationId}`);
-      console.log('ApplicationService - Application withdrawn successfully');
       return response.data;
     } catch (error) {
-      console.error('ApplicationService - Withdraw failed:', error.response?.data || error);
       throw error;
     }
   },
 
   /**
-   * Get all applications for employer's jobs (Employer view)
+   * Lấy tất cả đơn ứng tuyển cho các việc làm của nhà tuyển dụng (giao diện nhà tuyển dụng)
    * Endpoint: GET /api/v1/applications/company
    * Response: Page<ApplicationResponse>
    * 
-   * @param {Object} params - Query parameters
-   * @param {number} params.page - Page number (0-indexed)
-   * @param {number} params.size - Page size
-   * @param {number} params.jobId - Filter by specific job ID
-   * @param {string} params.status - Filter by status (PENDING, APPROVED, REJECTED)
-   * @returns {Promise<Object>} Paginated applications
+   * @param {Object} params - Tham số truy vấn
+   * @param {number} params.page - Số trang (bắt đầu từ 0)
+   * @param {number} params.size - Kích thước trang
+   * @param {number} params.jobId - Lọc theo ID việc làm cụ thể
+   * @param {string} params.status - Lọc theo trạng thái (PENDING, APPROVED, REJECTED)
+   * @returns {Promise<Object>} Danh sách ứng tuyển phân trang
    */
   async getCompanyApplications(params = {}) {
     try {
-      console.log('ApplicationService - Fetching company applications:', params);
       const response = await axiosClient.get('/applications/company', { params });
-      console.log('ApplicationService - Company applications:', response.data);
       
-      // Handle ApiResponse wrapper
+      // Xử lý ApiResponse wrapper
       if (response.data && response.data.data) {
         return response.data.data;
       }
       
       return response.data;
     } catch (error) {
-      console.error('ApplicationService - Fetch failed:', error.response?.data || error);
       throw error;
     }
   }

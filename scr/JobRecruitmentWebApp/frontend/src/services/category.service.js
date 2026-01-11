@@ -2,19 +2,18 @@ import axiosClient from '../api/axiosClient';
 
 /**
  * Category Service
- * Handles all job category-related API calls
+ * Xử lý tất cả các cuộc gọi API liên quan đến danh mục công việc
  */
 const categoryService = {
   /**
-   * Get all job categories
-   * @returns {Promise} Promise with categories data
+   * Lấy tất cả danh mục công việc
+   * @returns {Promise} Promise với dữ liệu danh mục công việc
    */
   getAllCategories: async () => {
     try {
       const response = await axiosClient.get('/categories');
       return response;
     } catch (error) {
-      console.error('Error fetching categories:', error);
       throw error;
     }
   },

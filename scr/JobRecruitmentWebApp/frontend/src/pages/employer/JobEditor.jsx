@@ -1,28 +1,29 @@
 import { useState, useEffect } from 'react';
 import { useNavigate, useParams } from 'react-router-dom';
-import { Save, X, Loader2, DollarSign, MapPin, Calendar, Users, Briefcase } from 'lucide-react';
+import { Save, X, Loader2, Banknote, MapPin, Calendar, Users, Briefcase, AlertCircle } from 'lucide-react';
 import { toast } from 'react-toastify';
 import { useEditor, EditorContent } from '@tiptap/react';
 import StarterKit from '@tiptap/starter-kit';
 import jobService from '../../services/job.service';
+import { VIETNAM_PROVINCES } from '../../data/provinces';
 
 /**
  * JobEditor Component
- * Create and edit job postings
+ * Tạo và chỉnh sửa bài đăng việc làm cho nhà tuyển dụng
  * 
- * Features:
- * - Create new job: POST /api/v1/jobs
- * - Update existing job: PUT /api/v1/jobs/{id}
- * - Rich text editors for description and requirements (TipTap)
- * - Form validation (dates, salary, required fields)
- * - Category dropdown from API
- * - Currency formatting preview
+ * Tính năng:
+ * - Tạo bài đăng việc làm mới: POST /api/v1/jobs
+ * - Cập nhật bài đăng việc làm hiện có: PUT /api/v1/jobs/{id}
+ * - Trình soạn thảo rich text cho mô tả và yêu cầu (TipTap)
+ * - Xác thực biểu mẫu (ngày tháng, lương, trường bắt buộc)
+ * - Dropdown danh mục từ API
+ * - Xem trước định dạng tiền tệ
  * 
- * Validation Rules:
- * - Title, Category, Salary, Location: Required
- * - Salary: Must be > 0 (RBGTN)
- * - End Date >= Start Date (RBNT)
- * - Max Candidates: >= 0 (RBSL)
+ * Quy tắc xác thực:
+ * - Tiêu đề, Danh mục, Lương, Địa điểm: Bắt buộc
+ * - Lương: Phải > 0 (RBGTN)
+ * - Ngày kết thúc >= Ngày bắt đầu (RBNT)
+ * - Số lượng ứng viên tối đa: >= 0 (RBSL)
  */
 const JobEditor = () => {
   const navigate = useNavigate();
@@ -42,10 +43,13 @@ const JobEditor = () => {
     maxCandidates: '',
     jobDescription: '',
     jobRequirement: '',
+    jobResponsibilities: '',
+    jobBenefits: '',
+    termsAgreed: false,
   });
   const [errors, setErrors] = useState({});
 
-  // TipTap editor for job description
+  // Trình soạn thảo TipTap cho mô tả công việc
   const descriptionEditor = useEditor({
     extensions: [StarterKit],
     content: '',
@@ -59,7 +63,7 @@ const JobEditor = () => {
     },
   });
 
-  // TipTap editor for job requirements
+  // Trình soạn thảo TipTap cho yêu cầu công việc
   const requirementEditor = useEditor({
     extensions: [StarterKit],
     content: '',
@@ -73,6 +77,34 @@ const JobEditor = () => {
     },
   });
 
+  // Trình soạn thảo TipTap cho trách nhiệm công việc
+  const responsibilitiesEditor = useEditor({
+    extensions: [StarterKit],
+    content: '',
+    editorProps: {
+      attributes: {
+        class: 'prose max-w-none focus:outline-none min-h-[200px] p-4 border border-neutral-300 rounded-lg',
+      },
+    },
+    onUpdate: ({ editor }) => {
+      setFormData(prev => ({ ...prev, jobResponsibilities: editor.getHTML() }));
+    },
+  });
+
+  // Trình soạn thảo TipTap cho phúc lợi công việc
+  const benefitsEditor = useEditor({
+    extensions: [StarterKit],
+    content: '',
+    editorProps: {
+      attributes: {
+        class: 'prose max-w-none focus:outline-none min-h-[200px] p-4 border border-neutral-300 rounded-lg',
+      },
+    },
+    onUpdate: ({ editor }) => {
+      setFormData(prev => ({ ...prev, jobBenefits: editor.getHTML() }));
+    },
+  });
+
   useEffect(() => {
     fetchCategories();
     if (isEditMode) {
@@ -80,7 +112,7 @@ const JobEditor = () => {
     }
   }, [id]);
 
-  // Update editors when description/requirement changes
+  // Cập nhật trình soạn thảo khi mô tả/yêu cầu thay đổi
   useEffect(() => {
     if (descriptionEditor && formData.jobDescription !== descriptionEditor.getHTML()) {
       descriptionEditor.commands.setContent(formData.jobDescription);
@@ -92,6 +124,18 @@ const JobEditor = () => {
       requirementEditor.commands.setContent(formData.jobRequirement);
     }
   }, [requirementEditor, formData.jobRequirement]);
+
+  useEffect(() => {
+    if (responsibilitiesEditor && formData.jobResponsibilities !== responsibilitiesEditor.getHTML()) {
+      responsibilitiesEditor.commands.setContent(formData.jobResponsibilities);
+    }
+  }, [responsibilitiesEditor, formData.jobResponsibilities]);
+
+  useEffect(() => {
+    if (benefitsEditor && formData.jobBenefits !== benefitsEditor.getHTML()) {
+      benefitsEditor.commands.setContent(formData.jobBenefits);
+    }
+  }, [benefitsEditor, formData.jobBenefits]);
 
   const fetchCategories = async () => {
     try {
@@ -109,8 +153,10 @@ const JobEditor = () => {
       const response = await jobService.getJobDetail(id);
       const job = response.data;
 
+      // Lưu ý: Backend trả về JobResponse dạng phẳng với jcId và jcName trực tiếp
+      // Không lồng như job.jobCategory.jcId (xem JobResponse.java)
       setFormData({
-        jcId: job.jobCategory?.jcId || '',
+        jcId: job.jcId || '',
         jobTitle: job.jobTitle || '',
         jobSalary: job.jobSalary || '',
         jobLocation: job.jobLocation || '',
@@ -119,6 +165,8 @@ const JobEditor = () => {
         maxCandidates: job.maxCandidates || '',
         jobDescription: job.jobDescription || '',
         jobRequirement: job.jobRequirement || '',
+        jobResponsibilities: job.jobResponsibilities || '',
+        jobBenefits: job.jobBenefits || '',
       });
     } catch (error) {
       console.error('Error fetching job data:', error);
@@ -184,6 +232,10 @@ const JobEditor = () => {
       newErrors.jobRequirement = 'Yêu cầu công việc là bắt buộc';
     }
 
+    if (!isEditMode && !formData.termsAgreed) {
+      newErrors.termsAgreed = 'Bạn phải đồng ý với các điều khoản để đăng tin';
+    }
+
     setErrors(newErrors);
     return Object.keys(newErrors).length === 0;
   };
@@ -204,11 +256,14 @@ const JobEditor = () => {
         jobTitle: formData.jobTitle,
         jobDescription: formData.jobDescription,
         jobRequirement: formData.jobRequirement,
+        jobResponsibilities: formData.jobResponsibilities,
+        jobBenefits: formData.jobBenefits,
         jobSalary: Number(formData.jobSalary),
         jobLocation: formData.jobLocation,
         startDate: formData.startDate,
         endDate: formData.endDate,
         maxCandidates: Number(formData.maxCandidates) || 1,
+        termsAgreed: !isEditMode ? formData.termsAgreed : undefined,
       };
 
       if (isEditMode) {
@@ -237,7 +292,7 @@ const JobEditor = () => {
     }).format(amount);
   };
 
-  // TipTap toolbar component
+  // Thành phần thanh công cụ TipTap
   const EditorToolbar = ({ editor, label }) => {
     if (!editor) return null;
 
@@ -395,7 +450,7 @@ const JobEditor = () => {
                   Mức lương (VNĐ) <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
-                  <DollarSign className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" />
+                  <Banknote className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" />
                   <input
                     type="number"
                     name="jobSalary"
@@ -425,17 +480,23 @@ const JobEditor = () => {
                   Địa điểm làm việc <span className="text-red-500">*</span>
                 </label>
                 <div className="relative">
-                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" />
-                  <input
-                    type="text"
+                  <MapPin className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400 pointer-events-none" />
+                  <select
                     name="jobLocation"
                     value={formData.jobLocation}
                     onChange={handleInputChange}
-                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary ${
+                    className={`w-full pl-10 pr-4 py-3 border rounded-lg focus:ring-2 focus:ring-primary focus:border-primary appearance-none bg-white ${
                       errors.jobLocation ? 'border-red-500' : 'border-neutral-300'
                     }`}
-                    placeholder="TP. Hồ Chí Minh"
-                  />
+                  >
+                    <option value="">Chọn địa điểm...</option>
+                    <option value="Remote">Remote</option>
+                    {VIETNAM_PROVINCES.map((province) => (
+                      <option key={province} value={province}>
+                        {province}
+                      </option>
+                    ))}
+                  </select>
                 </div>
                 {errors.jobLocation && (
                   <p className="text-red-500 text-sm mt-1">{errors.jobLocation}</p>
@@ -536,6 +597,46 @@ const JobEditor = () => {
             )}
           </div>
 
+          {/* Job Responsibilities */}
+          <div className="bg-white rounded-lg shadow-sm p-6 border border-neutral-200">
+            <h2 className="text-lg font-bold text-neutral-900 mb-4">Trách nhiệm công việc</h2>
+            <EditorToolbar editor={responsibilitiesEditor} label="Mô tả các trách nhiệm chính" />
+          </div>
+
+          {/* Job Benefits */}
+          <div className="bg-white rounded-lg shadow-sm p-6 border border-neutral-200">
+            <h2 className="text-lg font-bold text-neutral-900 mb-4">Quyền lợi & Phúc lợi</h2>
+            <EditorToolbar editor={benefitsEditor} label="Quyền lợi và chế độ đãi ngộ" />
+          </div>
+
+          {/* Terms Agreement (only for new posts) */}
+          {!isEditMode && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg shadow-sm p-6">
+              <h2 className="text-lg font-bold text-neutral-900 mb-4 flex items-center gap-2">
+                <AlertCircle className="w-5 h-5 text-amber-600" />
+                Cam kết tuân thủ
+              </h2>
+              <label className="flex items-start gap-3 cursor-pointer">
+                <input
+                  type="checkbox"
+                  checked={formData.termsAgreed}
+                  onChange={(e) => setFormData(prev => ({ ...prev, termsAgreed: e.target.checked }))}
+                  className="mt-1 w-5 h-5 text-primary focus:ring-primary border-neutral-300 rounded"
+                />
+                <div className="flex-1">
+                  <p className="text-neutral-800 leading-relaxed">
+                    Tôi cam kết tin tuyển dụng này là có thật và tuân thủ các quy định pháp luật Việt Nam. 
+                    Tôi chịu hoàn toàn trách nhiệm về nội dung đăng tải và hiểu rằng mọi thông tin sai lệch 
+                    hoặc vi phạm sẽ bị xử lý theo quy định của pháp luật.
+                  </p>
+                  {errors.termsAgreed && (
+                    <p className="text-red-500 text-sm mt-2 font-medium">{errors.termsAgreed}</p>
+                  )}
+                </div>
+              </label>
+            </div>
+          )}
+
           {/* Submit Buttons */}
           <div className="flex justify-end gap-4">
             <button
@@ -548,7 +649,7 @@ const JobEditor = () => {
             </button>
             <button
               type="submit"
-              disabled={saving}
+              disabled={saving || (!isEditMode && !formData.termsAgreed)}
               className="px-6 py-3 bg-primary text-white rounded-lg hover:bg-primary-600 transition-colors font-medium disabled:opacity-50 disabled:cursor-not-allowed flex items-center gap-2"
             >
               {saving ? (

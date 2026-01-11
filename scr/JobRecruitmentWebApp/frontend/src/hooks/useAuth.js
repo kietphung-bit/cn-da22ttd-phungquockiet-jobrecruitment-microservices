@@ -1,15 +1,15 @@
 import { useAuth } from '../contexts/AuthContext';
 
 /**
- * Custom hook for authentication
- * Re-exports useAuth for convenience
- * Can be extended with additional auth-related logic
+ * Custom hook cho xác thực
+ * Re-exports useAuth cho tiện lợi
+ * Có thể mở rộng với các logic liên quan đến xác thực khác
  */
 export { useAuth };
 
 /**
- * Hook to check if user is authenticated
- * @returns {boolean} True if user is authenticated
+ * Hook để kiểm tra xem người dùng đã xác thực hay chưa
+ * @returns {boolean} True nếu người dùng đã xác thực
  */
 export const useIsAuthenticated = () => {
   const { isAuthenticated } = useAuth();
@@ -17,8 +17,8 @@ export const useIsAuthenticated = () => {
 };
 
 /**
- * Hook to get current user
- * @returns {Object|null} User object or null
+ * Hook để lấy người dùng hiện tại
+ * @returns {Object|null} Đối tượng người dùng hoặc null
  */
 export const useCurrentUser = () => {
   const { user } = useAuth();
@@ -26,9 +26,9 @@ export const useCurrentUser = () => {
 };
 
 /**
- * Hook to check user role
- * @param {string} role - Role to check (ADM, DN, UV)
- * @returns {boolean} True if user has the role
+ * Hook để kiểm tra vai trò người dùng
+ * @param {string} role - Vai trò cần kiểm tra (ADM, DN, UV)
+ * @returns {boolean} True nếu người dùng có vai trò đó
  */
 export const useHasRole = (role) => {
   const { hasRole } = useAuth();
@@ -36,8 +36,8 @@ export const useHasRole = (role) => {
 };
 
 /**
- * Hook to require authentication
- * Redirects to login if not authenticated
+ * Hook để yêu cầu xác thực
+ * Chuyển hướng đến trang đăng nhập nếu chưa xác thực
  */
 export const useRequireAuth = () => {
   const { isAuthenticated, saveRedirectPath } = useAuth();

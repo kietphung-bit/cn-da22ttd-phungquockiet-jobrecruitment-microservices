@@ -5,8 +5,8 @@ import Footer from './Footer';
 
 /**
  * MainLayout Component
- * Layout wrapper for Candidate/Public pages
- * Includes Navbar (top) and Footer (bottom)
+ * Layout wrapper cho Candidate/Public pages
+ * Bao gồm Navbar (trên cùng) và Footer (dưới cùng)
  */
 const MainLayout = () => {
   return (

@@ -1,7 +1,7 @@
 /**
- * Format currency in VND (Vietnamese Dong)
- * @param {number} amount - Amount to format
- * @returns {string} Formatted currency string (e.g., "20.000.000 ₫")
+ * Định dạng tiền tệ VND 
+ * @param {number} amount - Số tiền cần định dạng
+ * @returns {string} Chuỗi tiền tệ đã định dạng (ví dụ: "20.000.000 ₫")
  */
 export const formatCurrency = (amount) => {
   if (!amount && amount === 0) return 'Thỏa thuận';
@@ -12,13 +12,13 @@ export const formatCurrency = (amount) => {
   }).format(amount);
 };
 
-// Alias for backward compatibility
+// Định dạng tiền tệ VND (để tương thích ngược)
 export const formatVND = formatCurrency;
 
 /**
- * Format currency in USD
- * @param {number} amount - Amount to format
- * @returns {string} Formatted currency string
+ * Định dạng tiền tệ USD
+ * @param {number} amount - Số tiền cần định dạng
+ * @returns {string} Chuỗi tiền tệ đã định dạng (ví dụ: "$20,000")
  */
 export const formatUSD = (amount) => {
   if (!amount && amount !== 0) return 'N/A';
@@ -32,10 +32,10 @@ export const formatUSD = (amount) => {
 };
 
 /**
- * Format salary range in VND
- * @param {number} minSalary - Minimum salary
- * @param {number} maxSalary - Maximum salary (optional)
- * @returns {string} Formatted salary range (e.g., "10.000.000 ₫ - 20.000.000 ₫")
+ * Định dạng khoảng lương bằng VND
+ * @param {number} minSalary - Mức lương tối thiểu
+ * @param {number} maxSalary - Mức lương tối đa (tùy chọn)
+ * @returns {string} Chuỗi khoảng lương đã định dạng (ví dụ: "10.000.000 ₫ - 20.000.000 ₫")
  */
 export const formatSalaryRange = (minSalary, maxSalary = null) => {
   if (!minSalary && minSalary !== 0) return 'Thỏa thuận';
@@ -48,12 +48,12 @@ export const formatSalaryRange = (minSalary, maxSalary = null) => {
 };
 
 /**
- * Format date to Vietnamese format
- * @param {string|Date} dateString - Date to format (ISO string or Date object)
- * @param {string} format - Format type ('short', 'long', 'relative')
- * @returns {string} Formatted date string
+ * Định dạng ngày theo định dạng tiếng Việt
+ * @param {string|Date} dateString - Ngày cần định dạng (chuỗi ISO hoặc đối tượng Date)
+ * @param {string} format - Loại định dạng ('short', 'long', 'relative')
+ * @returns {string} Chuỗi ngày đã định dạng
  * 
- * Examples:
+ * Ví dụ:
  * - short: "23/12/2025"
  * - long: "23 tháng 12, 2025"
  * - relative: "2 ngày trước"
@@ -63,7 +63,7 @@ export const formatDate = (dateString, format = 'short') => {
   
   const dateObj = typeof dateString === 'string' ? new Date(dateString) : dateString;
   
-  // Check if date is valid
+  // Kiểm tra xem ngày có hợp lệ không
   if (isNaN(dateObj.getTime())) return 'Ngày không hợp lệ';
   
   if (format === 'relative') {
@@ -78,7 +78,7 @@ export const formatDate = (dateString, format = 'short') => {
     }).format(dateObj);
   }
   
-  // Default: short format DD/MM/YYYY
+  // Mặc định: định dạng ngắn DD/MM/YYYY
   return new Intl.DateTimeFormat('vi-VN', {
     year: 'numeric',
     month: '2-digit',
@@ -87,9 +87,9 @@ export const formatDate = (dateString, format = 'short') => {
 };
 
 /**
- * Format date relative to now in Vietnamese (e.g., "2 ngày trước")
- * @param {Date} date - Date to format
- * @returns {string} Relative date string in Vietnamese
+ * Định dạng ngày tương đối so với hiện tại bằng tiếng Việt (ví dụ: "2 ngày trước")
+ * @param {Date} date - Ngày cần định dạng
+ * @returns {string} Chuỗi ngày tương đối bằng tiếng Việt
  */
 export const formatRelativeDate = (date) => {
   const now = new Date();
@@ -112,10 +112,10 @@ export const formatRelativeDate = (date) => {
 };
 
 /**
- * Truncate text with ellipsis
- * @param {string} text - Text to truncate
- * @param {number} maxLength - Maximum length
- * @returns {string} Truncated text
+ * Rút gọn văn bản với dấu ba chấm
+ * @param {string} text - Văn bản cần rút gọn
+ * @param {number} maxLength - Độ dài tối đa
+ * @returns {string} Văn bản đã được rút gọn
  */
 export const truncateText = (text, maxLength = 100) => {
   if (!text) return '';
@@ -124,9 +124,9 @@ export const truncateText = (text, maxLength = 100) => {
 };
 
 /**
- * Map API job status to Vietnamese display text
- * @param {string} status - API status value
- * @returns {string} Display text in Vietnamese
+ * Chuyển đổi trạng thái công việc từ API sang văn bản hiển thị bằng tiếng Việt
+ * @param {string} status - Giá trị trạng thái từ API
+ * @returns {string} Văn bản hiển thị bằng tiếng Việt
  */
 export const mapJobStatus = (status) => {
   const statusMap = {
@@ -140,9 +140,9 @@ export const mapJobStatus = (status) => {
 };
 
 /**
- * Map API job status to badge color
- * @param {string} status - API status value
- * @returns {string} Tailwind color classes
+ * Chuyển đổi trạng thái công việc từ API sang màu badge Tailwind
+ * @param {string} status - Giá trị trạng thái từ API
+ * @returns {string} Các lớp màu Tailwind
  */
 export const getJobStatusColor = (status) => {
   const colorMap = {

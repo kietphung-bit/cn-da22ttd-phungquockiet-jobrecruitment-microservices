@@ -2,47 +2,45 @@ import axiosClient from '../api/axiosClient';
 
 /**
  * Company Service
- * Handles all company-related API calls
+ * Xử lý tất cả các cuộc gọi API liên quan đến công ty
  */
 const companyService = {
   /**
-   * Get all companies with pagination
-   * @param {Object} params - Query parameters
-   * @param {number} params.page - Page number (0-indexed)
-   * @param {number} params.size - Page size
-   * @param {string} params.name - Search by company name
-   * @param {string} params.sort - Sort field and direction
-   * @returns {Promise} Promise with companies data
+   * Lấy tất cả công ty với phân trang và lọc
+   * @param {Object} params - Tham số truy vấn
+   * @param {number} params.page - Số trang (bắt đầu từ 0)
+   * @param {number} params.size - Kích thước trang
+   * @param {string} params.name - Tìm kiếm theo tên công ty
+   * @param {string} params.sort - Trường và hướng sắp xếp
+   * @returns {Promise} Promise với dữ liệu công ty
    */
   getAllCompanies: async (params = {}) => {
     try {
       const response = await axiosClient.get('/companies', { params });
       return response;
     } catch (error) {
-      console.error('Error fetching companies:', error);
       throw error;
     }
   },
 
   /**
-   * Get company details by ID
-   * @param {number|string} companyId - Company ID
-   * @returns {Promise} Promise with company details
+   * Lấy chi tiết công ty theo ID
+   * @param {number|string} companyId - ID công ty
+   * @returns {Promise} Promise với chi tiết công ty
    */
   getCompanyDetail: async (companyId) => {
     try {
       const response = await axiosClient.get(`/companies/${companyId}`);
       return response;
     } catch (error) {
-      console.error('Error fetching company details:', error);
       throw error;
     }
   },
 
   /**
-   * Get featured companies for homepage
-   * @param {number} size - Number of companies to fetch (default: 5)
-   * @returns {Promise} Promise with featured companies
+   * Lấy các công ty nổi bật cho trang chủ
+   * @param {number} size - Số lượng công ty cần lấy (mặc định: 5)
+   * @returns {Promise} Promise với các công ty nổi bật
    */
   getFeaturedCompanies: async (size = 5) => {
     try {
@@ -55,55 +53,58 @@ const companyService = {
       });
       return response;
     } catch (error) {
-      console.error('Error fetching featured companies:', error);
       throw error;
     }
   },
 
   /**
-   * Search companies with keyword
-   * @param {Object} params - Search parameters
-   * @param {number} params.page - Page number (0-indexed)
-   * @param {number} params.size - Page size
-   * @param {string} params.keyword - Search keyword for company name
-   * @param {string} params.sort - Sort field and direction
-   * @returns {Promise} Promise with search results
+   * Tìm kiếm công ty với từ khóa
+   * @param {Object} params - Tham số tìm kiếm
+   * @param {number} params.page - Số trang (bắt đầu từ 0)
+   * @param {number} params.size - Kích thước trang
+   * @param {string} params.keyword - Từ khóa tìm kiếm tên công ty (map tới 'name' ở backend)
+   * @param {string} params.sort - Trường và hướng sắp xếp
+   * @returns {Promise} Promise với kết quả tìm kiếm
    */
   searchCompanies: async (params = {}) => {
     try {
-      // Clean up undefined values
-      const cleanParams = Object.entries(params).reduce((acc, [key, value]) => {
+      // Chuyển tên tham số frontend sang tên tham số mà backend mong đợi
+      const backendParams = {};
+      
+      Object.entries(params).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== '') {
-          acc[key] = value;
+          // Chuyển keyword thành name (backend mong đợi tham số 'name' để tìm kiếm tên công ty)
+          if (key === 'keyword') {
+            backendParams.name = value;
+          } else {
+            backendParams[key] = value;
+          }
         }
-        return acc;
-      }, {});
+      });
 
-      const response = await axiosClient.get('/companies', { params: cleanParams });
+      const response = await axiosClient.get('/companies', { params: backendParams });
       return response;
     } catch (error) {
-      console.error('Error searching companies:', error);
       throw error;
     }
   },
 
   /**
-   * Get jobs by company ID
-   * @param {number|string} companyId - Company ID
-   * @param {Object} params - Additional query parameters
-   * @param {number} params.page - Page number (0-indexed)
-   * @param {number} params.size - Page size
-   * @returns {Promise} Promise with jobs data
+   * Lấy các công việc theo ID công ty
+   * @param {number|string} companyId - ID công ty
+   * @param {Object} params - Tham số truy vấn bổ sung
+   * @param {number} params.page - Số trang (bắt đầu từ 0)
+   * @param {number} params.size - Kích thước trang
+   * @returns {Promise} Promise với dữ liệu công việc
    */
   getJobsByCompany: async (companyId, params = {}) => {
     try {
-      // Use /jobs endpoint with companyId filter instead of nested resource
+      // Sử dụng endpoint /jobs với bộ lọc companyId thay vì tài nguyên lồng nhau
       const response = await axiosClient.get('/jobs', { 
         params: { ...params, companyId } 
       });
       return response;
     } catch (error) {
-      console.error('Error fetching company jobs:', error);
       throw error;
     }
   },

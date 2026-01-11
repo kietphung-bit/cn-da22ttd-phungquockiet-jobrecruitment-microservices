@@ -290,12 +290,21 @@ public class AuthServiceImpl implements AuthService {
                         responseBuilder.candidateCode(candidate.getCandidateCode());
                     });
         } else if ("DN".equals(user.getRole().getRoleCode())) {
-            // Nhà tuyển dụng - lấy thông tin công ty
-            companyRepository.findByUserUserId(user.getUserId())
-                    .ifPresent(company -> {
-                        responseBuilder.companyName(company.getCompanyName());
-                        responseBuilder.companyCode(company.getCompanyCode());
-                    });
+            // Nhà tuyển dụng - lấy thông tin công ty và kiểm tra trạng thái
+            Company company = companyRepository.findByUserUserId(user.getUserId())
+                    .orElseThrow(() -> new ResourceNotFoundException("Company profile not found"));
+            
+            // Kiểm tra trạng thái công ty - chỉ cho phép đăng nhập nếu ACTIVE
+            if (company.getCompanyStatus() == CompanyStatus.PENDING) {
+                throw new ValidationException("Account is pending approval. Please wait for Admin approval.");
+            }
+            
+            if (company.getCompanyStatus() == CompanyStatus.BLOCKED) {
+                throw new ValidationException("Account has been blocked. Please contact Admin.");
+            }
+            
+            responseBuilder.companyName(company.getCompanyName());
+            responseBuilder.companyCode(company.getCompanyCode());
         }
 
         return responseBuilder.build();
@@ -328,17 +337,17 @@ public class AuthServiceImpl implements AuthService {
         
         // Xác minh mật khẩu cũ
         if (!passwordEncoder.matches(request.getOldPassword(), user.getPassword())) {
-            throw new ValidationException("Mật khẩu cũ không đúng");
+            throw new ValidationException("Old password is incorrect");
         }
         
         // Kiểm tra new password != old password
         if (passwordEncoder.matches(request.getNewPassword(), user.getPassword())) {
-            throw new ValidationException("Mật khẩu mới phải khác mật khẩu cũ");
+            throw new ValidationException("New password must be different from old password");
         }
         
         // Kiểm tra new password == confirm password
         if (!request.getNewPassword().equals(request.getConfirmPassword())) {
-            throw new ValidationException("Xác nhận mật khẩu không khớp");
+            throw new ValidationException("Password confirmation does not match");
         }
         
         // Cập nhật mật khẩu mới

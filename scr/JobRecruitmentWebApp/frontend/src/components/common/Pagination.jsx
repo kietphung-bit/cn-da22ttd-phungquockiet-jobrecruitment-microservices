@@ -3,12 +3,12 @@ import { ChevronLeft, ChevronRight } from 'lucide-react';
 
 /**
  * Pagination Component
- * Simple pagination with Previous, Page Numbers, Next buttons
+ * Phân trang với các nút Previous, Page Numbers, Next
  * 
  * @param {Object} props
- * @param {number} props.currentPage - Current active page (1-indexed)
- * @param {number} props.totalPages - Total number of pages
- * @param {Function} props.onPageChange - Callback when page changes
+ * @param {number} props.currentPage - Trang hiện tại (bắt đầu từ 1)
+ * @param {number} props.totalPages - Tổng số trang
+ * @param {Function} props.onPageChange - Callback khi trang thay đổi
  */
 const Pagination = ({ currentPage = 1, totalPages = 1, onPageChange }) => {
   const handlePrevious = () => {
@@ -27,34 +27,34 @@ const Pagination = ({ currentPage = 1, totalPages = 1, onPageChange }) => {
     onPageChange(page);
   };
 
-  // Generate page numbers to display
+  // Tạo các số trang để hiển thị
   const getPageNumbers = () => {
     const pages = [];
-    const maxVisible = 5; // Maximum number of page buttons to show
+    const maxVisible = 5; // Số nút trang tối đa để hiển thị
 
     if (totalPages <= maxVisible) {
-      // Show all pages if total is less than max visible
+      // Hiển thị tất cả các trang nếu tổng số trang nhỏ hơn số nút tối đa
       for (let i = 1; i <= totalPages; i++) {
         pages.push(i);
       }
     } else {
-      // Show pages with ellipsis
+      // Hiển thị các trang với dấu ba chấm
       if (currentPage <= 3) {
-        // Near the start
+        // Gần đầu
         for (let i = 1; i <= 4; i++) {
           pages.push(i);
         }
         pages.push('...');
         pages.push(totalPages);
       } else if (currentPage >= totalPages - 2) {
-        // Near the end
+        // Gần cuối
         pages.push(1);
         pages.push('...');
         for (let i = totalPages - 3; i <= totalPages; i++) {
           pages.push(i);
         }
       } else {
-        // In the middle
+        // Ở giữa
         pages.push(1);
         pages.push('...');
         for (let i = currentPage - 1; i <= currentPage + 1; i++) {

@@ -7,18 +7,18 @@ import { formatVND } from '../../utils/formatters';
 
 /**
  * CompanyDetailPage Component
- * Displays detailed information about a specific company
+ * Hiển thị thông tin chi tiết về một công ty cụ thể
  * 
- * Features:
- * - Company profile information
- * - Company description
- * - List of jobs at this company
- * - Vietnamese localization
+ * Tính năng:
+ * - Thông tin hồ sơ công ty
+ * - Mô tả công ty
+ * - Danh sách công việc tại công ty này
+ * - Hỗ trợ tiếng Việt
  */
 const CompanyDetailPage = () => {
   const { id } = useParams();
 
-  // Utility function to get full backend URL for uploaded files
+  // Hàm tiện ích để lấy URL đầy đủ của tệp tải lên từ backend
   const getBackendFileUrl = (filePath) => {
     if (!filePath) return null;
     if (filePath.startsWith('http')) return filePath; // Already full URL
@@ -32,7 +32,7 @@ const CompanyDetailPage = () => {
   const [jobsLoading, setJobsLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch company details
+  // Lấy thông tin chi tiết công ty
   useEffect(() => {
     const fetchCompanyDetails = async () => {
       try {
@@ -42,7 +42,7 @@ const CompanyDetailPage = () => {
         const response = await companyService.getCompanyDetail(id);
         const companyData = response.data;
 
-        // Map API response to component format
+        // Ánh xạ phản hồi API sang định dạng component
         const mappedCompany = {
           companyId: companyData.companyId,
           code: companyData.companyCode,
@@ -57,7 +57,7 @@ const CompanyDetailPage = () => {
 
         setCompany(mappedCompany);
 
-        // Fetch jobs for this company
+        // Lấy danh sách công việc của công ty này
         fetchCompanyJobs();
       } catch (err) {
         console.error('Error fetching company details:', err);
@@ -76,7 +76,7 @@ const CompanyDetailPage = () => {
           sort: 'createdAt,desc',
         });
 
-        // Map jobs to display format
+        // Chuyển đổi công việc sang định dạng hiển thị
         const mappedJobs = response.data.content.map(job => ({
           jobId: job.jobId,
           title: job.jobTitle,
@@ -89,7 +89,7 @@ const CompanyDetailPage = () => {
         setJobs(mappedJobs);
       } catch (err) {
         console.error('Error fetching company jobs:', err);
-        // Don't show error for jobs, just keep empty array
+        // Không hiển thị lỗi cho công việc, chỉ giữ mảng rỗng
         setJobs([]);
       } finally {
         setJobsLoading(false);
@@ -101,7 +101,7 @@ const CompanyDetailPage = () => {
     }
   }, [id]);
 
-  // Loading State
+  // Trạng thái tải
   if (loading) {
     return (
       <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
@@ -113,7 +113,7 @@ const CompanyDetailPage = () => {
     );
   }
 
-  // Error State
+  // Trạng thái lỗi hoặc không tìm thấy công ty
   if (error || !company) {
     return (
       <div className="min-h-screen bg-neutral-50 flex items-center justify-center">
@@ -137,7 +137,7 @@ const CompanyDetailPage = () => {
     );
   }
 
-  // Status badge
+  // Nhãn trạng thái công ty
   const getStatusBadge = (status) => {
     const statusMap = {
       PENDING: { text: 'Chờ xét duyệt', color: 'bg-yellow-100 text-yellow-800' },
@@ -158,13 +158,13 @@ const CompanyDetailPage = () => {
     <div className="min-h-screen bg-neutral-50 py-8">
       <div className="container-custom">
         {/* Back Button */}
-        <Link
+        {/* <Link
           to="/companies"
           className="inline-flex items-center gap-2 text-primary hover:text-primary-600 mb-6"
         >
           <ArrowLeft className="w-5 h-5" />
           Quay lại danh sách công ty
-        </Link>
+        </Link> */}
 
         {/* Company Header */}
         <div className="bg-white rounded-lg shadow-md overflow-hidden mb-8">

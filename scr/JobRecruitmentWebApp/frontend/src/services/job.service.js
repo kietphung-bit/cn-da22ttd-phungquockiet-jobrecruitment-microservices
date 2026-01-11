@@ -2,13 +2,13 @@ import axiosClient from '../api/axiosClient';
 
 /**
  * Job Service
- * Handles all job-related API calls
+ * Xử lý tất cả các cuộc gọi API liên quan đến công việc
  */
 const jobService = {
   /**
-   * Get hot jobs for homepage
-   * @param {number} size - Number of jobs to fetch (default: 8)
-   * @returns {Promise} Promise with job data
+   * Lấy các công việc hot cho trang chủ
+   * @param {number} size - Số lượng công việc cần lấy (mặc định: 8)
+   * @returns {Promise} Promise với dữ liệu công việc
    */
   getHotJobs: async (size = 8) => {
     try {
@@ -21,64 +21,69 @@ const jobService = {
       });
       return response;
     } catch (error) {
-      console.error('Error fetching hot jobs:', error);
       throw error;
     }
   },
 
   /**
-   * Search jobs with filters
-   * @param {Object} filters - Search filters
-   * @param {number} filters.page - Page number (0-indexed)
-   * @param {number} filters.size - Page size
-   * @param {string} filters.keyword - Search keyword
-   * @param {string} filters.location - Job location
-   * @param {number} filters.jcId - Job category ID
-   * @param {number} filters.minSalary - Minimum salary
-   * @param {number} filters.maxSalary - Maximum salary
-   * @param {string} filters.jobType - Job type
-   * @param {string} filters.sort - Sort field and direction
-   * @returns {Promise} Promise with search results
+   * Tìm kiếm công việc với bộ lọc
+   * @param {Object} filters - Bộ lọc tìm kiếm
+   * @param {number} filters.page - Số trang (bắt đầu từ 0)
+   * @param {number} filters.size - Kích thước trang
+   * @param {string} filters.keyword - Từ khóa tìm kiếm (map tới jobTitle ở backend)
+   * @param {string} filters.location - Vị trí công việc (map tới jobLocation ở backend)
+   * @param {number} filters.jcId - ID danh mục công việc
+   * @param {number} filters.minSalary - Mức lương tối thiểu
+   * @param {number} filters.maxSalary - Mức lương tối đa
+   * @param {string} filters.jobType - Loại công việc
+   * @param {string} filters.sort - Trường và hướng sắp xếp
+   * @returns {Promise} Promise với kết quả tìm kiếm
    */
   searchJobs: async (filters = {}) => {
     try {
-      // Clean up undefined values
-      const params = Object.entries(filters).reduce((acc, [key, value]) => {
+      // Chuyển tên tham số frontend sang tên tham số mà backend mong đợi
+      const backendParams = {};
+      
+      Object.entries(filters).forEach(([key, value]) => {
         if (value !== undefined && value !== null && value !== '') {
-          acc[key] = value;
+          // Chuyển tên tham số frontend sang tên tham số mà backend mong đợi
+          if (key === 'keyword') {
+            backendParams.jobTitle = value; 
+          } else if (key === 'location') {
+            backendParams.jobLocation = value; 
+          } else {
+            backendParams[key] = value; // Giữ nguyên các tham số khác
+          }
         }
-        return acc;
-      }, {});
+      });
 
-      const response = await axiosClient.get('/jobs', { params });
+      const response = await axiosClient.get('/jobs', { params: backendParams });
       return response;
     } catch (error) {
-      console.error('Error searching jobs:', error);
       throw error;
     }
   },
 
   /**
-   * Get job details by ID
-   * @param {number|string} jobId - Job ID
-   * @returns {Promise} Promise with job details
+   * Lấy chi tiết công việc theo ID
+   * @param {number|string} jobId - ID công việc
+   * @returns {Promise} Promise với chi tiết công việc
    */
   getJobDetail: async (jobId) => {
     try {
       const response = await axiosClient.get(`/jobs/${jobId}`);
       return response;
     } catch (error) {
-      console.error('Error fetching job details:', error);
       throw error;
     }
   },
 
   /**
-   * Get related jobs (similar jobs based on category)
-   * @param {number} jcId - Job category ID
-   * @param {number} excludeJobId - Job ID to exclude from results
-   * @param {number} size - Number of jobs to fetch (default: 4)
-   * @returns {Promise} Promise with related jobs
+   * Lấy các công việc liên quan (công việc tương tự dựa trên danh mục)
+   * @param {number} jcId - ID danh mục công việc
+   * @param {number} excludeJobId - ID công việc cần loại trừ khỏi kết quả
+   * @param {number} size - Số lượng công việc cần lấy (mặc định: 4)
+   * @returns {Promise} Promise với các công việc liên quan
    */
   getRelatedJobs: async (jcId, excludeJobId, size = 4) => {
     try {
@@ -86,11 +91,11 @@ const jobService = {
         params: {
           jcId: jcId,
           page: 0,
-          size: size + 1, // Fetch one extra to exclude current job
+          size: size + 1, // Lấy thêm một công việc để loại trừ công việc hiện tại
         },
       });
 
-      // Filter out the current job
+      // Lọc ra công việc hiện tại khỏi kết quả
       if (response.data && response.data.content) {
         response.data.content = response.data.content
           .filter((job) => job.jobId !== excludeJobId)
@@ -99,76 +104,72 @@ const jobService = {
 
       return response;
     } catch (error) {
-      console.error('Error fetching related jobs:', error);
       throw error;
     }
   },
 
   /**
-   * Get all job categories
-   * @returns {Promise} Promise with job categories
+   * Lấy tất cả danh mục công việc
+   * @returns {Promise} Promise với danh mục công việc
    */
   getJobCategories: async () => {
     try {
       const response = await axiosClient.get('/categories');
       return response;
     } catch (error) {
-      console.error('Error fetching job categories:', error);
       throw error;
     }
   },
 
   /**
-   * Get employer's own jobs (authenticated)
-   * @param {Object} params - Query parameters (page, size, sort, etc.)
-   * @returns {Promise} Promise with employer's jobs
+   * Lấy các công việc của nhà tuyển dụng (đã xác thực)
+   * Endpoint: GET /api/v1/jobs/me
+   * @param {Object} params - Tham số truy vấn (page, size, sort, v.v.)
+   * @returns {Promise} Promise với các công việc của nhà tuyển dụng
    */
   getMyJobs: async (params = {}) => {
     try {
-      const response = await axiosClient.get('/jobs', { params });
+      const response = await axiosClient.get('/jobs/me', { params });
       return response;
     } catch (error) {
-      console.error('Error fetching my jobs:', error);
       throw error;
     }
   },
 
   /**
-   * Create new job posting (Employer only)
-   * @param {Object} jobData - Job creation data
-   * @returns {Promise} Promise with created job
+   * Tạo mới tin tuyển dụng (Chỉ nhà tuyển dụng)
+   * @param {Object} jobData - Dữ liệu tạo tin tuyển dụng
+   * @returns {Promise} Promise với tin tuyển dụng đã tạo
    */
   createJob: async (jobData) => {
     try {
       const response = await axiosClient.post('/jobs', jobData);
       return response;
     } catch (error) {
-      console.error('Error creating job:', error);
       throw error;
     }
   },
 
   /**
-   * Update existing job (Employer only)
-   * @param {number} jobId - Job ID
-   * @param {Object} jobData - Updated job data
-   * @returns {Promise} Promise with updated job
+   * Cập nhật tin tuyển dụng (Chỉ nhà tuyển dụng)
+   * @param {number} jobId - ID công việc
+   * @param {Object} jobData - Dữ liệu cập nhật tin tuyển dụng
+   * @returns {Promise} Promise với tin tuyển dụng đã cập nhật
    */
   updateJob: async (jobId, jobData) => {
     try {
       const response = await axiosClient.put(`/jobs/${jobId}`, jobData);
       return response;
     } catch (error) {
-      console.error('Error updating job:', error);
       throw error;
     }
   },
 
   /**
-   * Update job status (Employer only)
-   * @param {number} jobId - Job ID
-   * @param {string} status - New status (ACTIVE, CLOSED, HIDDEN)
-   * @returns {Promise} Promise with updated job
+   * Cập nhật trạng thái tin tuyển dụng (Chỉ nhà tuyển dụng)
+   * @param {number} jobId - ID công việc
+   * @param {string} status - Trạng thái mới (ACTIVE, CLOSED, HIDDEN)
+   * @returns {Promise} Promise với tin tuyển dụng đã cập nhật
    */
   updateJobStatus: async (jobId, status) => {
     try {
@@ -177,22 +178,20 @@ const jobService = {
       });
       return response;
     } catch (error) {
-      console.error('Error updating job status:', error);
       throw error;
     }
   },
 
   /**
-   * Delete job (soft delete - changes status to HIDDEN)
-   * @param {number} jobId - Job ID
-   * @returns {Promise} Promise with void response
+   * Xóa tin tuyển dụng (xóa mềm - đặt trạng thái thành HIDDEN)
+   * @param {number} jobId - ID công việc
+   * @returns {Promise} Promise với phản hồi void
    */
   deleteJob: async (jobId) => {
     try {
       const response = await axiosClient.delete(`/jobs/${jobId}`);
       return response;
     } catch (error) {
-      console.error('Error deleting job:', error);
       throw error;
     }
   },

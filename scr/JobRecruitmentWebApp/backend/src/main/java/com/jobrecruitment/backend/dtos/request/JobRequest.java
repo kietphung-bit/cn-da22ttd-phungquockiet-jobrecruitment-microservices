@@ -75,6 +75,20 @@ public class JobRequest {
     private String jobRequirement;
     
     /**
+     * Trách nhiệm công việc
+     * - Optional: Có thể null
+     * - Ví dụ: Các công việc chính, trách nhiệm hàng ngày...
+     */
+    private String jobResponsibilities;
+    
+    /**
+     * Quyền lợi
+     * - Optional: Có thể null
+     * - Ví dụ: Bảo hiểm, thưởng, nghỉ phép...
+     */
+    private String jobBenefits;
+    
+    /**
      * Mức lương
      * - Optional: Có thể null
      * - Validation: @Positive (nếu có giá trị)

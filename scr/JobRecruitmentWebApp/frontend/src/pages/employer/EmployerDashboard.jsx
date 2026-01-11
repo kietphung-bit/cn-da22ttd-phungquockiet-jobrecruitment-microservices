@@ -1,24 +1,23 @@
 import { useState, useEffect } from 'react';
 import { Briefcase, FileText, CheckCircle, Clock, TrendingUp, Users } from 'lucide-react';
+import jobService from '../../services/job.service';
+import applicationService from '../../services/application.service';
+import { toast } from 'react-toastify';
 
 /**
  * EmployerDashboard Component
- * Overview dashboard for employers showing key statistics
+ * Bảng điều khiển tổng quan cho nhà tuyển dụng hiển thị các thống kê chính
  * 
- * Features:
- * - Stats cards: Active Jobs, New Applications, Approved, Pending
- * - Quick actions shortcuts
- * - Recent activity summary
- * 
- * TODO: Replace mock data with real API calls
- * - GET /api/v1/jobs/company (filter by status)
- * - GET /api/v1/applications/company
+ * Tính năng:
+ * - Thẻ thống kê: Tin đang hiển thị, Đơn ứng tuyển mới, Đã duyệt, Đang chờ
+ * - Lối tắt hành động nhanh
+ * - Tóm tắt hoạt động gần đây
+ * - Kết nối với API thực: GET /api/v1/jobs/me và GET /api/v1/applications/company
  */
 const EmployerDashboard = () => {
-  // Mock data - Replace with real API calls later
   const [stats, setStats] = useState({
     activeJobs: 0,
-    newApplications: 0,
+    totalApplications: 0,
     approvedApplications: 0,
     pendingApplications: 0,
   });
@@ -26,17 +25,50 @@ const EmployerDashboard = () => {
   const [loading, setLoading] = useState(true);
 
   useEffect(() => {
-    // Simulate API call
-    setTimeout(() => {
-      setStats({
-        activeJobs: 12,
-        newApplications: 8,
-        approvedApplications: 15,
-        pendingApplications: 23,
-      });
-      setLoading(false);
-    }, 800);
+    fetchDashboardStats();
   }, []);
+
+  const fetchDashboardStats = async () => {
+    try {
+      setLoading(true);
+
+      // Lấy số lượng tin đang hiển thị
+      const jobsResponse = await jobService.getMyJobs({ 
+        page: 0, 
+        size: 1000,
+        sort: 'createdAt,desc' 
+      });
+      
+      // Xử lý cấu trúc phản hồi: response.data chứa đối tượng Page
+      const jobsData = jobsResponse?.data || jobsResponse;
+      const jobs = jobsData?.content || [];
+      const activeJobsCount = jobs.filter(job => job.jobStatus === 'ACTIVE').length;
+
+      // Lấy tất cả đơn ứng tuyển cho các công việc của công ty
+      const appsResponse = await applicationService.getCompanyApplications({ 
+        page: 0, 
+        size: 1000 
+      });
+      
+      // Xử lý cấu trúc phản hồi: response.data chứa đối tượng Page
+      const appsData = appsResponse?.data || appsResponse;
+      const applications = appsData?.content || [];
+      const pendingCount = applications.filter(app => app.apStatus === 'PENDING').length;
+      const approvedCount = applications.filter(app => app.apStatus === 'APPROVED').length;
+
+      setStats({
+        activeJobs: activeJobsCount,
+        totalApplications: applications.length,
+        approvedApplications: approvedCount,
+        pendingApplications: pendingCount,
+      });
+    } catch (error) {
+      console.error('Error fetching dashboard stats:', error);
+      toast.error('Không thể tải thống kê dashboard');
+    } finally {
+      setLoading(false);
+    }
+  };
 
   const statsCards = [
     {
@@ -48,8 +80,8 @@ const EmployerDashboard = () => {
       borderColor: 'border-blue-200',
     },
     {
-      title: 'CV mới nhận',
-      value: stats.newApplications,
+      title: 'Tổng số đơn ứng tuyển',
+      value: stats.totalApplications,
       icon: FileText,
       bgColor: 'bg-green-50',
       iconColor: 'text-green-600',

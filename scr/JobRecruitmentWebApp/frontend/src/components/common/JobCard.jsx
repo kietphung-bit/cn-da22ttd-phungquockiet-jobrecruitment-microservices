@@ -1,5 +1,5 @@
 import React, { useState, useEffect } from 'react';
-import { MapPin, DollarSign, Heart } from 'lucide-react';
+import { MapPin, Banknote, Heart } from 'lucide-react';
 import { Link } from 'react-router-dom';
 import { toast } from 'react-toastify';
 import savedJobService from '../../services/savedJob.service';
@@ -7,34 +7,33 @@ import { useAuth } from '../../contexts/AuthContext';
 
 /**
  * JobCard Component
- * Based on 'Hot Jobs' wireframe
- * Layout: Box with shadow/border
+ * Layout: Hộp vuông với shadow/border
  * Top: Logo placeholder + Bookmark button
  * Middle: Job Title & Tags (Salary, Location)
- * Bottom: 'Apply' button (Solid Blue)
+ * Bottom: 'Ứng tuyển' button (Solid Blue)
  * 
- * Features:
- * - Bookmark/Save job functionality
- * - Heart icon (outline = unsaved, solid red = saved)
- * - Toast notifications for save/unsave actions
+ * Tính năng:
+ * - Chức năng đánh dấu/Lưu công việc
+ * - Biểu tượng trái tim (viền = chưa lưu, đỏ đặc = đã lưu)
+ * - Thông báo toast cho các hành động lưu/bỏ lưu
  * 
  * @param {Object} props
- * @param {Object} props.job - Job object matching backend JobResponse DTO
+ * @param {Object} props.job - Đối tượng công việc phù hợp với backend JobResponse DTO
  * - jobId: number
- * - title: string (mapped from jobTitle)
- * - company: string (mapped from companyName)
- * - companyLogo: string (mapped from companyLogo)
- * - salary: string (formatted from jobSalary)
- * - location: string (mapped from jobLocation)
- * @param {boolean} props.isSaved - Initial saved state (optional)
- * @param {Function} props.onSaveToggle - Callback when save state changes (optional)
+ * - title: string (chuyển từ jobTitle)
+ * - company: string (chuyển từ companyName)
+ * - companyLogo: string (chuyển từ companyLogo)
+ * - salary: string (định dạng từ jobSalary)
+ * - location: string (chuyển từ jobLocation)
+ * @param {boolean} props.isSaved - Trạng thái lưu ban đầu (tùy chọn)
+ * @param {Function} props.onSaveToggle - Callback khi trạng thái lưu thay đổi (tùy chọn)
  */
 const JobCard = ({ job, isSaved: initialIsSaved = false, onSaveToggle }) => {
-  // Utility function to construct full backend URL for uploaded files
+  // Hàm để tạo URL đầy đủ cho file tải lên từ backend
   const getBackendFileUrl = (filePath) => {
     if (!filePath) return null;
     if (filePath.startsWith('http')) return filePath;
-    const baseUrl = import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:8080';
+    const baseUrl = import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:5000';
     return `${baseUrl}${filePath}`;
   };
 
@@ -51,7 +50,7 @@ const JobCard = ({ job, isSaved: initialIsSaved = false, onSaveToggle }) => {
   const [isSaved, setIsSaved] = useState(initialIsSaved);
   const [isSaving, setIsSaving] = useState(false);
 
-  // Check if job is saved on mount (only for authenticated candidates)
+  // Kiểm tra xem công việc đã được lưu hay chưa khi component được mount (chỉ dành cho ứng viên đã xác thực)
   useEffect(() => {
     const checkSavedStatus = async () => {
       if (isAuthenticated && user?.role === 'UV' && jobId) {
@@ -68,15 +67,15 @@ const JobCard = ({ job, isSaved: initialIsSaved = false, onSaveToggle }) => {
   }, [isAuthenticated, user, jobId]);
 
   /**
-   * Handle bookmark/save toggle
+   * Xử lý toggle đánh dấu/lưu công việc
    */
   const handleSaveToggle = async (e) => {
-    e.preventDefault(); // Prevent navigation
+    e.preventDefault(); // Ngăn chặn điều hướng
     e.stopPropagation();
 
-    console.log('🔖 Save button clicked', { jobId, isAuthenticated, userRole: user?.role, user });
+    //console.log('🔖 Save button clicked', { jobId, isAuthenticated, userRole: user?.role, user });
 
-    // Check authentication
+    // Kiểm tra xác thực
     if (!isAuthenticated) {
       console.log('❌ Not authenticated');
       toast.info('Vui lòng đăng nhập để lưu công việc', {
@@ -86,7 +85,7 @@ const JobCard = ({ job, isSaved: initialIsSaved = false, onSaveToggle }) => {
       return;
     }
 
-    // Check role (only candidates can save jobs)
+    // Kiểm tra vai trò (chỉ ứng viên mới có thể lưu công việc)
     if (user?.role !== 'UV') {
       console.log('❌ Wrong role:', user?.role);
       toast.warning('Chỉ ứng viên mới có thể lưu công việc', {
@@ -100,20 +99,20 @@ const JobCard = ({ job, isSaved: initialIsSaved = false, onSaveToggle }) => {
       setIsSaving(true);
 
       if (isSaved) {
-        // Unsave
-        console.log('🗑️ Unsaving job:', jobId);
+        // Bỏ lưu
+        //console.log('🗑️ Bỏ lưu công việc:', jobId);
         const result = await savedJobService.unsaveJob(jobId);
-        console.log('✅ Unsave result:', result);
+        //console.log('✅ Kết quả bỏ lưu:', result);
         setIsSaved(false);
         toast.success('Đã bỏ lưu công việc', {
           position: 'top-right',
           autoClose: 2000,
         });
       } else {
-        // Save
-        console.log('💾 Saving job:', jobId);
+        // Lưu
+        //console.log('💾 Lưu công việc:', jobId);
         const result = await savedJobService.saveJob(jobId);
-        console.log('✅ Save result:', result);
+        //console.log('✅ Kết quả lưu:', result);
         setIsSaved(true);
         toast.success('Đã lưu công việc thành công', {
           position: 'top-right',
@@ -121,7 +120,7 @@ const JobCard = ({ job, isSaved: initialIsSaved = false, onSaveToggle }) => {
         });
       }
 
-      // Call parent callback if provided
+      // Gọi callback của hàm trên nếu được cung cấp
       if (onSaveToggle) {
         onSaveToggle(jobId, !isSaved);
       }
@@ -143,7 +142,7 @@ const JobCard = ({ job, isSaved: initialIsSaved = false, onSaveToggle }) => {
 
   return (
     <div className="card p-6 hover:shadow-xl transition-all duration-300 relative">
-      {/* Bookmark Button - Top Right - Always visible */}
+      {/* Nút đánh dấu/lưu - Góc trên bên phải - Luôn hiển thị */}
       <button
         onClick={handleSaveToggle}
         disabled={isSaving}
@@ -186,7 +185,7 @@ const JobCard = ({ job, isSaved: initialIsSaved = false, onSaveToggle }) => {
       {/* Middle: Tags (Salary, Location) */}
       <div className="space-y-2 mb-4">
         <div className="flex items-center text-neutral-700">
-          <DollarSign className="w-4 h-4 mr-2 text-primary" />
+          <Banknote className="w-4 h-4 mr-2 text-primary" />
           <span className="text-sm font-medium">{salary}</span>
         </div>
         <div className="flex items-center text-neutral-700">

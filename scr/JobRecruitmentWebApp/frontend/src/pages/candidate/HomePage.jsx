@@ -9,10 +9,6 @@ import { formatVND, formatRelativeDate } from '../../utils/formatters';
 
 /**
  * HomePage Component
- * Based on Wireframe Specification:
- * - Hero Section: Centered with search bar
- * - Featured Companies: Horizontal scrolling/grid
- * - Hot Jobs: 4-column grid on desktop
  */
 const HomePage = () => {
   const navigate = useNavigate();
@@ -24,14 +20,14 @@ const HomePage = () => {
   const [companiesLoading, setCompaniesLoading] = useState(true);
   const [error, setError] = useState(null);
 
-  // Fetch hot jobs on component mount
+  // Lấy việc làm nổi bật khi component được mount
   useEffect(() => {
     const fetchHotJobs = async () => {
       try {
         setLoading(true);
         const response = await jobService.getHotJobs(8);
         
-        // Map API response to component format
+        // Chuyển đổi API response sang định dạng component
         const mappedJobs = response.data.content.map(job => ({
           jobId: job.jobId,
           title: job.jobTitle,
@@ -55,19 +51,19 @@ const HomePage = () => {
     fetchHotJobs();
   }, []);
 
-  // Fetch featured companies on component mount
+  // Lấy các công ty nổi bật khi component được mount
   useEffect(() => {
     const fetchFeaturedCompanies = async () => {
       try {
         setCompaniesLoading(true);
         const response = await companyService.getFeaturedCompanies(5);
         
-        // Map API response to component format
+        // Chuyển đổi API response sang định dạng component
         const mappedCompanies = response.data.content.map(company => ({
           companyId: company.companyId,
           name: company.companyName,
           logo: company.logoURL || null,
-          jobCount: 0, // Will be updated if API provides this
+          jobCount: 0, // Sẽ được cập nhật nếu API cung cấp
         }));
         
         setFeaturedCompanies(mappedCompanies);
@@ -83,7 +79,7 @@ const HomePage = () => {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    // Navigate to JobSearchPage with search params
+    // Chuyển đến trang tìm kiếm việc làm với các tham số tìm kiếm
     const params = new URLSearchParams();
     if (searchKeyword) params.append('keyword', searchKeyword);
     if (searchLocation) params.append('location', searchLocation);

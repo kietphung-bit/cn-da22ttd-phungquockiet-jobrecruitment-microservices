@@ -5,23 +5,23 @@ import { Loader2 } from 'lucide-react';
 
 /**
  * PrivateRoute Component
- * Wrapper for protected routes that require authentication
+ * Wrapper cho các protected routes yêu cầu xác thực
  * 
- * Features:
- * - Checks if user is authenticated
- * - Saves current path for redirect after login
- * - Redirects to login if not authenticated
- * - Optional role-based access control
+ * Tính năng:
+ * - Kiểm tra nếu người dùng đã xác thực
+ * - Lưu đường dẫn hiện tại để chuyển hướng sau khi đăng nhập
+ * - Chuyển hướng đến trang đăng nhập nếu chưa xác thực
+ * - Kiểm soát truy cập dựa trên vai trò (tuỳ chọn)
  * 
  * @param {Object} props
- * @param {React.ReactNode} props.children - Child components to render if authenticated
- * @param {string|Array<string>} props.allowedRoles - Optional role(s) required to access
+ * @param {React.ReactNode} props.children - Các thành phần con sẽ được render nếu đã xác thực
+ * @param {string|Array<string>} props.allowedRoles - Vai trò (hoặc mảng vai trò) được phép truy cập (tuỳ chọn)
  */
 const PrivateRoute = ({ children, allowedRoles }) => {
   const { isAuthenticated, loading, user, saveRedirectPath } = useAuth();
   const location = useLocation();
 
-  // Show loading spinner while checking auth state
+  // Hiển thị loading spinner trong khi kiểm tra trạng thái xác thực
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center bg-neutral-50">
@@ -33,20 +33,20 @@ const PrivateRoute = ({ children, allowedRoles }) => {
     );
   }
 
-  // If not authenticated, save current path and redirect to login
+  // Nếu chưa xác thực, lưu đường dẫn hiện tại và chuyển hướng đến trang đăng nhập
   if (!isAuthenticated) {
-    // Save the current path for redirect after login
+    // Lưu đường dẫn hiện tại để chuyển hướng sau khi đăng nhập
     saveRedirectPath(location.pathname + location.search);
     
     return <Navigate to="/login" state={{ from: location }} replace />;
   }
 
-  // If allowedRoles is specified, check user role
+  // Nếu allowedRoles được chỉ định, kiểm tra vai trò người dùng
   if (allowedRoles) {
     const roles = Array.isArray(allowedRoles) ? allowedRoles : [allowedRoles];
     
     if (!roles.includes(user?.role)) {
-      // User doesn't have required role - show 403 Forbidden
+      // Người dùng không có vai trò cần thiết - hiển thị 403 Forbidden
       return (
         <div className="min-h-screen flex items-center justify-center bg-neutral-50">
           <div className="bg-white rounded-lg shadow-md p-8 max-w-md text-center">
@@ -69,7 +69,7 @@ const PrivateRoute = ({ children, allowedRoles }) => {
     }
   }
 
-  // User is authenticated and has required role (if specified)
+  // Người dùng đã xác thực và có vai trò cần thiết (nếu được chỉ định)
   return children;
 };
 

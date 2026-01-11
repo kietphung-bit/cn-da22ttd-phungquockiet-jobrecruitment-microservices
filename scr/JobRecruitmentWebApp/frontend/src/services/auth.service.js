@@ -2,15 +2,20 @@ import axiosClient from '../api/axiosClient';
 
 /**
  * Authentication Service
- * Handles all authentication-related API calls
+ * Xử lý tất cả các cuộc gọi API liên quan đến xác thực và quản lý người dùng
+ * 
+ * Các chức năng chính:
+ * - Đăng nhập (POST /api/v1/auth/login)
+ * - Đăng ký nhà tuyển dụng (POST /api/v1/auth/register/employer)
+ * - Đăng ký ứng viên (POST /api/v1/auth/register/candidate)
  */
 
 const authService = {
   /**
-   * Login user with username and password
-   * @param {string} username - User's email
-   * @param {string} password - User's password
-   * @returns {Promise} Response with token and user data
+   * Đăng nhập người dùng với tên đăng nhập và mật khẩu
+   * @param {string} username - Email người dùng
+   * @param {string} password - Mật khẩu người dùng
+   * @returns {Promise} Phản hồi với token và dữ liệu người dùng
    */
   login: async (username, password) => {
     try {
@@ -18,8 +23,8 @@ const authService = {
         username,
         password,
       });
-      // Response is ApiResponse: { status, message, data }
-      // Return response.data to get the actual AuthResponse
+      // Response là ApiResponse: { status, message, data }
+      // Trả về response.data để lấy AuthResponse thực tế
       return response.data;
     } catch (error) {
       throw error;
@@ -27,9 +32,9 @@ const authService = {
   },
 
   /**
-   * Register new employer account
-   * @param {Object} employerData - Employer registration data
-   * @returns {Promise} Response with new employer user data
+   * Đăng ký tài khoản nhà tuyển dụng mới
+   * @param {Object} employerData - Dữ liệu đăng ký nhà tuyển dụng
+   * @returns {Promise} Phản hồi với dữ liệu người dùng nhà tuyển dụng mới
    */
   registerEmployer: async (employerData) => {
     try {
@@ -42,7 +47,7 @@ const authService = {
         companyWebsite: employerData.companyWebsite || null,
         companyDescription: employerData.companyDescription || null,
       });
-      // Response is ApiResponse: { status, message, data }
+      // Response là ApiResponse: { status, message, data }
       return response.data;
     } catch (error) {
       throw error;
@@ -50,9 +55,9 @@ const authService = {
   },
 
   /**
-   * Register new candidate account
-   * @param {Object} candidateData - Candidate registration data
-   * @returns {Promise} Response with new candidate user data
+   * Đăng ký tài khoản ứng viên mới
+   * @param {Object} candidateData - Dữ liệu đăng ký ứng viên
+   * @returns {Promise} Phản hồi với dữ liệu người dùng ứng viên mới
    */
   registerCandidate: async (candidateData) => {
     try {
@@ -65,7 +70,7 @@ const authService = {
         candidateBirthdate: candidateData.candidateBirthdate,
         candidateGender: candidateData.candidateGender,
       });
-      // Response is ApiResponse: { status, message, data }
+      // Response là ApiResponse: { status, message, data }
       return response.data;
     } catch (error) {
       throw error;
@@ -73,8 +78,8 @@ const authService = {
   },
 
   /**
-   * Logout current user
-   * Clears local storage and auth state
+   * Đăng xuất người dùng hiện tại
+   * Xóa dữ liệu trong local storage và trạng thái xác thực
    */
   logout: () => {
     localStorage.removeItem('auth_token');
@@ -83,8 +88,8 @@ const authService = {
   },
 
   /**
-   * Get current user from localStorage
-   * @returns {Object|null} User object or null
+   * Lấy người dùng hiện tại từ localStorage
+   * @returns {Object|null} Đối tượng người dùng hoặc null
    */
   getCurrentUser: () => {
     const userStr = localStorage.getItem('auth_user');
@@ -92,7 +97,6 @@ const authService = {
       try {
         return JSON.parse(userStr);
       } catch (error) {
-        console.error('Error parsing user data:', error);
         return null;
       }
     }
@@ -100,8 +104,8 @@ const authService = {
   },
 
   /**
-   * Check if user is authenticated
-   * @returns {boolean} True if authenticated
+   * Kiểm tra xem người dùng đã xác thực hay chưa
+   * @returns {boolean} True nếu đã xác thực, ngược lại false
    */
   isAuthenticated: () => {
     const token = localStorage.getItem('auth_token');
@@ -109,17 +113,17 @@ const authService = {
   },
 
   /**
-   * Get stored JWT token
-   * @returns {string|null} JWT token or null
+   * Lấy token JWT đã lưu trữ
+   * @returns {string|null} Token JWT hoặc null
    */
   getToken: () => {
     return localStorage.getItem('auth_token');
   },
 
   /**
-   * Set authentication data in localStorage
-   * @param {string} token - JWT token
-   * @param {Object} user - User data
+   * Lưu dữ liệu xác thực trong localStorage
+   * @param {string} token - Token JWT
+   * @param {Object} user - Dữ liệu người dùng
    */
   setAuthData: (token, user) => {
     localStorage.setItem('auth_token', token);
@@ -127,9 +131,9 @@ const authService = {
   },
 
   /**
-   * Change user password
+   * Thay đổi mật khẩu người dùng
    * @param {Object} passwordData - { oldPassword, newPassword, confirmPassword }
-   * @returns {Promise} Response with success message
+   * @returns {Promise} Phản hồi với thông báo thành công
    */
   changePassword: async (passwordData) => {
     try {
@@ -141,8 +145,8 @@ const authService = {
   },
 
   /**
-   * Logout from all devices (invalidate all tokens)
-   * @returns {Promise} Response with success message
+   * Đăng xuất khỏi tất cả thiết bị (vô hiệu hóa tất cả token)
+   * @returns {Promise} Phản hồi với thông báo thành công
    */
   logoutAllSessions: async () => {
     try {

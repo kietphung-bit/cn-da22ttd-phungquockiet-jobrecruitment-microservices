@@ -2,25 +2,16 @@ import React, { lazy, Suspense } from 'react';
 import { BrowserRouter, Routes, Route, Navigate } from 'react-router-dom';
 import { AuthProvider } from '../contexts/AuthContext';
 import PrivateRoute from './PrivateRoute';
+import RoleGuard from '../components/guards/RoleGuard';
 import LoadingSpinner from '../components/common/LoadingSpinner';
 
-// ============================================
-// EAGER IMPORTS (Critical for initial render)
-// ============================================
-// These components are loaded immediately to prevent flash of loading screen
-// on first page load. Adjust based on your landing page requirements.
-
-// Layouts - Load immediately (small bundle size, needed for route structure)
+// Layouts - load ngay vì kích thước nhỏ
 import MainLayout from '../components/layout/MainLayout';
 import PublicTalentPage from '../pages/public/PublicTalentPage';
 
-// ============================================
-// MOCKUP PAGES FOR TESTING (REMOVE BEFORE PRODUCTION)
-// ============================================
-import MockNav from '../pages/MockNav';
-import EmployerTalentSearchPage from '../pages/company/EmployerTalentSearchPage';
+
+
 import CandidatePostManager from '../pages/candidate/CandidatePostManager';
-import AdminPostModeration from '../pages/admin/AdminPostModeration';
 
 // ============================================
 // LAZY IMPORTS - CODE SPLITTING
@@ -40,7 +31,7 @@ const SavedJobsPage = lazy(() => import('../pages/candidate/SavedJobsPage'));
 const SecurityPage = lazy(() => import('../pages/candidate/SecurityPage'));
 
 // ------------------
-// PUBLIC PAGES (Can be lazy loaded for faster initial load)
+// PUBLIC PAGES (Có thể lazy load để tăng tốc độ tải ban đầu)
 // ------------------
 const HomePage = lazy(() => import('../pages/candidate/HomePage'));
 const JobSearchPage = lazy(() => import('../pages/candidate/JobSearchPage'));
@@ -48,6 +39,9 @@ const JobDetailPage = lazy(() => import('../pages/candidate/JobDetailPage'));
 const CompanySearchPage = lazy(() => import('../pages/candidate/CompanySearchPage'));
 const CompanyDetailPage = lazy(() => import('../pages/candidate/CompanyDetailPage'));
 const ComponentsDemo = lazy(() => import('../pages/ComponentsDemo'));
+const ContactPage = lazy(() => import('../pages/public/ContactPage'));
+const PrivacyPolicyPage = lazy(() => import('../pages/public/PrivacyPolicyPage'));
+const TermsOfServicePage = lazy(() => import('../pages/public/TermsOfServicePage'));
 
 // ------------------
 // AUTH PAGES (auth-bundle.js)
@@ -70,6 +64,7 @@ const JobManager = lazy(() => import('../pages/employer/JobManager'));
 const JobEditor = lazy(() => import('../pages/employer/JobEditor'));
 const EmployerApplications = lazy(() => import('../pages/employer/EmployerApplications'));
 const CandidateDetail = lazy(() => import('../pages/employer/CandidateDetail'));
+import EmployerTalentSearchPage from '../pages/employer/EmployerTalentSearchPage';
 
 // ------------------
 // ADMIN BUNDLE (admin-bundle.js)
@@ -78,15 +73,16 @@ const AdminLayout = lazy(() => import('../components/layout/AdminLayout'));
 const AdminDashboard = lazy(() => import('../pages/admin/AdminDashboard'));
 const CategoryManager = lazy(() => import('../pages/admin/CategoryManager'));
 const UserManagement = lazy(() => import('../pages/admin/UserManagement'));
-const JobModeration = lazy(() => import('../pages/admin/JobModeration'));
+const JobManagement = lazy(() => import('../pages/admin/JobManagement'));
+const CompanyApproval = lazy(() => import('../pages/admin/CompanyApproval'));
 
 /**
  * AppRoutes Component
- * Central routing configuration with code splitting for optimal performance
+ * Cấu hình routing với code splitting để tối ưu hiệu suất
  * 
- * Architecture:
- * - EAGER LOADING: MainLayout (small bundle, needed for all public routes)
- * - LAZY LOADING: All page components and role-specific layouts
+ * Kiến trúc:
+ * - EAGER LOADING: MainLayout (kích thước nhỏ, cần cho tất cả các route public)
+ * - LAZY LOADING: tất cả các page components và role-specific layouts
  * 
  * Bundle Splitting Strategy:
  * 1. candidate-bundle.js: CandidateLayout + Candidate pages (~900 KB)
@@ -95,13 +91,13 @@ const JobModeration = lazy(() => import('../pages/admin/JobModeration'));
  * 4. admin-bundle.js: Admin Layout + Admin pages (Future)
  * 5. public-pages.js: HomePage, JobSearch, JobDetail, Company pages (~300 KB)
  * 
- * Benefits:
- * - Initial bundle size reduced by ~70%
- * - Candidates don't download Employer/Admin code
- * - Faster Time To Interactive (TTI)
- * - Better Core Web Vitals scores
+ * Lợi ích:
+ * - Kích thước bundle ban đầu giảm khoảng 70%
+ * - Người dùng ứng viên không tải mã của Nhà tuyển dụng/Quản trị viên
+ * - Thời gian tương tác nhanh hơn (TTI)
+ * - Cải thiện điểm số Core Web Vitals
  * 
- * Route Structure:
+ * Cấu trúc Route:
  * - Public Routes (MainLayout): Home, Job Search, Company Search
  * - Auth Routes (MainLayout): Login, Register (with Navbar + Footer for consistency)
  * - Protected Routes: Candidate, Employer, Admin (role-based lazy loading)
@@ -110,7 +106,8 @@ const AppRoutes = () => {
   return (
     <BrowserRouter>
       <AuthProvider>
-        <Routes>
+        <RoleGuard>
+          <Routes>
           {/* ============================================ */}
           {/* PUBLIC ROUTES - Lazy loaded with Suspense   */}
           {/* ============================================ */}
@@ -155,20 +152,41 @@ const AppRoutes = () => {
                 </Suspense>
               } 
             />
-            {/* <Route 
+            <Route 
               path="talents" 
               element={
                 <Suspense fallback={<LoadingSpinner text="Đang tải tìm kiếm ứng viên..." />}>
                   <PublicTalentPage />
                 </Suspense>
               } 
-            /> */}
+            />
             
             {/* Placeholder routes - To be implemented */}
             <Route path="about" element={<div className="container-custom py-20 text-center"><h1>About Page - Coming Soon</h1></div>} />
-            <Route path="contact" element={<div className="container-custom py-20 text-center"><h1>Contact Page - Coming Soon</h1></div>} />
-            <Route path="privacy" element={<div className="container-custom py-20 text-center"><h1>Privacy Policy - Coming Soon</h1></div>} />
-            <Route path="terms" element={<div className="container-custom py-20 text-center"><h1>Terms of Service - Coming Soon</h1></div>} />
+            <Route 
+              path="contact" 
+              element={
+                <Suspense fallback={<LoadingSpinner text="Đang tải trang liên hệ..." />}>
+                  <ContactPage />
+                </Suspense>
+              } 
+            />
+            <Route 
+              path="privacy" 
+              element={
+                <Suspense fallback={<LoadingSpinner text="Đang tải chính sách bảo mật..." />}>
+                  <PrivacyPolicyPage />
+                </Suspense>
+              } 
+            />
+            <Route 
+              path="terms" 
+              element={
+                <Suspense fallback={<LoadingSpinner text="Đang tải điều khoản dịch vụ..." />}>
+                  <TermsOfServicePage />
+                </Suspense>
+              } 
+            />
             <Route 
               path="demo" 
               element={
@@ -255,6 +273,14 @@ const AppRoutes = () => {
               } 
             />
             <Route 
+              path="my-posts" 
+              element={
+                <Suspense fallback={<LoadingSpinner text="Đang tải quản lý tin đăng..." />}>
+                  <CandidatePostManager />
+                </Suspense>
+              } 
+            />
+            <Route 
               path="security" 
               element={
                 <Suspense fallback={<LoadingSpinner text="Đang tải bảo mật..." />}>
@@ -335,6 +361,14 @@ const AppRoutes = () => {
               } 
             />
             <Route 
+              path="talents" 
+              element={
+                <Suspense fallback={<LoadingSpinner text="Đang tải tìm kiếm nhân tài..." />}>
+                  <EmployerTalentSearchPage />
+                </Suspense>
+              } 
+            />
+            <Route 
               path="candidates/:candidateId" 
               element={
                 <Suspense fallback={<LoadingSpinner text="Đang tải thông tin ứng viên..." />}>
@@ -389,12 +423,22 @@ const AppRoutes = () => {
               } 
             />
             
-            {/* Job Moderation */}
+            {/* Company Approval */}
+            <Route 
+              path="company-approval" 
+              element={
+                <Suspense fallback={<LoadingSpinner text="Đang tải duyệt doanh nghiệp..." />}>
+                  <CompanyApproval />
+                </Suspense>
+              } 
+            />
+            
+            {/* Job Management (Post-moderation) */}
             <Route 
               path="jobs" 
               element={
                 <Suspense fallback={<LoadingSpinner text="Đang tải..." />}>
-                  <JobModeration />
+                  <JobManagement />
                 </Suspense>
               } 
             />
@@ -412,6 +456,7 @@ const AppRoutes = () => {
           {/* Catch all - Redirect to 404 */}
           <Route path="*" element={<Navigate to="/404" replace />} />
         </Routes>
+        </RoleGuard>
       </AuthProvider>
     </BrowserRouter>
   );

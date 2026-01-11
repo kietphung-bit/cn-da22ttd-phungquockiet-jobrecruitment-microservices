@@ -8,19 +8,19 @@ import '../../styles/tiptap.css';
 
 /**
  * CandidateProfile Component
- * Allows candidates to view and edit their profile information
+ * Cho phép ứng viên xem và chỉnh sửa thông tin hồ sơ cá nhân
  * 
- * Features:
- * - Personal information form (name, email, phone, DOB, gender)
- * - Rich text editors for description and experience (Tiptap)
- * - Tag input for skills
- * - API integration with /api/v1/candidates/me
+ * Tính năng:
+ * - Form thông tin cá nhân (tên, email, điện thoại, ngày sinh, giới tính)
+ * - Trình soạn thảo rich text cho mô tả và kinh nghiệm (Tiptap)
+ * - Nhập kỹ năng dưới dạng tag
+ * - Tích hợp API với /api/v1/candidates/me
  * 
- * Note: Based on database schema (Candidate.java)
- * Fields: candidateName, candidateEmail, candidatePhone, candidateBirthdate,
+ * Lưu ý: Dựa trên sơ đồ cơ sở dữ liệu (Candidate.java)
+ * Trường: candidateName, candidateEmail, candidatePhone, candidateBirthdate,
  *         candidateGender, candidateDescription, candidateEducation, 
  *         candidateExp, candidateSkills
- * NO AVATAR FIELD in database
+ * KHÔNG CÓ TRƯỜNG AVATAR trong cơ sở dữ liệu
  */
 const CandidateProfile = () => {
   const { user, updateUser } = useAuth();
@@ -29,7 +29,7 @@ const CandidateProfile = () => {
   const [error, setError] = useState('');
   const [success, setSuccess] = useState('');
 
-  // Form state - matching Candidate entity fields exactly
+  // Trạng thái form - khớp chính xác với các trường của thực thể Candidate
   const [formData, setFormData] = useState({
     candidateName: '',
     candidateEmail: '',
@@ -42,11 +42,11 @@ const CandidateProfile = () => {
     candidateSkills: '',
   });
 
-  // Skills tag state
+  // Trạng thái tag kỹ năng
   const [skillInput, setSkillInput] = useState('');
   const [skills, setSkills] = useState([]);
 
-  // Tiptap editor for candidateDescription
+  // Trình soạn thảo Tiptap cho candidateDescription
   const descriptionEditor = useEditor({
     extensions: [StarterKit],
     content: formData.candidateDescription,
@@ -55,7 +55,7 @@ const CandidateProfile = () => {
     },
   });
 
-  // Tiptap editor for candidateExp
+  // Trình soạn thảo Tiptap cho candidateExp
   const experienceEditor = useEditor({
     extensions: [StarterKit],
     content: formData.candidateExp,
@@ -64,12 +64,12 @@ const CandidateProfile = () => {
     },
   });
 
-  // Fetch candidate profile
+  // Lấy thông tin hồ sơ ứng viên khi component mount
   useEffect(() => {
     fetchProfile();
   }, []);
 
-  // Update editors when form data changes from API
+  // Cập nhật editors khi dữ liệu form thay đổi từ API
   useEffect(() => {
     if (descriptionEditor && formData.candidateDescription) {
       descriptionEditor.commands.setContent(formData.candidateDescription);
@@ -88,6 +88,8 @@ const CandidateProfile = () => {
     try {
       const response = await axiosClient.get('/candidates/me');
       const data = response.data;
+      
+      console.log('CandidateProfile API Response:', data);
 
       setFormData({
         candidateName: data.candidateName || '',
@@ -101,7 +103,7 @@ const CandidateProfile = () => {
         candidateSkills: data.candidateSkills || '',
       });
 
-      // Parse skills
+      // Cập nhật kỹ năng từ chuỗi sang mảng
       if (data.candidateSkills) {
         setSkills(data.candidateSkills.split(',').map((s) => s.trim()).filter((s) => s));
       }
@@ -121,7 +123,7 @@ const CandidateProfile = () => {
     }));
   };
 
-  // Skills management
+  // Quản lý kỹ năng
   const handleSkillInputKeyDown = (e) => {
     if (e.key === 'Enter' || e.key === ',') {
       e.preventDefault();
@@ -148,7 +150,7 @@ const CandidateProfile = () => {
     setSaving(true);
 
     try {
-      // Prepare data with skills as comma-separated string
+      // Cập nhật dữ liệu với kỹ năng dưới dạng chuỗi phân cách bằng dấu phẩy
       const updateData = {
         ...formData,
         candidateSkills: skills.join(', '),
@@ -158,7 +160,7 @@ const CandidateProfile = () => {
 
       setSuccess('Cập nhật thông tin thành công!');
 
-      // Update user context if name or email changed
+      // Cập nhật ngữ cảnh người dùng nếu tên hoặc email thay đổi
       if (updateUser && response.data) {
         updateUser({
           ...user,
@@ -167,7 +169,7 @@ const CandidateProfile = () => {
         });
       }
 
-      // Clear success message after 3 seconds
+      // Xóa thông báo thành công sau 3 giây
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
       console.error('Error updating profile:', err);
@@ -214,12 +216,12 @@ const CandidateProfile = () => {
         {/* Avatar Upload */}
         <div className="flex flex-col items-center">
           <div className="w-32 h-32 rounded-full overflow-hidden bg-primary text-white text-5xl font-bold flex items-center justify-center shadow-lg border-4 border-white">
-            {formData.candidateName.charAt(0).toUpperCase() || 'U'}
+            {formData.candidateName ? formData.candidateName.charAt(0).toUpperCase() : 'U'}
           </div>
           <p className="text-lg font-semibold text-neutral-700 mt-3">
-            {formData.candidateName || 'Ứng viên'}
+            {formData.candidateName || 'Chưa cập nhật tên'}
           </p>
-          <p className="text-sm text-neutral-500">{formData.candidateEmail}</p>
+          <p className="text-sm text-neutral-500">{formData.candidateEmail || 'Chưa cập nhật email'}</p>
         </div>
 
         {/* Personal Information */}
@@ -256,7 +258,8 @@ const CandidateProfile = () => {
                 value={formData.candidateEmail}
                 onChange={handleInputChange}
                 required
-                className="w-full pl-10 pr-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                readOnly
+                className="w-full pl-10 pr-4 py-2.5 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent bg-gray-50 cursor-not-allowed"
                 placeholder="email@example.com"
               />
             </div>

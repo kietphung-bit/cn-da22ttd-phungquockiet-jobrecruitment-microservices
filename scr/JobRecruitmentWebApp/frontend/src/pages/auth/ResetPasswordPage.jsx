@@ -4,16 +4,16 @@ import { Lock, Eye, EyeOff, CheckCircle, AlertCircle } from 'lucide-react';
 
 /**
  * ResetPasswordPage Component
- * Handles password reset with token
+ * Xử lý đặt lại mật khẩu với token
  * 
- * Features:
- * - Token validation from URL
- * - New password input with confirmation
- * - Password strength validation
- * - Success/error messages
+ * Tính năng:
+ * - Xác thực token từ URL
+ * - Nhập mật khẩu mới và xác nhận
+ * - Xác thực độ mạnh mật khẩu
+ * - Thông báo thành công/lỗi
  * 
- * Note: This is a UI-only implementation
- * Backend endpoint needs to be created for actual password reset
+ * Lưu ý: Đây là phần giao diện người dùng cơ bản.
+ * Cần tạo endpoint backend để thực hiện đặt lại mật khẩu thực sự
  */
 const ResetPasswordPage = () => {
   const navigate = useNavigate();
@@ -29,14 +29,14 @@ const ResetPasswordPage = () => {
   const [success, setSuccess] = useState(false);
   const [tokenValid, setTokenValid] = useState(true);
 
-  // Validate token on mount
+  // Xác thực token khi component được mount
   useEffect(() => {
     if (!token) {
       setTokenValid(false);
       setError('Link đặt lại mật khẩu không hợp lệ hoặc đã hết hạn.');
     } else {
-      // TODO: Validate token with backend
-      // For now, assume token is valid
+      // TODO: Xác thực token với backend
+      // Hiện tại, giả sử token hợp lệ
       setTokenValid(true);
     }
   }, [token]);
@@ -64,16 +64,16 @@ const ResetPasswordPage = () => {
     setLoading(true);
 
     try {
-      // TODO: Implement backend API call for password reset
-      // Example: await authService.resetPassword(token, password);
+      // TODO: Thực hiện gọi API backend để đặt lại mật khẩu
+      // Ví dụ: await authService.resetPassword(token, password);
       
-      // Simulate API call
+      // Giả lập gọi API
       await new Promise(resolve => setTimeout(resolve, 1500));
 
-      // For now, always show success
+      // Hiện tại, luôn hiển thị thành công
       setSuccess(true);
 
-      // Redirect to login after 3 seconds
+      // Chuyển hướng đến trang đăng nhập sau 3 giây
       setTimeout(() => {
         navigate('/login', { 
           state: { 
@@ -93,7 +93,7 @@ const ResetPasswordPage = () => {
     }
   };
 
-  // If token is invalid, show error page
+  // Nếu token không hợp lệ, hiển thị trang lỗi
   if (!tokenValid) {
     return (
       <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">

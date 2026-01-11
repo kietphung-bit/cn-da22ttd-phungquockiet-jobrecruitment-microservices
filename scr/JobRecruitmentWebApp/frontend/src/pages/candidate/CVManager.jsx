@@ -4,16 +4,14 @@ import cvService from '../../services/cv.service';
 
 /**
  * CVManager Component
- * Manages candidate's CV files with table view and upload modal
+ * Quản lý file CV của ứng viên với bảng hiển thị và modal tải lên
  * 
- * Features:
- * - Table listing all CVs (Name, Date, Status)
- * - Upload modal for PDF files
- * - Toggle CV status (ACTIVE/HIDDEN)
- * - Delete CV (soft delete)
+ * Tính năng:
+ * - Bảng liệt kê tất cả CV (Tên, Ngày, Trạng thái)
+ * - Modal tải lên file PDF
+ * - Chuyển đổi trạng thái CV (ACTIVE/HIDDEN)
+ * - Xóa CV (xóa mềm)
  * - API: GET/POST/PATCH/DELETE /api/v1/cvs
- * 
- * Based on wireframe: image_651ea8.png
  */
 const CVManager = () => {
   const [cvs, setCvs] = useState([]);
@@ -45,12 +43,12 @@ const CVManager = () => {
   const handleFileSelect = (e) => {
     const file = e.target.files[0];
     if (file) {
-      // Validate file type
+      // Kiểm tra loại file
       if (file.type !== 'application/pdf') {
         setError('Chỉ chấp nhận file PDF');
         return;
       }
-      // Validate file size (max 5MB)
+      // Kiểm tra kích thước file (tối đa 5MB)
       if (file.size > 5 * 1024 * 1024) {
         setError('Kích thước file không được vượt quá 5MB');
         return;
@@ -71,7 +69,7 @@ const CVManager = () => {
     setSuccess('');
 
     try {
-      // Use cvService which handles FormData creation internally
+      // Sử dụng cvService, trong đó xử lý việc tạo FormData bên trong
       const response = await cvService.uploadCV(selectedFile);
 
       setSuccess('Tải CV lên thành công!');
@@ -92,11 +90,11 @@ const CVManager = () => {
     const newStatus = currentStatus === 'ACTIVE' ? 'HIDDEN' : 'ACTIVE';
     
     try {
-      // Use cvService with correct parameter name 'newStatus'
+      // Sử dụng cvService với tên tham số đúng 'newStatus'
       await cvService.updateCVStatus(cvId, newStatus);
 
       setSuccess(`Cập nhật trạng thái thành công!`);
-      fetchCVs(); // Refresh list
+      fetchCVs(); // Làm mới danh sách
 
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
@@ -113,7 +111,7 @@ const CVManager = () => {
     try {
       await cvService.deleteCV(cvId);
       setSuccess('Xóa CV thành công!');
-      fetchCVs(); // Refresh list
+      fetchCVs(); // Làm mới danh sách
 
       setTimeout(() => setSuccess(''), 3000);
     } catch (err) {
@@ -146,7 +144,7 @@ const CVManager = () => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm">
+    <div className="bg-white rounded-lg shadow-sm min-h-[calc(100vh-200px)]">
       {/* Header */}
       <div className="px-6 py-5 border-b border-neutral-200 flex items-center justify-between">
         <div>

@@ -1,44 +1,76 @@
 import { useState, useEffect } from 'react';
 import { useNavigate } from 'react-router-dom';
-import { Plus, Pencil, Trash2, Eye, EyeOff, Loader2, Calendar, MapPin, DollarSign, Users } from 'lucide-react';
+import { Plus, Pencil, Eye, EyeOff, Loader2, Calendar, MapPin, DollarSign, Users, Search, Filter, Copy, FileSpreadsheet, FileText } from 'lucide-react';
 import { toast } from 'react-toastify';
 import jobService from '../../services/job.service';
 import { format } from 'date-fns';
+import { copyToClipboard, exportToExcel, exportToPDF } from '../../utils/tableExport';
 
 /**
  * JobManager Component
- * List and manage employer's job postings
+ * Xem và quản lý các tin tuyển dụng của nhà tuyển dụng
  * 
- * Features:
- * - Display jobs in table format
- * - Filter and pagination
- * - Quick actions: Edit, Delete/Hide
- * - Status badges with Vietnamese labels
- * - Application count per job
- * - Navigate to create/edit forms
+ * Tính năng:
+ * - Hiển thị các tin tuyển dụng dưới dạng bảng
+ * - Tìm kiếm theo tiêu đề công việc
+ * - Lọc theo trạng thái và danh mục
+ * - Xuất dữ liệu sang Copy/Excel/PDF
+ * - Phân trang
+ * - Hành động nhanh: Chỉnh sửa, Ẩn/Hiện
+ * - Nhãn trạng thái với nhãn tiếng Việt
+ * - Số lượng ứng viên cho mỗi tin tuyển dụng
+ * - Điều hướng đến các biểu mẫu tạo/chỉnh sửa
  * 
- * Status Mapping (Vietnamese):
- * - PENDING: "Chờ xét duyệt" (Yellow)
- * - WAIT: "Chưa mở" (Gray)
- * - ACTIVE: "Đang mở" (Green)
- * - CLOSED: "Đã đóng" (Red)
- * - HIDDEN: "Tạm ẩn" (Dark Gray)
+ * Ánh xạ trạng thái (Tiếng Việt):
+ * - PENDING: "Chờ xét duyệt" (Vàng)
+ * - WAIT: "Chưa mở" (Xám)
+ * - ACTIVE: "Đang mở" (Xanh lá)
+ * - CLOSED: "Đã đóng" (Đỏ)
+ * - HIDDEN: "Tạm ẩn" (Xám đậm)
  */
 const JobManager = () => {
   const navigate = useNavigate();
   const [loading, setLoading] = useState(true);
   const [jobs, setJobs] = useState([]);
+  const [filteredJobs, setFilteredJobs] = useState([]);
+  const [searchTerm, setSearchTerm] = useState('');
+  const [statusFilter, setStatusFilter] = useState('ALL');
   const [pagination, setPagination] = useState({
     currentPage: 0,
     totalPages: 0,
     totalElements: 0,
     pageSize: 10,
   });
-  const [deletingId, setDeletingId] = useState(null);
 
   useEffect(() => {
     fetchJobs(0);
   }, []);
+
+  useEffect(() => {
+    // Áp dụng tìm kiếm và lọc mỗi khi jobs, searchTerm hoặc statusFilter thay đổi
+    applyFilters();
+  }, [jobs, searchTerm, statusFilter]);
+
+  const applyFilters = () => {
+    let filtered = [...jobs];
+
+    // Áp dụng tìm kiếm
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      filtered = filtered.filter(job => 
+        job.jobTitle?.toLowerCase().includes(term) ||
+        job.jobLocation?.toLowerCase().includes(term) ||
+        job.jcName?.toLowerCase().includes(term)
+      );
+    }
+
+    // Áp dụng lọc trạng thái
+    if (statusFilter !== 'ALL') {
+      filtered = filtered.filter(job => job.jobStatus === statusFilter);
+    }
+
+    setFilteredJobs(filtered);
+  };
 
   const fetchJobs = async (page = 0) => {
     try {
@@ -64,37 +96,27 @@ const JobManager = () => {
     }
   };
 
-  const handleDelete = async (jobId, jobTitle) => {
-    const confirmDelete = window.confirm(
-      `Bạn có chắc chắn muốn xóa tin tuyển dụng "${jobTitle}"?\n\nTin tuyển dụng sẽ bị ẩn và không thể khôi phục.`
-    );
-    
-    if (!confirmDelete) return;
-
-    try {
-      setDeletingId(jobId);
-      await jobService.deleteJob(jobId);
-      toast.success('Xóa tin tuyển dụng thành công');
-      await fetchJobs(pagination.currentPage);
-    } catch (error) {
-      console.error('Error deleting job:', error);
-      toast.error('Không thể xóa tin tuyển dụng');
-    } finally {
-      setDeletingId(null);
-    }
-  };
-
+  /**
+   * Chuyển đổi trạng thái hiển thị của tin tuyển dụng (ACTIVE <-> HIDDEN)
+   * HIDDEN hoạt động như xóa mềm - tin không bị xóa khỏi cơ sở dữ liệu
+   */
   const handleToggleStatus = async (jobId, currentStatus) => {
     const newStatus = currentStatus === 'HIDDEN' ? 'ACTIVE' : 'HIDDEN';
-    const statusText = newStatus === 'HIDDEN' ? 'ẩn' : 'hiển thị';
+    const action = newStatus === 'HIDDEN' ? 'ẩn' : 'hiển thị lại';
+    
+    const confirmMessage = newStatus === 'HIDDEN'
+      ? 'Bạn có chắc chắn muốn ẩn tin tuyển dụng này?\n\nTin sẽ không hiển thị với ứng viên nhưng vẫn có thể khôi phục.'
+      : 'Bạn có muốn hiển thị lại tin tuyển dụng này?';
+    
+    if (!window.confirm(confirmMessage)) return;
 
     try {
       await jobService.updateJobStatus(jobId, newStatus);
-      toast.success(`Đã ${statusText} tin tuyển dụng`);
+      toast.success(`Đã ${action} tin tuyển dụng`);
       await fetchJobs(pagination.currentPage);
     } catch (error) {
       console.error('Error toggling job status:', error);
-      toast.error(`Không thể ${statusText} tin tuyển dụng`);
+      toast.error(`Không thể ${action} tin tuyển dụng`);
     }
   };
 
@@ -126,6 +148,58 @@ const JobManager = () => {
   const handlePageChange = (newPage) => {
     if (newPage >= 0 && newPage < pagination.totalPages) {
       fetchJobs(newPage);
+    }
+  };
+
+  const handleExport = async (type) => {
+    const columns = [
+      { header: 'Tiêu đề', accessor: (row) => row.jobTitle },
+      { header: 'Danh mục', accessor: (row) => row.jcName || 'Chưa phân loại' },
+      { header: 'Địa điểm', accessor: (row) => row.jobLocation },
+      { header: 'Lương', accessor: (row) => formatCurrency(row.jobSalary) },
+      { header: 'Ngày bắt đầu', accessor: (row) => row.startDate ? format(new Date(row.startDate), 'dd/MM/yyyy') : 'N/A' },
+      { header: 'Ngày kết thúc', accessor: (row) => row.endDate ? format(new Date(row.endDate), 'dd/MM/yyyy') : 'N/A' },
+      { header: 'Trạng thái', accessor: (row) => {
+        const statusMap = {
+          PENDING: 'Chờ xét duyệt',
+          WAIT: 'Chưa mở',
+          ACTIVE: 'Đang mở',
+          CLOSED: 'Đã đóng',
+          HIDDEN: 'Tạm ẩn'
+        };
+        return statusMap[row.jobStatus] || row.jobStatus;
+      }},
+      { header: 'Số đơn', accessor: (row) => row.applicationCount || 0 }
+    ];
+
+    const dataToExport = filteredJobs.length > 0 ? filteredJobs : jobs;
+
+    try {
+      let success = false;
+      switch (type) {
+        case 'copy':
+          success = copyToClipboard(dataToExport, columns);
+          if (success) toast.success('Đã sao chép vào clipboard');
+          break;
+        case 'excel':
+          success = exportToExcel(dataToExport, columns, 'danh-sach-tuyen-dung');
+          if (success) toast.success('Đã xuất file Excel');
+          break;
+        case 'pdf':
+          success = await exportToPDF(dataToExport, columns, 'danh-sach-tuyen-dung', {
+            title: 'Danh sách tin tuyển dụng',
+            orientation: 'landscape'
+          });
+          if (success) toast.success('Đã xuất file PDF');
+          break;
+      }
+      
+      if (!success) {
+        toast.error('Không thể xuất dữ liệu');
+      }
+    } catch (error) {
+      console.error('Export error:', error);
+      toast.error('Đã xảy ra lỗi khi xuất dữ liệu');
     }
   };
 
@@ -165,6 +239,83 @@ const JobManager = () => {
 
       {/* Main Content */}
       <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-8">
+        {/* Search, Filter and Export Bar */}
+        <div className="bg-white rounded-lg shadow-sm p-4 mb-6 border border-neutral-200">
+          <div className="flex flex-col lg:flex-row gap-4">
+            {/* Search Input */}
+            <div className="flex-1">
+              <div className="relative">
+                <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 w-5 h-5" />
+                <input
+                  type="text"
+                  placeholder="Tìm kiếm theo tiêu đề, địa điểm, danh mục..."
+                  value={searchTerm}
+                  onChange={(e) => setSearchTerm(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary"
+                />
+              </div>
+            </div>
+
+            {/* Status Filter */}
+            <div className="lg:w-48">
+              <div className="relative">
+                <Filter className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 w-5 h-5" />
+                <select
+                  value={statusFilter}
+                  onChange={(e) => setStatusFilter(e.target.value)}
+                  className="w-full pl-10 pr-4 py-2.5 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-primary appearance-none bg-white"
+                >
+                  <option value="ALL">Tất cả trạng thái</option>
+                  <option value="ACTIVE">Đang mở</option>
+                  <option value="PENDING">Chờ xét duyệt</option>
+                  <option value="WAIT">Chưa mở</option>
+                  <option value="CLOSED">Đã đóng</option>
+                  <option value="HIDDEN">Tạm ẩn</option>
+                </select>
+              </div>
+            </div>
+
+            {/* Export Buttons */}
+            <div className="flex gap-2">
+              <button
+                onClick={() => handleExport('copy')}
+                className="flex items-center gap-2 px-4 py-2.5 border border-neutral-300 text-neutral-700 rounded-lg hover:bg-neutral-50 transition-colors"
+                title="Sao chép"
+              >
+                <Copy className="w-4 h-4" />
+                <span className="hidden sm:inline">Copy</span>
+              </button>
+              <button
+                onClick={() => handleExport('excel')}
+                className="flex items-center gap-2 px-4 py-2.5 border border-neutral-300 text-white rounded-lg bg-green-600 hover:bg-green-700 transition-colors"
+                title="Xuất Excel"
+              >
+                <FileSpreadsheet className="w-4 h-4" />
+                <span className="hidden sm:inline">Excel</span>
+              </button>
+              <button
+                onClick={() => handleExport('pdf')}
+                className="flex items-center gap-2 px-4 py-2.5 border border-neutral-300 text-white rounded-lg bg-red-600 hover:bg-red-700 transition-colors"
+                title="Xuất PDF"
+              >
+                <FileText className="w-4 h-4" />
+                <span className="hidden sm:inline">PDF</span>
+              </button>
+            </div>
+          </div>
+
+          {/* Results Info */}
+          {(searchTerm || statusFilter !== 'ALL') && (
+            <div className="mt-3 pt-3 border-t border-neutral-200">
+              <p className="text-sm text-neutral-600">
+                Tìm thấy <span className="font-semibold text-primary">{filteredJobs.length}</span> kết quả
+                {searchTerm && ` cho "${searchTerm}"`}
+                {statusFilter !== 'ALL' && ` với trạng thái "${statusFilter}"`}
+              </p>
+            </div>
+          )}
+        </div>
+
         {jobs.length === 0 ? (
           <div className="bg-white rounded-lg shadow-sm p-12 text-center">
             <div className="text-6xl mb-4">📋</div>
@@ -206,15 +357,23 @@ const JobManager = () => {
                         Trạng thái
                       </th>
                       <th className="px-6 py-4 text-center text-sm font-semibold text-neutral-700">
-                        Ứng tuyển
-                      </th>
-                      <th className="px-6 py-4 text-center text-sm font-semibold text-neutral-700">
                         Hành động
                       </th>
                     </tr>
                   </thead>
                   <tbody className="divide-y divide-neutral-200">
-                    {jobs.map((job) => (
+                    {filteredJobs.length === 0 ? (
+                      <tr>
+                        <td colSpan="6" className="px-6 py-12 text-center">
+                          <div className="text-neutral-400">
+                            <Search className="w-12 h-12 mx-auto mb-3 opacity-50" />
+                            <p className="text-lg font-medium">Không tìm thấy kết quả</p>
+                            <p className="text-sm mt-1">Thử thay đổi bộ lọc hoặc từ khóa tìm kiếm</p>
+                          </div>
+                        </td>
+                      </tr>
+                    ) : (
+                      filteredJobs.map((job) => (
                       <tr key={job.jobId} className="hover:bg-neutral-50 transition-colors">
                         <td className="px-6 py-4">
                           <div>
@@ -232,7 +391,9 @@ const JobManager = () => {
                           </div>
                         </td>
                         <td className="px-6 py-4 text-sm text-neutral-700">
-                          {job.jobCategory?.jcName || 'N/A'}
+                          <span className="inline-flex items-center px-2.5 py-1 bg-indigo-50 text-indigo-700 rounded-full text-xs font-medium">
+                            {job.jcName || 'Chưa phân loại'}
+                          </span>
                         </td>
                         <td className="px-6 py-4 text-center text-sm text-neutral-700">
                           <div className="flex items-center justify-center gap-1">
@@ -249,12 +410,6 @@ const JobManager = () => {
                         <td className="px-6 py-4 text-center">
                           {getStatusBadge(job.jobStatus)}
                         </td>
-                        <td className="px-6 py-4 text-center">
-                          <span className="inline-flex items-center gap-1 px-3 py-1 bg-blue-50 text-blue-700 rounded-full text-sm font-semibold">
-                            <Users className="w-4 h-4" />
-                            {job.applicationCount || 0}
-                          </span>
-                        </td>
                         <td className="px-6 py-4">
                           <div className="flex items-center justify-center gap-2">
                             {/* Edit Button */}
@@ -266,15 +421,15 @@ const JobManager = () => {
                               <Pencil className="w-4 h-4" />
                             </button>
 
-                            {/* Toggle Visibility Button */}
+                            {/* Toggle Visibility Button (Hide = Soft Delete) */}
                             <button
                               onClick={() => handleToggleStatus(job.jobId, job.jobStatus)}
                               className={`p-2 rounded-lg transition-colors ${
                                 job.jobStatus === 'HIDDEN'
                                   ? 'text-green-600 hover:bg-green-50'
-                                  : 'text-gray-600 hover:bg-gray-50'
+                                  : 'text-amber-600 hover:bg-amber-50'
                               }`}
-                              title={job.jobStatus === 'HIDDEN' ? 'Hiển thị' : 'Ẩn'}
+                              title={job.jobStatus === 'HIDDEN' ? 'Hiển thị lại' : 'Ẩn tin (Xóa mềm)'}
                             >
                               {job.jobStatus === 'HIDDEN' ? (
                                 <Eye className="w-4 h-4" />
@@ -282,24 +437,11 @@ const JobManager = () => {
                                 <EyeOff className="w-4 h-4" />
                               )}
                             </button>
-
-                            {/* Delete Button */}
-                            <button
-                              onClick={() => handleDelete(job.jobId, job.jobTitle)}
-                              disabled={deletingId === job.jobId}
-                              className="p-2 text-red-600 hover:bg-red-50 rounded-lg transition-colors disabled:opacity-50"
-                              title="Xóa"
-                            >
-                              {deletingId === job.jobId ? (
-                                <Loader2 className="w-4 h-4 animate-spin" />
-                              ) : (
-                                <Trash2 className="w-4 h-4" />
-                              )}
-                            </button>
                           </div>
                         </td>
                       </tr>
-                    ))}
+                    ))
+                    )}
                   </tbody>
                 </table>
               </div>

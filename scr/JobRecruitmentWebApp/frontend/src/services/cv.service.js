@@ -2,25 +2,25 @@ import axiosClient from '../api/axiosClient';
 
 /**
  * CV Service
- * Handles all CV-related API calls for candidates
+ * Xử lý tất cả các cuộc gọi API liên quan đến CV cho ứng viên
  * 
  * Endpoints:
- * - POST /api/v1/cvs - Upload CV file
- * - GET /api/v1/cvs/me - Get my CVs
- * - PATCH /api/v1/cvs/{id}/status - Update CV status
- * - DELETE /api/v1/cvs/{id} - Delete CV (soft delete)
+ * - POST /api/v1/cvs - Tải lên file CV
+ * - GET /api/v1/cvs/me - Lấy CV của tôi
+ * - PATCH /api/v1/cvs/{id}/status - Cập nhật trạng thái CV
+ * - DELETE /api/v1/cvs/{id} - Xóa CV (xóa mềm)
  */
 const cvService = {
   /**
-   * Upload CV file
-   * @param {File} file - PDF file object from <input type="file">
-   * @returns {Promise} Promise with CV response data
+   * Tải lên file CV
+   * @param {File} file - Đối tượng file PDF từ <input type="file">
+   * @returns {Promise} Promise với dữ liệu phản hồi CV
    */
   uploadCV: async (file) => {
     try {
-      // Create FormData for multipart/form-data upload
+      // Tạo FormData để tải lên multipart/form-data
       const formData = new FormData();
-      formData.append('file', file); // Key 'file' must match Backend @RequestParam
+      formData.append('file', file); // Key 'file' phải khớp với Backend @RequestParam
       
       const response = await axiosClient.post('/cvs', formData, {
         headers: {
@@ -30,58 +30,53 @@ const cvService = {
       
       return response;
     } catch (error) {
-      console.error('Error uploading CV:', error);
       throw error;
     }
   },
 
   /**
-   * Get all CVs of authenticated candidate
-   * @returns {Promise} Promise with list of CV data
+   * Lấy tất cả CV của ứng viên đã xác thực
+   * @returns {Promise} Promise với danh sách dữ liệu CV
    */
   getMyCVs: async () => {
     try {
       const response = await axiosClient.get('/cvs/me');
       return response;
     } catch (error) {
-      console.error('Error fetching CVs:', error);
       throw error;
     }
   },
 
   /**
-   * Update CV status (ACTIVE/HIDDEN)
-   * @param {number} cvId - CV ID
-   * @param {string} status - New status: 'ACTIVE' or 'HIDDEN'
-   * @returns {Promise} Promise with updated CV data
+   * Cập nhật trạng thái CV (ACTIVE/HIDDEN)
+   * @param {number} cvId - ID CV
+   * @param {string} status - Trạng thái mới: 'ACTIVE' hoặc 'HIDDEN'
+   * @returns {Promise} Promise với dữ liệu CV đã cập nhật
    */
   updateCVStatus: async (cvId, status) => {
     try {
-      // Backend expects @RequestParam CVStatus newStatus
       const response = await axiosClient.patch(`/cvs/${cvId}/status`, null, {
         params: {
-          newStatus: status, // Key 'newStatus' matches Backend @RequestParam name
+          newStatus: status, // Key 'newStatus' phải khớp với tên @RequestParam của Backend
         },
       });
       
       return response;
     } catch (error) {
-      console.error('Error updating CV status:', error);
       throw error;
     }
   },
 
   /**
-   * Delete CV (soft delete - sets status to HIDDEN)
-   * @param {number} cvId - CV ID
-   * @returns {Promise} Promise with success message
+   * Xóa CV (xóa mềm - đặt trạng thái thành HIDDEN)
+   * @param {number} cvId - ID CV
+   * @returns {Promise} Promise với thông báo thành công
    */
   deleteCV: async (cvId) => {
     try {
       const response = await axiosClient.delete(`/cvs/${cvId}`);
       return response;
     } catch (error) {
-      console.error('Error deleting CV:', error);
       throw error;
     }
   },

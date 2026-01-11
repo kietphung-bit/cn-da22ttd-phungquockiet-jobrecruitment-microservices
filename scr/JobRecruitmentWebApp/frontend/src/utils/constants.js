@@ -1,27 +1,27 @@
 /**
  * Application Constants
- * Central location for all constant values used across the application
+ * Định vị trung tâm cho tất cả các giá trị hằng số được sử dụng trong toàn bộ ứng dụng
  */
 
 // API Configuration
-export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:8080/api/v1';
+export const API_BASE_URL = import.meta.env.VITE_API_URL || 'http://localhost:5000/api/v1';
 export const API_TIMEOUT = 10000; // 10 seconds
 
-// Role Codes (Must match backend)
+// Role Codes (phải trùng khớp backend)
 export const ROLES = {
   ADMIN: 'ADM',
   EMPLOYER: 'DN',
   CANDIDATE: 'UV',
 };
 
-// Role Names (Vietnamese)
+// Role Names
 export const ROLE_NAMES = {
   ADM: 'Quản trị viên',
   DN: 'Nhà tuyển dụng',
   UV: 'Ứng viên',
 };
 
-// Job Status
+// Trang thái công việc
 export const JOB_STATUS = {
   PENDING: 'PENDING',
   WAIT: 'WAIT',
@@ -30,7 +30,7 @@ export const JOB_STATUS = {
   HIDDEN: 'HIDDEN',
 };
 
-// Job Status Labels (Vietnamese)
+// Nhãn trạng thái công việc
 export const JOB_STATUS_LABELS = {
   PENDING: 'Chờ xét duyệt',
   WAIT: 'Chưa mở',
@@ -39,75 +39,75 @@ export const JOB_STATUS_LABELS = {
   HIDDEN: 'Tạm ẩn',
 };
 
-// Company Status
+// Trang thái công ty
 export const COMPANY_STATUS = {
   PENDING: 'PENDING',
   ACTIVE: 'ACTIVE',
   BLOCKED: 'BLOCKED',
 };
 
-// Company Status Labels (Vietnamese)
+// Nhãn trạng thái công ty
 export const COMPANY_STATUS_LABELS = {
   PENDING: 'Chờ xét duyệt',
   ACTIVE: 'Đang hoạt động',
   BLOCKED: 'Bị khóa',
 };
 
-// Application Status
+// Trang thái ứng dụng
 export const APPLICATION_STATUS = {
   PENDING: 'PENDING',
   APPROVED: 'APPROVED',
   REJECTED: 'REJECTED',
 };
 
-// Application Status Labels (Vietnamese)
+// Nhãn trạng thái ứng dụng
 export const APPLICATION_STATUS_LABELS = {
   PENDING: 'Đang chờ',
   APPROVED: 'Đã duyệt',
   REJECTED: 'Đã từ chối',
 };
 
-// CV Status
+// Trang thái CV
 export const CV_STATUS = {
   ACTIVE: 'ACTIVE',
   HIDDEN: 'HIDDEN',
 };
 
-// CV Status Labels (Vietnamese)
+// Nhãn trạng thái CV
 export const CV_STATUS_LABELS = {
   ACTIVE: 'Đang hoạt động',
   HIDDEN: 'Tạm ẩn',
 };
 
-// Gender
+// Giới tính
 export const GENDER = {
   MALE: 'MALE',
   FEMALE: 'FEMALE',
   OTHER: 'OTHER',
 };
 
-// Gender Labels (Vietnamese)
+// Nhãn giới tính
 export const GENDER_LABELS = {
   MALE: 'Nam',
   FEMALE: 'Nữ',
   OTHER: 'Khác',
 };
 
-// Pagination
+// Phân trang
 export const DEFAULT_PAGE_SIZE = 10;
 export const PAGE_SIZE_OPTIONS = [5, 10, 20, 50];
 
-// File Upload
+// Tải lên tập tin
 export const MAX_FILE_SIZE = 10 * 1024 * 1024; // 10MB
 export const ALLOWED_IMAGE_EXTENSIONS = ['jpg', 'jpeg', 'png', 'gif'];
 export const ALLOWED_DOCUMENT_EXTENSIONS = ['pdf', 'docx', 'doc'];
 
-// Date Formats
+// Định dạng ngày
 export const DATE_FORMAT = 'dd/MM/yyyy';
 export const DATE_TIME_FORMAT = 'dd/MM/yyyy HH:mm';
 export const API_DATE_FORMAT = 'yyyy-MM-dd';
 
-// Salary Ranges (VND)
+// Khoảng lương (VND)
 export const SALARY_RANGES = [
   { label: 'Dưới 10 triệu', min: 0, max: 10000000 },
   { label: '10 - 20 triệu', min: 10000000, max: 20000000 },
@@ -116,7 +116,7 @@ export const SALARY_RANGES = [
   { label: 'Trên 50 triệu', min: 50000000, max: null },
 ];
 
-// Experience Levels
+// Levels of Experience
 export const EXPERIENCE_LEVELS = [
   { label: 'Chưa có kinh nghiệm', value: '0' },
   { label: 'Dưới 1 năm', value: '0-1' },

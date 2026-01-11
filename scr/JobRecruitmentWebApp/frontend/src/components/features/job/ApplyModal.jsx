@@ -7,21 +7,21 @@ import { toast } from 'react-toastify';
 /**
  * ApplyModal Component
  * 
- * Modal for candidates to apply to a job using one of their uploaded CVs
+ * Modal cho ứng viên nộp đơn vào một công việc sử dụng một trong các CV đã tải lên của họ
  * 
- * Features:
- * - Fetch and display candidate's CVs
- * - Select CV from dropdown/radio list
- * - Upload new CV link (opens upload page)
- * - Optional cover letter text area
- * - Submit application
+ * Tính năng:
+ * - Lấy và hiển thị danh sách CV của ứng viên
+ * - Chọn CV từ danh sách dropdown/radio
+ * - Tải lên liên kết CV mới (mở trang tải lên)
+ * - Ô nhập thư xin việc tùy chọn
+ * - Gửi đơn ứng tuyển
  * 
- * Props:
- * - isOpen: Boolean to show/hide modal
- * - onClose: Function to close modal
- * - jobId: ID of the job to apply
- * - jobTitle: Title of the job (for display)
- * - onSuccess: Callback after successful application
+ * Thuộc tính:
+ * - isOpen: Boolean để hiển thị/ẩn modal
+ * - onClose: Hàm để đóng modal
+ * - jobId: ID của công việc để ứng tuyển
+ * - jobTitle: Tiêu đề công việc (để hiển thị)
+ * - onSuccess: Callback sau khi ứng tuyển thành công
  */
 const ApplyModal = ({ isOpen, onClose, jobId, jobTitle, onSuccess }) => {
   const [cvList, setCvList] = useState([]);
@@ -30,7 +30,7 @@ const ApplyModal = ({ isOpen, onClose, jobId, jobTitle, onSuccess }) => {
   const [loading, setLoading] = useState(false);
   const [fetchingCvs, setFetchingCvs] = useState(false);
 
-  // Fetch candidate's CVs when modal opens
+  // Lấy danh sách CV của ứng viên khi modal mở
   useEffect(() => {
     if (isOpen) {
       fetchCvs();
@@ -46,7 +46,7 @@ const ApplyModal = ({ isOpen, onClose, jobId, jobTitle, onSuccess }) => {
       console.log('ApplyModal - Fetching CVs');
       const response = await cvService.getMyCVs({ size: 100, status: 'ACTIVE' });
       
-      // Handle different response structures
+      // Xử lý các cấu trúc phản hồi khác nhau
       let cvs = [];
       if (Array.isArray(response)) {
         cvs = response;
@@ -63,7 +63,7 @@ const ApplyModal = ({ isOpen, onClose, jobId, jobTitle, onSuccess }) => {
       console.log('ApplyModal - CVs fetched:', cvs);
       setCvList(cvs);
       
-      // Auto-select first CV if available
+      // Tự động chọn CV đầu tiên nếu có
       if (cvs.length > 0) {
         setSelectedCvId(cvs[0].cvId);
       }
@@ -94,17 +94,17 @@ const ApplyModal = ({ isOpen, onClose, jobId, jobTitle, onSuccess }) => {
       
       toast.success('Nộp hồ sơ thành công!');
       
-      // Call success callback
+      // Gọi callback thành công nếu có
       if (onSuccess) {
         onSuccess();
       }
       
-      // Close modal
+      // Đóng modal
       onClose();
     } catch (error) {
       console.error('ApplyModal - Application failed:', error);
       
-      // Handle specific error messages from backend
+      // Xử lý các thông báo lỗi cụ thể từ backend
       const errorMsg = error.response?.data?.message || error.message || 'Nộp hồ sơ thất bại';
       
       if (errorMsg.includes('already applied') || errorMsg.includes('đã ứng tuyển')) {
@@ -122,7 +122,7 @@ const ApplyModal = ({ isOpen, onClose, jobId, jobTitle, onSuccess }) => {
   };
 
   const handleUploadNew = () => {
-    // Close modal and navigate to CV upload page
+    // Đóng modal và chuyển đến trang tải lên CV
     onClose();
     window.location.href = '/candidate/cv-upload';
   };

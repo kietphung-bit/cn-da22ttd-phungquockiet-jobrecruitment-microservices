@@ -1,30 +1,30 @@
 import React, { useState, useEffect } from 'react';
-import { Plus, Edit2, Trash2, X, Loader2 } from 'lucide-react';
+import { Plus, Edit2, Trash2, X, Loader2, Search } from 'lucide-react';
 import { toast } from 'react-toastify';
 import axiosClient from '../../api/axiosClient';
 import { formatVND } from '../../utils/formatters';
 
 /**
  * CategoryManager Component
- * CRUD interface for managing job categories
+ * Giao diện CRUD quản lý danh mục công việc
  * 
- * Features:
- * - View all categories in a table
- * - Add new category (Modal form)
- * - Edit existing category (Modal form)
- * - Delete category with confirmation
- * - Real-time data synchronization
+ * Tính năng:
+ * - Xem tất cả danh mục trong bảng
+ * - Thêm danh mục mới (form modal)
+ * - Chỉnh sửa danh mục hiện có (form modal)
+ * - Xóa danh mục với xác nhận
+ * - Đồng bộ dữ liệu thời gian thực với backend
  * 
  * API Endpoints:
- * - GET /api/v1/categories - List all categories
- * - POST /api/v1/categories - Create new category (Admin only)
- * - PUT /api/v1/categories/{id} - Update category (Admin only)
- * - DELETE /api/v1/categories/{id} - Delete category (Admin only)
+ * - GET /api/v1/categories - Xem tất cả danh mục
+ * - POST /api/v1/categories - Thêm danh mục mới (Chỉ Admin)
+ * - PUT /api/v1/categories/{id} - Cập nhật danh mục (Chỉ Admin)
+ * - DELETE /api/v1/categories/{id} - Xóa danh mục (Chỉ Admin)
  * 
- * Business Rules:
- * - Category name required
- * - Base salary must be positive (> 0)
- * - Cannot delete if jobs exist with this category (backend validation)
+ * Quy tắc nghiệp vụ:
+ * - Tên danh mục bắt buộc
+ * - Mức lương cơ bản phải là số dương (> 0)
+ * - Không thể xóa nếu tồn tại công việc thuộc danh mục này (xác thực backend)
  */
 const CategoryManager = () => {
   const [categories, setCategories] = useState([]);
@@ -33,6 +33,7 @@ const CategoryManager = () => {
   const [modalMode, setModalMode] = useState('add'); // 'add' or 'edit'
   const [selectedCategory, setSelectedCategory] = useState(null);
   const [saving, setSaving] = useState(false);
+  const [searchTerm, setSearchTerm] = useState('');
 
   // Form state
   const [formData, setFormData] = useState({
@@ -43,21 +44,21 @@ const CategoryManager = () => {
 
   const [errors, setErrors] = useState({});
 
-  // Fetch categories on mount
+  // Lấy danh sách danh mục khi component được mount
   useEffect(() => {
     fetchCategories();
   }, []);
 
   /**
-   * Fetch all job categories
+   * Lấy tất cả danh mục công việc
    */
   const fetchCategories = async () => {
     try {
       setLoading(true);
       const response = await axiosClient.get('/categories');
       
-      // Backend returns: {status, message, data: [...]}
-      // Axios wraps it in: {data: {status, message, data: [...]}}
+      // Backend trả về: {status, message, data: [...]}
+      // Axios bọc nó trong: {data: {status, message, data: [...]}}
       const categoriesData = response.data?.data || response.data || [];
       console.log('📋 Categories loaded:', categoriesData);
       setCategories(categoriesData);
@@ -70,7 +71,7 @@ const CategoryManager = () => {
   };
 
   /**
-   * Open modal for adding new category
+   * Mở modal để thêm danh mục mới
    */
   const handleAddClick = () => {
     setModalMode('add');
@@ -85,7 +86,7 @@ const CategoryManager = () => {
   };
 
   /**
-   * Open modal for editing existing category
+   * Mở modal để chỉnh sửa danh mục hiện có
    */
   const handleEditClick = (category) => {
     setModalMode('edit');
@@ -100,7 +101,7 @@ const CategoryManager = () => {
   };
 
   /**
-   * Close modal and reset form
+   * Đóng modal và đặt lại form
    */
   const handleCloseModal = () => {
     setIsModalOpen(false);
@@ -114,7 +115,7 @@ const CategoryManager = () => {
   };
 
   /**
-   * Handle form input change
+   * Xử lý thay đổi input form
    */
   const handleInputChange = (e) => {
     const { name, value } = e.target;
@@ -126,7 +127,7 @@ const CategoryManager = () => {
   };
 
   /**
-   * Validate form data
+   * Xác thực dữ liệu form
    */
   const validateForm = () => {
     const newErrors = {};
@@ -146,7 +147,7 @@ const CategoryManager = () => {
   };
 
   /**
-   * Handle form submission (Create or Update)
+   * Xử lý gửi form (Tạo hoặc Cập nhật danh mục)
    */
   const handleSubmit = async (e) => {
     e.preventDefault();
@@ -165,17 +166,17 @@ const CategoryManager = () => {
       };
 
       if (modalMode === 'add') {
-        // Create new category
+        // Tạo danh mục mới
         await axiosClient.post('/categories', payload);
         toast.success('Thêm danh mục thành công');
       } else {
-        // Update existing category
+        // Cập nhật danh mục hiện có
         await axiosClient.put(`/categories/${selectedCategory.jcId}`, payload);
         toast.success('Cập nhật danh mục thành công');
       }
 
       handleCloseModal();
-      fetchCategories(); // Refresh list
+      fetchCategories(); // Làm mới danh sách
     } catch (error) {
       console.error('Error saving category:', error);
       const errorMessage = error.response?.data?.message || 'Có lỗi xảy ra khi lưu danh mục';
@@ -186,7 +187,7 @@ const CategoryManager = () => {
   };
 
   /**
-   * Handle category deletion
+   * Xử lý xóa danh mục
    */
   const handleDelete = async (category) => {
     const confirmed = window.confirm(
@@ -200,7 +201,7 @@ const CategoryManager = () => {
     try {
       await axiosClient.delete(`/categories/${category.jcId}`);
       toast.success('Xóa danh mục thành công');
-      fetchCategories(); // Refresh list
+      fetchCategories(); // Làm mới danh sách
     } catch (error) {
       console.error('Error deleting category:', error);
       const errorMessage =
@@ -218,6 +219,16 @@ const CategoryManager = () => {
     );
   }
 
+  // Lọc danh mục dựa trên từ khóa tìm kiếm
+  const filteredCategories = categories.filter((category) => {
+    const searchLower = searchTerm.toLowerCase();
+    return (
+      category.jcName?.toLowerCase().includes(searchLower) ||
+      category.jcDescription?.toLowerCase().includes(searchLower) ||
+      category.jcId?.toString().includes(searchLower)
+    );
+  });
+
   return (
     <div>
       {/* Page Header */}
@@ -233,6 +244,34 @@ const CategoryManager = () => {
           <Plus className="w-5 h-5" />
           Thêm danh mục
         </button>
+      </div>
+
+      {/* Search Bar */}
+      <div className="mb-4">
+        <div className="relative">
+          <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 w-5 h-5" />
+          <input
+            type="text"
+            placeholder="Tìm kiếm danh mục theo tên, mô tả hoặc ID..."
+            value={searchTerm}
+            onChange={(e) => setSearchTerm(e.target.value)}
+            className="w-full pl-10 pr-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-red-500"
+          />
+          {searchTerm && (
+            <button
+              onClick={() => setSearchTerm('')}
+              className="absolute right-3 top-1/2 transform -translate-y-1/2 text-neutral-400 hover:text-neutral-600"
+              title="Xóa tìm kiếm"
+            >
+              <X className="w-5 h-5" />
+            </button>
+          )}
+        </div>
+        {searchTerm && (
+          <p className="text-sm text-neutral-600 mt-2">
+            Tìm thấy {filteredCategories.length} kết quả
+          </p>
+        )}
       </div>
 
       {/* Categories Table */}
@@ -258,14 +297,14 @@ const CategoryManager = () => {
             </tr>
           </thead>
           <tbody className="divide-y divide-neutral-200">
-            {categories.length === 0 ? (
+            {filteredCategories.length === 0 ? (
               <tr>
                 <td colSpan="5" className="px-6 py-8 text-center text-neutral-500">
-                  Chưa có danh mục nào
+                  {searchTerm ? 'Không tìm thấy danh mục nào' : 'Chưa có danh mục nào'}
                 </td>
               </tr>
             ) : (
-              categories.map((category) => (
+              filteredCategories.map((category) => (
                 <tr key={category.jcId} className="hover:bg-neutral-50">
                   <td className="px-6 py-4 whitespace-nowrap text-sm text-neutral-900">
                     {category.jcId}

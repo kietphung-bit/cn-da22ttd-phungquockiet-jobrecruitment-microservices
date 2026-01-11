@@ -1,38 +1,32 @@
 import React, { useState } from 'react';
 import { Link, Outlet, useLocation } from 'react-router-dom';
-import { User, FileText, Clock, Shield, Menu, X } from 'lucide-react';
+import { User, FileText, Clock, Shield, Menu, X, Briefcase, Bookmark } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import Navbar from './Navbar';
 import Footer from './Footer';
 
 /**
  * CandidateLayout Component
- * Layout wrapper for all candidate dashboard pages (/candidate/*)
+ * Layout wrapper cho tất cả các trang dashboard của ứng viên (/candidate/*)
  * 
- * Structure:
- * - Top: Global Navbar (with user dropdown for logout)
- * - Middle: Dashboard Grid (Sidebar left + Main content right)
- * - Bottom: Global Footer
+ * Cấu trúc:
+ * - Trên cùng: Thanh điều hướng toàn cục (với dropdown người dùng để đăng xuất)
+ * - Giữa: Lưới dashboard (Thanh điều hướng bên trái + Nội dung chính bên phải)
+ * - Dưới cùng: Chân trang toàn cục
  * 
- * Features:
- * - Fixed-width sidebar with vertical navigation menu
- * - Main content area with <Outlet /> (flex-grow)
- * - Responsive design with mobile hamburger menu
- * - User info display at top of sidebar
- * - Stable button spacing (no jumps/overlaps)
- * 
- * Fixes:
- * - Added Navbar and Footer for consistency with MainLayout
- * - Removed redundant Logout button from Sidebar (use Navbar dropdown)
- * - Fixed CSS for stable vertical stacking (gap-2 on nav, no absolute positioning)
- * - Sidebar now stretches to fill space between Navbar and Footer
+ * Tính năng:
+ * - Thanh điều hướng bên có chiều rộng cố định với menu điều hướng dọc
+ * - Khu vực nội dung chính với <Outlet /> (flex-grow)
+ * - Thiết kế đáp ứng với menu hamburger trên di động
+ * - Hiển thị thông tin người dùng ở đầu thanh điều hướng bên
+ * - Khoảng cách nút ổn định (không nhảy/đè chồng)
  */
 const CandidateLayout = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
   const location = useLocation();
   const { user } = useAuth();
 
-  // Sidebar menu items matching wireframe
+  // Các mục menu phù hợp với routes của ứng viên
   const menuItems = [
     {
       icon: User,
@@ -45,9 +39,19 @@ const CandidateLayout = () => {
       path: '/candidate/cv-manager',
     },
     {
+      icon: Briefcase,
+      label: 'Tin đăng tìm việc',
+      path: '/candidate/my-posts',
+    },
+    {
       icon: Clock,
       label: 'Lịch sử nộp đơn',
       path: '/candidate/applications',
+    },
+    {
+      icon: Bookmark,
+      label: 'Việc làm đã lưu',
+      path: '/candidate/saved-jobs',
     },
     {
       icon: Shield,

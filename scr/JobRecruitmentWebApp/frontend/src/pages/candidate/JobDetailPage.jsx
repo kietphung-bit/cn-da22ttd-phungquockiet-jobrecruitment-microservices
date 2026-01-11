@@ -1,6 +1,6 @@
 import React, { useState, useEffect } from 'react';
 import { Link, useParams, useNavigate } from 'react-router-dom';
-import { MapPin, DollarSign, Briefcase, Clock, CheckCircle, Building2, Globe, Users, Calendar, Share2, Heart } from 'lucide-react';
+import { MapPin, Banknote, Briefcase, Clock, CheckCircle, Building2, Globe, Users, Calendar, Share2, Heart } from 'lucide-react';
 import { toast } from 'react-toastify';
 import JobCard from '../../components/common/JobCard';
 import ApplyModal from '../../components/features/job/ApplyModal';
@@ -12,10 +12,6 @@ import { formatVND, formatDate } from '../../utils/formatters';
 
 /**
  * JobDetailPage Component
- * Based on Wireframe Specification:
- * - Header: Job Title, Salary, "Apply Now" button prominently, Save/Bookmark button
- * - Two-column layout: Left (Description, Requirements), Right (Company Info Card)
- * - Related jobs at bottom
  */
 const JobDetailPage = () => {
   const { id } = useParams();
@@ -23,6 +19,7 @@ const JobDetailPage = () => {
   const { isAuthenticated, user } = useAuth();
   
   const [job, setJob] = useState(null);
+  const [jobData, setJobData] = useState(null); 
   const [relatedJobs, setRelatedJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState(null);
@@ -35,11 +32,11 @@ const JobDetailPage = () => {
   const getBackendFileUrl = (filePath) => {
     if (!filePath) return null;
     if (filePath.startsWith('http')) return filePath;
-    const baseUrl = import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:8080';
+    const baseUrl = import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:5000';
     return `${baseUrl}${filePath}`;
   };
 
-  // Fetch job details on component mount
+  // Lấy chi tiết việc làm khi component được mount
   useEffect(() => {
     const fetchJobDetail = async () => {
       try {
@@ -48,14 +45,16 @@ const JobDetailPage = () => {
         
         const response = await jobService.getJobDetail(id);
         const jobData = response.data;
+        setJobData(jobData); // Lưu dữ liệu thô để hiển thị HTML
         
-        // Map API response to component format
+        // Chuyển đổi API response sang định dạng component
         const mappedJob = {
           jobId: jobData.jobId,
           title: jobData.jobTitle,
           company: jobData.companyName || 'Tên công ty',
           companyLogo: jobData.logoURL || null,
           companyId: jobData.companyId || null,
+          categoryName: jobData.jcName || jobData.categoryName || 'Chưa cập nhật',
           salary: jobData.jobSalary ? formatVND(jobData.jobSalary) : 'Thỏa thuận',
           location: jobData.jobLocation || 'Chưa cập nhật',
           experience: jobData.experience || 'Chưa xác định',
@@ -65,22 +64,17 @@ const JobDetailPage = () => {
           description: jobData.jobDescription || 'Chưa có mô tả.',
           requirements: jobData.jobRequirement ? jobData.jobRequirement.split('\n').filter(r => r.trim()) : [],
           responsibilities: jobData.jobResponsibilities ? jobData.jobResponsibilities.split('\n').filter(r => r.trim()) : [],
-          benefits: jobData.benefits ? jobData.benefits.split('\n').filter(b => b.trim()) : [],
+          benefits: jobData.jobBenefits ? jobData.jobBenefits.split('\n').filter(b => b.trim()) : [],
           companyInfo: {
+            id: jobData.companyId || null,
             name: jobData.companyName || 'Tên công ty',
-            logo: jobData.companyLogo || null,
-            description: jobData.companyDescription || 'Chưa có mô tả công ty.',
-            size: jobData.companySize || 'Chưa xác định',
-            industry: jobData.industry || 'Chưa xác định',
-            website: jobData.companyWebsite || null,
-            founded: jobData.companyFounded || 'Chưa xác định',
-            location: jobData.companyLocation || jobData.jobLocation || 'Chưa cập nhật',
+            logo: jobData.logoURL || null,
           },
         };
         
         setJob(mappedJob);
 
-        // Check if job is saved
+        // Kiểm tra xem việc làm đã được lưu chưa
         if (isAuthenticated && user?.role === 'UV' && id) {
           try {
             const jobIdNum = parseInt(id, 10);
@@ -93,7 +87,7 @@ const JobDetailPage = () => {
           }
         }
 
-        // Fetch related jobs if jcId is available
+        // Lấy các việc làm liên quan nếu jcId có sẵn
         if (jobData.jcId) {
           try {
             const relatedResponse = await jobService.getRelatedJobs(jobData.jcId, jobData.jobId, 4);
@@ -108,7 +102,7 @@ const JobDetailPage = () => {
             setRelatedJobs(mappedRelatedJobs);
           } catch (relErr) {
             console.error('Error fetching related jobs:', relErr);
-            // Don't fail the whole page if related jobs fail
+            // Không làm hỏng toàn bộ trang nếu việc làm liên quan thất bại
           }
         }
       } catch (err) {
@@ -128,7 +122,7 @@ const JobDetailPage = () => {
     }
   }, [id, isAuthenticated, user]);
 
-  // Check if user has already applied to this job
+  // Kiểm tra xem người dùng đã ứng tuyển vào việc làm này chưa
   useEffect(() => {
     const checkApplicationStatus = async () => {
       if (isAuthenticated && user?.role === 'UV' && id) {
@@ -150,38 +144,38 @@ const JobDetailPage = () => {
     checkApplicationStatus();
   }, [id, isAuthenticated, user]);
 
-  // Handle apply button click
+  // Xử lý khi nhấn nút ứng tuyển
   const handleApply = () => {
     console.log('JobDetailPage - Apply button clicked', { isAuthenticated, userRole: user?.role });
     
-    // Check authentication
+    // Kiểm tra xác thực
     if (!isAuthenticated) {
       console.log('❌ Not authenticated, redirecting to login');
       toast.info('Vui lòng đăng nhập để ứng tuyển');
       navigate('/login');
       return;
     }
-
-    // Check if user is candidate
+    
+    // Kiểm tra nếu người dùng là ứng viên
     if (user?.role !== 'UV') {
       console.log('❌ Wrong role:', user?.role);
       toast.warning('Chỉ ứng viên mới có thể ứng tuyển vào công việc');
       return;
     }
 
-    // Check if already applied
+    // KKiểm tra nếu đã ứng tuyển
     if (hasApplied) {
       console.log('ℹ️ Already applied to this job');
       toast.info('Bạn đã ứng tuyển vào công việc này rồi');
       return;
     }
 
-    // Open apply modal
+    // Mở modal ứng tuyển
     console.log('✅ Opening apply modal');
     setShowApplyModal(true);
   };
 
-  // Handle successful application
+  // Xử lý khi ứng tuyển thành công
   const handleApplicationSuccess = () => {
     console.log('JobDetailPage - Application successful');
     setHasApplied(true);
@@ -190,7 +184,7 @@ const JobDetailPage = () => {
 
   
 
-  // Handle save/unsave job
+  // Xử lý khi lưu/bỏ lưu việc làm
   const handleSaveToggle = async () => {
     const jobIdNum = parseInt(id, 10);
     console.log('💾 JobDetailPage - Save button clicked', { id, jobIdNum, isAuthenticated, userRole: user?.role, user });
@@ -232,7 +226,7 @@ const JobDetailPage = () => {
 
 
 
-  // Show loading state
+  // Hiển thị trạng thái tải
   if (loading) {
     return (
       <div className="bg-neutral-50 min-h-screen">
@@ -277,7 +271,7 @@ const JobDetailPage = () => {
     );
   }
 
-  // Show error state (404 or other errors)
+  // Hiển thị trạng thái lỗi (404 hoặc các lỗi khác)
   if (error) {
     return (
       <div className="bg-neutral-50 min-h-screen flex items-center justify-center">
@@ -311,7 +305,7 @@ const JobDetailPage = () => {
     );
   }
 
-  // No job data
+  // Không có dữ liệu việc làm
   if (!job) {
     return null;
   }
@@ -348,16 +342,24 @@ const JobDetailPage = () => {
                   <span className="font-medium">{job.location}</span>
                 </div>
                 <div className="flex items-center gap-2 bg-primary-50 px-4 py-2 rounded-lg">
-                  {/* <DollarSign className="w-5 h-5 text-primary" /> */}
+                  <Banknote className="w-5 h-5 text-primary" />
                   <span className="font-bold text-primary">{job.salary}</span>
                 </div>
-                {/* <div className="flex items-center gap-2 bg-neutral-100 px-4 py-2 rounded-lg">
+                <div className="flex items-center gap-2 bg-neutral-100 px-4 py-2 rounded-lg">
                   <Briefcase className="w-5 h-5 text-primary" />
-                  <span className="font-medium">{job.jobType}</span>
-                </div> */}
+                  <span className="font-medium">{job.categoryName}</span>
+                </div>
+                <div className="flex items-center gap-2 bg-neutral-100 px-4 py-2 rounded-lg">
+                  <Users className="w-5 h-5 text-primary" />
+                  <span className="font-medium">Cần tuyển: {job.vacancies} người</span>
+                </div>
                 <div className="flex items-center gap-2 bg-neutral-100 px-4 py-2 rounded-lg">
                   <Clock className="w-5 h-5 text-primary" />
                   <span className="font-medium">Đăng {job.posted}</span>
+                </div>
+                <div className="flex items-center gap-2 bg-orange-50 px-4 py-2 rounded-lg">
+                  <Calendar className="w-5 h-5 text-orange-600" />
+                  <span className="font-medium text-orange-700">Hạn: {job.deadline}</span>
                 </div>
               </div>
             </div>
@@ -413,12 +415,12 @@ const JobDetailPage = () => {
               {/* Job Description */}
               <div className="bg-white rounded-lg shadow-md p-6 lg:p-8">
                 <h2 className="text-2xl font-bold text-neutral-900 mb-4 flex items-center gap-2">
-                  <Briefcase className="w-6 h-6 text-primary" />
                   Mô tả công việc
                 </h2>
-                <div className="text-neutral-700 leading-relaxed whitespace-pre-line">
-                  {job.description}
-                </div>
+                <div 
+                  className="text-neutral-700 leading-relaxed prose prose-sm max-w-none"
+                  dangerouslySetInnerHTML={{ __html: job.description }}
+                />
               </div>
 
               {/* Key Responsibilities */}
@@ -426,14 +428,17 @@ const JobDetailPage = () => {
                 <h2 className="text-2xl font-bold text-neutral-900 mb-4">
                   Trách nhiệm chính
                 </h2>
-                <ul className="space-y-3">
-                  {job.responsibilities.map((responsibility, index) => (
-                    <li key={index} className="flex items-start gap-3">
-                      <CheckCircle className="w-6 h-6 text-primary flex-shrink-0 mt-0.5" />
-                      <span className="text-neutral-700">{responsibility}</span>
-                    </li>
-                  ))}
-                </ul>
+                {job.responsibilities.length > 0 ? (
+                  <div 
+                    className="text-neutral-700 leading-relaxed prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ __html: job.responsibilities }}
+                  />
+                ) : (
+                  <div 
+                    className="text-neutral-700 leading-relaxed prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ __html: 'Chưa có trách nhiệm chính.' }}
+                  />
+                )}
               </div>
 
               {/* Requirements */}
@@ -441,14 +446,17 @@ const JobDetailPage = () => {
                 <h2 className="text-2xl font-bold text-neutral-900 mb-4">
                   Yêu cầu & Trình độ
                 </h2>
-                <ul className="space-y-3">
-                  {job.requirements.map((requirement, index) => (
-                    <li key={index} className="flex items-start gap-3">
-                      <CheckCircle className="w-6 h-6 text-blue-600 flex-shrink-0 mt-0.5" />
-                      <span className="text-neutral-700">{requirement}</span>
-                    </li>
-                  ))}
-                </ul>
+                {job.requirements.length > 0 ? (
+                  <div 
+                    className="text-neutral-700 leading-relaxed prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ __html: job.requirements }}
+                  />
+                ) : (
+                  <div 
+                    className="text-neutral-700 leading-relaxed prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ __html: jobData.jobRequirement || 'Chưa có yêu cầu.' }}
+                  />
+                )}
               </div>
 
               {/* Benefits */}
@@ -456,14 +464,17 @@ const JobDetailPage = () => {
                 <h2 className="text-2xl font-bold text-neutral-900 mb-4">
                   Quyền lợi & Phúc lợi
                 </h2>
-                <ul className="space-y-3">
-                  {job.benefits.map((benefit, index) => (
-                    <li key={index} className="flex items-start gap-3">
-                      <CheckCircle className="w-6 h-6 text-green-600 flex-shrink-0 mt-0.5" />
-                      <span className="text-neutral-700">{benefit}</span>
-                    </li>
-                  ))}
-                </ul>
+                {job.benefits.length > 0 ? (
+                  <div 
+                    className="text-neutral-700 leading-relaxed prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ __html: job.benefits }}
+                  />
+                ) : (
+                  <div 
+                    className="text-neutral-700 leading-relaxed prose prose-sm max-w-none"
+                    dangerouslySetInnerHTML={{ __html: 'Chưa có quyền lợi/phúc lợi.' }}
+                  />
+                )}
               </div>
             </div>
 
@@ -496,64 +507,14 @@ const JobDetailPage = () => {
                   {job.companyInfo.name}
                 </h4>
 
-                {/* Company Description */}
-                <p className="text-neutral-700 text-sm leading-relaxed mb-6">
-                  {job.companyInfo.description}
-                </p>
-
-                {/* Company Details */}
-                <div className="space-y-3 mb-6 border-t border-neutral-200 pt-6">
-                  <div className="flex items-center gap-3 text-sm">
-                    <Building2 className="w-5 h-5 text-neutral-400" />
-                    <div>
-                      <div className="text-neutral-500">Ngành Nghề</div>
-                      <div className="font-semibold text-neutral-900">{job.companyInfo.industry}</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 text-sm">
-                    <Users className="w-5 h-5 text-neutral-400" />
-                    <div>
-                      <div className="text-neutral-500">Quy mô</div>
-                      <div className="font-semibold text-neutral-900">{job.companyInfo.size}</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 text-sm">
-                    <Calendar className="w-5 h-5 text-neutral-400" />
-                    <div>
-                      <div className="text-neutral-500">Thành lập</div>
-                      <div className="font-semibold text-neutral-900">{job.companyInfo.founded}</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 text-sm">
-                    <MapPin className="w-5 h-5 text-neutral-400" />
-                    <div>
-                      <div className="text-neutral-500">Địa điểm</div>
-                      <div className="font-semibold text-neutral-900">{job.companyInfo.location}</div>
-                    </div>
-                  </div>
-                  <div className="flex items-center gap-3 text-sm">
-                    <Globe className="w-5 h-5 text-neutral-400" />
-                    <div>
-                      <div className="text-neutral-500">Trang web</div>
-                      <a
-                        href={job.companyInfo.website}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="font-semibold text-primary hover:text-primary-600"
-                      >
-                        Truy cập trang web
-                      </a>
-                    </div>
-                  </div>
-                </div>
-
                 {/* View Company Profile Button */}
-                <Link
-                  to={`/companies/${job.companyId}`}
-                  className="block w-full px-6 py-3 bg-white border-2 border-primary text-primary text-center rounded-lg font-semibold hover:bg-primary hover:text-white transition-all duration-200"
+                <button
+                  onClick={() => navigate(`/companies/${job.companyId}`)}
+                  className="w-full bg-primary hover:bg-primary-600 text-white font-semibold py-3 px-4 rounded-lg transition-colors duration-200 flex items-center justify-center gap-2"
                 >
-                  Xem hồ sơ công ty
-                </Link>
+                  <Building2 className="w-5 h-5" />
+                  Xem chi tiết công ty
+                </button>
               </div>
             </div>
           </div>

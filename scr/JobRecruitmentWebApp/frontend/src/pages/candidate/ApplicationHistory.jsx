@@ -6,19 +6,27 @@ import axiosClient from '../../api/axiosClient';
 import applicationService from '../../services/application.service';
 
 /**
+ * Tiện ích: Tạo URL đầy đủ cho file tải lên từ backend
+ */
+const getBackendFileUrl = (filePath) => {
+  if (!filePath) return null;
+  if (filePath.startsWith('http')) return filePath;
+  const baseUrl = import.meta.env.VITE_API_URL?.replace('/api/v1', '') || 'http://localhost:5000';
+  return `${baseUrl}${filePath}`;
+};
+
+/**
  * ApplicationHistory Component
- * Displays candidate's job applications in table view
+ * Hiển thị danh sách đơn ứng tuyển của ứng viên dưới dạng bảng
  * 
- * Features:
- * - Table listing all applications (Job Title, Company, Date, Status)
- * - Status badges with color coding:
- *   - PENDING: Yellow (Đang chờ)
- *   - APPROVED: Green (Đã duyệt)
- *   - REJECTED: Red (Đã từ chối)
- * - Pagination support
+ * Tính năng:
+ * - Bảng liệt kê tất cả đơn ứng tuyển (Tiêu đề công việc, Công ty, Ngày, Trạng thái)
+ * - Badge trạng thái với mã màu:
+ *   - PENDING: Vàng (Đang chờ)
+ *   - APPROVED: Xanh lá (Đã duyệt)
+ *   - REJECTED: Đỏ (Đã từ chối)
+ * - Hỗ trợ phân trang
  * - API: GET /api/v1/applications/me
- * 
- * Based on wireframe: image_651ec8.png
  */
 const ApplicationHistory = () => {
   const [applications, setApplications] = useState([]);
@@ -49,6 +57,8 @@ const ApplicationHistory = () => {
       });
 
       const data = response.data;
+      console.log('ApplicationHistory API Response:', data);
+      
       setApplications(data.content || []);
       setPagination({
         currentPage: data.number || 0,
@@ -79,7 +89,7 @@ const ApplicationHistory = () => {
       
       toast.success('Rút đơn ứng tuyển thành công');
       
-      // Refresh the list
+      // Làm mới danh sách đơn ứng tuyển
       await fetchApplications(pagination.currentPage);
     } catch (error) {
       console.error('Error withdrawing application:', error);
@@ -153,7 +163,7 @@ const ApplicationHistory = () => {
   };
 
   return (
-    <div className="bg-white rounded-lg shadow-sm">
+    <div className="bg-white rounded-lg shadow-sm min-h-[calc(100vh-200px)]">
       {/* Header */}
       <div className="px-6 py-5 border-b border-neutral-200">
         <h1 className="text-2xl font-bold text-neutral-900">Lịch sử nộp đơn</h1>
@@ -216,9 +226,6 @@ const ApplicationHistory = () => {
                       Vị trí công việc
                     </th>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-neutral-700">
-                      Công ty
-                    </th>
-                    <th className="px-6 py-4 text-left text-sm font-semibold text-neutral-700">
                       Ngày nộp
                     </th>
                     <th className="px-6 py-4 text-left text-sm font-semibold text-neutral-700">
@@ -243,20 +250,12 @@ const ApplicationHistory = () => {
                           <Briefcase className="w-5 h-5 text-primary mt-0.5 flex-shrink-0" />
                           <div>
                             <p className="text-sm font-semibold text-neutral-900">
-                              {application.jobTitle || 'N/A'}
+                              {application.jobTitle || 'Chưa cập nhật'}
                             </p>
                             <p className="text-xs text-neutral-500 mt-0.5">
                               {application.jobCode || ''}
                             </p>
                           </div>
-                        </div>
-                      </td>
-                      <td className="px-6 py-4">
-                        <div className="flex items-center gap-2">
-                          <Building2 className="w-5 h-5 text-neutral-400 flex-shrink-0" />
-                          <span className="text-sm text-neutral-900">
-                            {application.companyName || 'N/A'}
-                          </span>
                         </div>
                       </td>
                       <td className="px-6 py-4">

@@ -51,6 +51,8 @@ public class JobMapper {
             job.getJobTitle(),
             job.getJobDescription(),
             job.getJobRequirement(),
+            job.getJobResponsibilities(),
+            job.getJobBenefits(),
             job.getJobSalary(),
             job.getJobLocation(),
             job.getStartDate(),
@@ -86,6 +88,12 @@ public class JobMapper {
         }
         if (request.getJobRequirement() != null) {
             job.setJobRequirement(request.getJobRequirement());
+        }
+        if (request.getJobResponsibilities() != null) {
+            job.setJobResponsibilities(request.getJobResponsibilities());
+        }
+        if (request.getJobBenefits() != null) {
+            job.setJobBenefits(request.getJobBenefits());
         }
         if (request.getJobSalary() != null) {
             job.setJobSalary(request.getJobSalary());

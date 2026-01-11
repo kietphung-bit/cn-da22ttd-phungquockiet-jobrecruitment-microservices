@@ -6,18 +6,17 @@ import authService from '../../services/auth.service';
 
 /**
  * LoginPage Component
- * Now uses MainLayout for consistency with public site (Navbar + Footer)
  * 
- * Features:
- * - Backend API authentication
- * - Smart redirect after login (return to previous page or role-based dashboard)
- * - JWT token management
- * - Vietnamese localization
- * - Form validation and error handling
+ * Tính năng:
+ * - Xác thực với API backend
+ * - Chuyển hướng thông minh sau khi đăng nhập (trở về trang trước hoặc trang dashboard theo vai trò)
+ * - Quản lý token JWT
+ * - Đa ngôn ngữ tiếng Việt
+ * - Xác thực form và xử lý lỗi
  * 
- * Smart Redirect Strategy:
- * 1. If user came from a specific page (location.state.from), redirect back there
- * 2. Otherwise, redirect to role-based dashboard (UV → /candidate/profile, DN → /employer/dashboard, ADM → /admin/dashboard)
+ * Chiến lược chuyển hướng thông minh sau khi đăng nhập:
+ * 1. Nếu người dùng đến từ một trang cụ thể (location.state.from), chuyển hướng trở lại đó
+ * 2. Nếu không, chuyển hướng đến dashboard dựa trên vai trò (UV → /candidate/profile, DN → /employer/dashboard, ADM → /admin/dashboard)
  */
 const LoginPage = () => {
   const location = useLocation();
@@ -32,14 +31,14 @@ const LoginPage = () => {
   
   const { login } = useAuth();
 
-  // Check for success message from registration
+  // Kiểm tra thông báo thành công từ đăng ký
   useEffect(() => {
     if (location.state?.message) {
       setSuccessMessage(location.state.message);
       if (location.state?.username) {
         setEmail(location.state.username);
       }
-      // Clear state after showing message
+      // Xóa state sau khi hiển thị thông báo
       window.history.replaceState({}, document.title);
     }
   }, [location]);
@@ -51,22 +50,22 @@ const LoginPage = () => {
     setLoading(true);
 
     try {
-      // Call backend authentication API
+      // Gọi API xác thực backend
       const response = await authService.login(email, password);
       
-      // Response is already unwrapped by axios interceptor
-      // It contains: { token, userCode, username, roleCode, candidateName/companyName... }
+      // Phản hồi đã được axios interceptor xử lý
+      // Dữ liệu gồm: { token, userCode, username, roleCode, candidateName/companyName... }
       const { token, roleCode, username, userCode } = response;
       
-      // Build user data object (include role in userData)
+      // Xây dựng đối tượng dữ liệu người dùng (bao gồm vai trò trong userData)
       const userData = {
         username: username,
         email: email,
         userCode: userCode,
-        role: roleCode, // Include role here
+        role: roleCode, // Bao gồm vai trò ở đây
       };
 
-      // Add role-specific fields if they exist
+      // Thêm các trường theo vai trò nếu tồn tại
       if (response.candidateName) {
         userData.candidateName = response.candidateName;
         userData.candidateCode = response.candidateCode || userCode;
@@ -75,22 +74,27 @@ const LoginPage = () => {
         userData.companyCode = response.companyCode || userCode;
       }
 
-      // Get the 'from' location for smart redirect
+      // Lấy vị trí 'from' để chuyển hướng thông minh
       const from = location.state?.from?.pathname || null;
 
-      // Call login from AuthContext (pass roleCode separately for redirect logic)
+      // Gọi login từ AuthContext (truyền roleCode riêng cho logic chuyển hướng)
       login(token, roleCode, userData, from);
       
     } catch (err) {
-      console.error('Login error:', err);
+      // Xử lý các loại lỗi khác nhau
+      const errorMessage = err.response?.data?.message || '';
       
-      // Handle different error types
-      if (err.response?.status === 401) {
+      // Kiểm tra lỗi tài khoản đang chờ duyệt hoặc bị khóa
+      if (errorMessage.includes('chờ duyệt') || errorMessage.includes('PENDING')) {
+        setError('Tài khoản của bạn đang chờ Admin phê duyệt. Vui lòng quay lại sau.');
+      } else if (errorMessage.includes('bị khóa') || errorMessage.includes('BLOCKED')) {
+        setError('Tài khoản đã bị khóa. Vui lòng liên hệ Admin để biết thêm chi tiết.');
+      } else if (err.response?.status === 401) {
         setError('Email hoặc mật khẩu không chính xác');
       } else if (err.response?.status === 429) {
         setError('Quá nhiều lần thử. Vui lòng thử lại sau.');
-      } else if (err.response?.data?.message) {
-        setError(err.response.data.message);
+      } else if (errorMessage) {
+        setError(errorMessage);
       } else {
         setError('Đăng nhập thất bại. Vui lòng thử lại.');
       }
@@ -126,7 +130,7 @@ const LoginPage = () => {
             <LogIn className="h-8 w-8 text-white" />
           </div>
           <h2 className="mt-6 text-3xl font-bold text-neutral-900">
-            Đăng Nhập
+            Đăng nhập
           </h2>
           <p className="mt-2 text-sm text-neutral-600">
             Chào mừng bạn quay trở lại

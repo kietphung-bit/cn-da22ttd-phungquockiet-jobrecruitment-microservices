@@ -87,6 +87,16 @@ public class JobResponse {
     private String jobRequirement;
     
     /**
+     * Trách nhiệm công việc
+     */
+    private String jobResponsibilities;
+    
+    /**
+     * Quyền lợi
+     */
+    private String jobBenefits;
+    
+    /**
      * Mức lương (Đơn vị: VND)
      */
     private Double jobSalary;

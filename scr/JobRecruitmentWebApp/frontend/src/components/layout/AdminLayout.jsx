@@ -1,17 +1,17 @@
 import { Outlet, NavLink } from 'react-router-dom';
-import { LayoutDashboard, Users, FileCheck, FolderTree, LogOut } from 'lucide-react';
+import { LayoutDashboard, Users, FileCheck, FolderTree, LogOut, Building2 } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 /**
  * AdminLayout Component
- * Layout specifically for Admin with sidebar navigation
+ * Layout dành cho Admin với thanh điều hướng bên trái
  * 
- * Features:
- * - Sidebar with admin navigation links
- * - Protected layout for admins only (role: ADM)
- * - Responsive sidebar
- * - Active link highlighting
- * - Follows CompanyLayout pattern
+ * Tính năng:
+ * - Thanh điều hướng bên cho quản trị viên
+ * - Layout bảo vệ chỉ dành cho quản trị viên (vai trò: ADM)
+ * - Thanh điều hướng đáp ứng
+ * - Tô sáng liên kết đang hoạt động
+ * - Theo mẫu CompanyLayout
  * 
  * Routes:
  * - /admin/dashboard - Tổng quan
@@ -27,7 +27,7 @@ const AdminLayout = () => {
       to: '/admin/dashboard',
       icon: LayoutDashboard,
       label: 'Tổng quan',
-      description: 'Dashboard và thống kê hệ thống'
+      description: 'Bảng điều khiển và thống kê hệ thống'
     },
     {
       to: '/admin/users',
@@ -36,10 +36,16 @@ const AdminLayout = () => {
       description: 'Khóa/Mở khóa tài khoản'
     },
     {
+      to: '/admin/company-approval',
+      icon: Building2,
+      label: 'Duyệt doanh nghiệp',
+      description: 'Phê duyệt đăng ký doanh nghiệp mới'
+    },
+    {
       to: '/admin/jobs',
       icon: FileCheck,
-      label: 'Duyệt tin tuyển dụng',
-      description: 'Phê duyệt tin đăng'
+      label: 'Quản lý tuyển dụng',
+      description: 'Quản lý tin tuyển dụng/bài viết tìm việc làm'
     },
     {
       to: '/admin/categories',
@@ -54,13 +60,13 @@ const AdminLayout = () => {
       {/* Sidebar */}
       <aside className="w-64 bg-white border-r border-neutral-200 fixed h-full overflow-y-auto">
         {/* Logo & Admin Badge */}
-        <div className="p-6 border-b border-neutral-200">
+        <div className="p-6 py-10 border-b border-neutral-200">
           <div className="flex items-center gap-3">
             <div className="w-12 h-12 bg-gradient-to-br from-red-500 to-red-600 rounded-lg flex items-center justify-center">
               <Users className="w-6 h-6 text-white" />
             </div>
             <div>
-              <h2 className="font-bold text-neutral-900">Quản trị viên</h2>
+              <h3 className="font-bold text-neutral-900">Quản trị viên</h3>
               <p className="text-xs text-neutral-500">{user?.email}</p>
             </div>
           </div>
@@ -108,6 +114,13 @@ const AdminLayout = () => {
         <div className="p-8">
           <Outlet />
         </div>
+        
+        {/* Footer */}
+        <footer className="border-t border-neutral-200 bg-white py-4 px-8">
+          <div className="text-center text-sm text-neutral-600">
+            © 2026 JobRecruitment. All rights reserved.
+          </div>
+        </footer>
       </main>
     </div>
   );

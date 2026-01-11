@@ -1,19 +1,19 @@
 import React, { useState, useRef, useEffect } from 'react';
 import { Link, useNavigate, useLocation } from 'react-router-dom';
-import { Search, Menu, X, User, Settings, Bookmark, LogOut, ChevronDown } from 'lucide-react';
+import { Search, Menu, X, Briefcase, Settings, Bookmark, LogOut, ChevronDown, Clock } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 import logo from '../../assets/images/logo/logo.png';
 
 /**
  * Navbar Component
- * Left: Logo (Actual logo image)
- * Center: Links (Home, Jobs, Companies, Contact)
- * Right: Search input (with icon), Auth Buttons OR User Avatar with Dropdown
- * Responsive with hamburger menu for mobile
+ * Bên trái: Logo (Hình ảnh logo thực tế)
+ * Ở giữa: Các liên kết (Trang chủ, Việc làm, Công ty, Liên hệ)
+ * Bên phải: Ô tìm kiếm (có biểu tượng), Nút xác thực HOẶC Biểu tượng Avatar người dùng với Dropdown
+ * Đáp ứng với menu hamburger cho thiết bị di động
  * 
- * Auth States:
- * - Guest: Show "Login" / "Register" buttons
- * - Authenticated: Show User Avatar Icon with dropdown menu
+ * Trạng thái xác thực:
+ * - Khách: Hiển thị nút "Đăng nhập" / "Đăng ký"
+ * - Đã xác thực: Hiển thị biểu tượng Avatar người dùng với menu dropdown
  */
 const Navbar = () => {
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false);
@@ -24,7 +24,7 @@ const Navbar = () => {
   const location = useLocation();
   const userMenuRef = useRef(null);
 
-  // Close user menu when clicking outside
+  // Đóng menu người dùng khi nhấp ra ngoài
   useEffect(() => {
     const handleClickOutside = (event) => {
       if (userMenuRef.current && !userMenuRef.current.contains(event.target)) {
@@ -59,13 +59,13 @@ const Navbar = () => {
     setIsMobileMenuOpen(false);
   };
 
-  // Get user display name or default
+  // Lấy tên hiển thị của người dùng hoặc mặc định
   const getUserDisplayName = () => {
     if (!user) return 'Người dùng';
     return user.candidateName || user.companyName || user.username || 'Người dùng';
   };
 
-  // Get user avatar/initials
+  // Lấy avatar/chữ cái đầu của người dùng
   const getUserAvatar = () => {
     const displayName = getUserDisplayName();
     return displayName.charAt(0).toUpperCase();
@@ -105,7 +105,7 @@ const Navbar = () => {
               Công ty
             </Link>
             <Link
-              to="/contact"
+              to="/talents"
               className="text-neutral-700 hover:text-primary font-semibold text-base transition-colors duration-200 relative after:absolute after:bottom-0 after:left-0 after:w-0 after:h-0.5 after:bg-primary after:transition-all hover:after:w-full">
                 Tin ứng tuyển
             </Link>
@@ -191,6 +191,22 @@ const Navbar = () => {
                           >
                             <Settings className="w-5 h-5 text-neutral-600" />
                             <span className="text-neutral-700">Quản lý tài khoản</span>
+                          </Link>
+                          <Link
+                            to="/candidate/my-posts"
+                            className="flex items-center gap-3 px-4 py-3 hover:bg-neutral-50 transition-colors"
+                            onClick={() => setIsUserMenuOpen(false)}
+                          >
+                            <Briefcase className="w-5 h-5 text-neutral-600" />
+                            <span className="text-neutral-700">Đăng tin tìm việc</span>
+                          </Link>
+                          <Link
+                            to="/candidate/applications"
+                            className="flex items-center gap-3 px-4 py-3 hover:bg-neutral-50 transition-colors"
+                            onClick={() => setIsUserMenuOpen(false)}
+                          >
+                            <Clock className="w-5 h-5 text-neutral-600" />
+                            <span className="text-neutral-700">Lịch sử nộp đơn</span>
                           </Link>
                           <Link
                             to="/candidate/saved-jobs"

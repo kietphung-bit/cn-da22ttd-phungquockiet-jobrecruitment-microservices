@@ -7,13 +7,10 @@ import jobService from '../../services/job.service';
 import categoryService from '../../services/category.service';
 import companyService from '../../services/company.service';
 import { formatVND } from '../../utils/formatters';
+import { VIETNAM_PROVINCES } from '../../data/provinces';
 
 /**
  * JobSearchPage Component
- * Based on Wireframe Specification:
- * - Sidebar: Filters (Job Category, Location, Salary)
- * - Main Column: Vertical list of JobCard components
- * - Pagination at bottom
  */
 const JobSearchPage = () => {
   const [searchParams, setSearchParams] = useSearchParams();
@@ -21,34 +18,26 @@ const JobSearchPage = () => {
   const [searchKeyword, setSearchKeyword] = useState(searchParams.get('keyword') || '');
   const [isMobileFilterOpen, setIsMobileFilterOpen] = useState(false);
   
-  // Filter states
+  // Trạng thái bộ lọc
   const [selectedCategory, setSelectedCategory] = useState('');
   const [selectedLocation, setSelectedLocation] = useState(searchParams.get('location') || '');
   const [selectedSalary, setSelectedSalary] = useState('');
-  // Note: jobType field does not exist in database schema (SYSTEM_DESIGN.md Section 3.1)
+  // Lưu ý: trường jobType không tồn tại trong sơ đồ cơ sở dữ liệu (SYSTEM_DESIGN.md Mục 3.1)
   // const [selectedJobType, setSelectedJobType] = useState([]);
 
-  // API data states
+  // Trạng thái dữ liệu API
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
   const [totalPages, setTotalPages] = useState(1);
   const [totalElements, setTotalElements] = useState(0);
 
-  // Dynamic filter data from API
+  // Dữ liệu bộ lọc động từ API
   const [categories, setCategories] = useState([]);
   const [categoriesLoading, setCategoriesLoading] = useState(true);
 
-  // Static locations - can be fetched from API if needed
-  const locations = [
-    'Tất cả',
-    'Remote',
-    'Hà Nội',
-    'Hồ Chí Minh',
-    'Đà Nẵng',
-    'Hải Phòng',
-    'Cần Thơ',
-  ];
+  // Danh sách tỉnh thành Việt Nam + tùy chọn Remote
+  const locations = ['Tất cả', 'Remote', ...VIETNAM_PROVINCES];
 
   const salaryRanges = [
     'Tất cả',
@@ -59,16 +48,16 @@ const JobSearchPage = () => {
     '50 triệu+',
   ];
 
-  // Note: jobType field does not exist in database schema (SYSTEM_DESIGN.md Section 3.1)
+  // Lưu ý: trường jobType không tồn tại trong sơ đồ cơ sở dữ liệu (SYSTEM_DESIGN.md Mục 3.1)
   // const jobTypes = ['Toàn thời gian', 'Bán thời gian', 'Hợp đồng', 'Thực tập'];
 
-  // Fetch categories from API
+  // Lấy categories từ API
   useEffect(() => {
     const fetchCategories = async () => {
       try {
         setCategoriesLoading(true);
         const response = await categoryService.getAllCategories();
-        // Add "All Categories" option
+        // Thêm tùy chọn "Tất cả danh mục"
         const allCategoriesOption = { jcId: '', jcName: 'Tất cả' };
         setCategories([allCategoriesOption, ...response.data]);
       } catch (err) {
@@ -81,7 +70,7 @@ const JobSearchPage = () => {
     fetchCategories();
   }, []);
 
-  // Parse salary range to min/max values (in VND, stored as integers)
+  // Chuyển đổi khoảng lương sang giá trị min/max (đơn vị VND, lưu dưới dạng số nguyên)
   const parseSalaryRange = (range) => {
     if (!range || range === 'Tất cả') return { min: undefined, max: undefined };
     
@@ -96,7 +85,7 @@ const JobSearchPage = () => {
     return rangeMap[range] || { min: undefined, max: undefined };
   };
 
-  // Fetch jobs from API
+  // Lấy danh sách việc làm từ API
   const fetchJobs = async () => {
     try {
       setLoading(true);
@@ -105,24 +94,29 @@ const JobSearchPage = () => {
       const { min, max } = parseSalaryRange(selectedSalary);
 
       const filters = {
-        page: currentPage - 1, // API uses 0-indexed pages
+        page: currentPage - 1, // API sử dụng trang bắt đầu từ 0
         size: 10,
         sort: 'createdAt,desc',
       };
 
-      // Add filters only if they have values
-      if (searchKeyword) filters.keyword = searchKeyword;
-      if (selectedCategory) filters.categoryId = selectedCategory;
-      if (selectedLocation && selectedLocation !== 'Tất cả') {
-        filters.jobLocation = selectedLocation;
+      // Thêm bộ lọc chỉ khi chúng có giá trị
+      if (searchKeyword && searchKeyword.trim()) {
+        filters.keyword = searchKeyword.trim();
       }
-      // Note: Backend uses jobSalary (single value), not minSalary/maxSalary range
-      // Salary filtering should be handled differently if needed
+      if (selectedCategory) {
+        filters.jcId = selectedCategory; 
+      }
+      if (selectedLocation && selectedLocation !== 'Tất cả') {
+        filters.location = selectedLocation;
+      }
+      // Thêm bộ lọc khoảng lương nếu backend hỗ trợ
+      if (min !== undefined) filters.minSalary = min;
+      if (max !== undefined) filters.maxSalary = max;
       // if (selectedJobType.length > 0) filters.jobType = selectedJobType.join(',');
 
       const response = await jobService.searchJobs(filters);
       
-      // Map API response to component format
+      // Chuyển đổi API response sang định dạng component
       const mappedJobs = response.data.content.map(job => ({
         jobId: job.jobId,
         title: job.jobTitle,
@@ -143,10 +137,10 @@ const JobSearchPage = () => {
     }
   };
 
-  // Fetch jobs when component mounts or filters change
+  // Lấy danh sách việc làm khi component được mount hoặc bộ lọc thay đổi
   useEffect(() => {
     fetchJobs();
-  }, [currentPage, selectedCategory, selectedLocation, selectedSalary]);
+  }, [currentPage, selectedCategory, selectedLocation, selectedSalary, searchKeyword]);
 
   const handlePageChange = (page) => {
     setCurrentPage(page);
@@ -155,8 +149,8 @@ const JobSearchPage = () => {
 
   const handleSearch = (e) => {
     e.preventDefault();
-    setCurrentPage(1); // Reset to first page on new search
-    fetchJobs();
+    setCurrentPage(1); // Đặt lại về trang đầu tiên khi tìm kiếm mới
+    // fetchJobs sẽ được gọi tự động bởi useEffect khi searchKeyword thay đổi
   };
 
   // Handle job type toggle (commented out - jobType not in database schema)
@@ -370,12 +364,12 @@ const JobSearchPage = () => {
                   </>
                 )}
               </p>
-              <select className="px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm">
+              {/* <select className="px-4 py-2 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary text-sm">
                 <option>Phù hợp nhất</option>
                 <option>Mới nhất</option>
                 <option>Lương: cao đến thấp</option>
                 <option>Lương: thấp đến cao</option>
-              </select>
+              </select> */}
             </div>
 
             {/* Job Cards - Vertical List */}

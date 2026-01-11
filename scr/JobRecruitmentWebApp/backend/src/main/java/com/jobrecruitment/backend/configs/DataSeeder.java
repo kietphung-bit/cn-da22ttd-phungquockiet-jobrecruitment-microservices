@@ -186,6 +186,8 @@ public class DataSeeder implements CommandLineRunner {
         job1.setJobTitle("Tuyển dụng Lập trình viên Java Senior");
         job1.setJobDescription("Chúng tôi đang tìm kiếm lập trình viên Java giàu kinh nghiệm để tham gia đội ngũ phát triển backend. Bạn sẽ làm việc với các dự án lớn cho khách hàng quốc tế, sử dụng công nghệ hiện đại và quy trình Agile.");
         job1.setJobRequirement("- Tối thiểu 5 năm kinh nghiệm Java/Spring Boot\n- Thành thạo PostgreSQL, MySQL\n- Kinh nghiệm Microservices, Docker, Kubernetes\n- Có khả năng làm việc nhóm và giao tiếp tốt");
+        job1.setJobResponsibilities("- Phát triển và bảo trì các dịch vụ backend sử dụng Java/Spring Boot\n- Thiết kế và tối ưu hóa database schema\n- Viết unit test và integration test\n- Code review và mentor junior developers\n- Tham gia họp dự án và lập kế hoạch sprint");
+        job1.setJobBenefits("- Lương tháng 13, thưởng dự án\n- Bảo hiểm sức khỏe cao cấp\n- 15 ngày phép/năm + 5 ngày sick leave\n- Đào tạo và chứng chỉ chuyên môn\n- Môi trường làm việc quốc tế, cơ hội thăng tiến");
         job1.setJobSalary(25000000.0);
         job1.setJobLocation("TP. Hồ Chí Minh");
         job1.setStartDate(LocalDate.now().minusDays(5));
@@ -201,8 +203,8 @@ public class DataSeeder implements CommandLineRunner {
                 jobRepository.findByJobCode(code).isPresent()));
         job2.setJobTitle("Frontend Developer (React/Next.js)");
         job2.setJobDescription("Tham gia đội ngũ frontend để xây dựng các ứng dụng web hiện đại. Cơ hội làm việc với các dự án sản phẩm cho thị trường Nhật Bản và Châu Âu.");
-        job2.setJobRequirement("- Tối thiểu 3 năm kinh nghiệm React, Next.js\n- Thành thạo TypeScript, TailwindCSS\n- Có kinh nghiệm làm việc với RESTful API\n- Ưu tiên có kinh nghiệm UI/UX");
-        job2.setJobSalary(20000000.0);
+        job2.setJobRequirement("- Tối thiểu 3 năm kinh nghiệm React, Next.js\n- Thành thạo TypeScript, TailwindCSS\n- Có kinh nghiệm làm việc với RESTful API\n- Ưu tiên có kinh nghiệm UI/UX");        job2.setJobResponsibilities("- Xây dựng giao diện người dùng responsive và thân thiện\n- Tối ưu hóa hiệu suất website\n- Tích hợp API và xử lý state management\n- Collaborate với designer và backend team\n- Viết documentation và unit test");
+        job2.setJobBenefits("- Lương cạnh tranh + thưởng theo hiệu suất\n- Bảo hiểm y tế toàn diện\n- Đào tạo công nghệ mới nhất\n- Flexible working time\n- Team building, happy hour hàng tháng");        job2.setJobSalary(20000000.0);
         job2.setJobLocation("TP. Hồ Chí Minh");
         job2.setStartDate(LocalDate.now().minusDays(3));
         job2.setEndDate(LocalDate.now().plusDays(27));
@@ -218,6 +220,8 @@ public class DataSeeder implements CommandLineRunner {
         job3.setJobTitle("DevOps Engineer");
         job3.setJobDescription("Chịu trách nhiệm triển khai và duy trì hệ thống CI/CD, quản lý hạ tầng cloud và đảm bảo tính sẵn sàng của dịch vụ.");
         job3.setJobRequirement("- Tối thiểu 4 năm kinh nghiệm DevOps\n- Thành thạo Docker, Kubernetes, AWS\n- Kinh nghiệm với Terraform, Ansible\n- Có khả năng làm việc nhóm và giải quyết sự cố");
+        job3.setJobResponsibilities("- Thiết lập và quản lý CI/CD pipeline\n- Giám sát hệ thống và xử lý sự cố\n- Tối ưu hóa chi phí cloud infrastructure\n- Implement security best practices\n- Tự động hóa deployment và cấu hình");
+        job3.setJobBenefits("- Lương thỏa thuận + AWS certification bonus\n- Bảo hiểm sức khỏe cao cấp\n- Nghiện cứu và ứng dụng công nghệ mới\n- Remote work option\n- Training nghiệp vụ định kỳ");
         job3.setJobSalary(23000000.0);
         job3.setJobLocation("TP. Hồ Chí Minh");
         job3.setStartDate(LocalDate.now().minusDays(2));
@@ -234,6 +238,8 @@ public class DataSeeder implements CommandLineRunner {
         job4.setJobTitle("Chuyên viên Phân tích Nghiệp vụ (BA)");
         job4.setJobDescription("Phân tích yêu cầu nghiệp vụ, làm việc với khách hàng và đội ngũ phát triển để đảm bảo sản phẩm đáp ứng đúng nhu cầu.");
         job4.setJobRequirement("- Tối thiểu 3 năm kinh nghiệm BA\n- Kỹ năng giao tiếp và phân tích tốt\n- Có kinh nghiệm làm việc với Agile/Scrum\n- Ưu tiên có chứng chỉ CBAP hoặc tương đương");
+        job4.setJobResponsibilities("- Thu thập và phân tích yêu cầu nghiệp vụ\n- Viết tài liệu SRS, user stories\n- Làm việc với stakeholders và development team\n- Đảm bảo chất lượng sản phẩm\n- Hỗ trợ UAT và training người dùng");
+        job4.setJobBenefits("- Thu nhập hấp dẫn + bonus dự án\n- Chế độ bảo hiểm tốt\n- Đào tạo chứng chỉ CBAP/PMI-PBA\n- Môi trường chuyên nghiệp\n- Cơ hội thăng tiến rõ ràng");
         job4.setJobSalary(18000000.0);
         job4.setJobLocation("TP. Hồ Chí Minh");
         job4.setStartDate(LocalDate.now().minusDays(1));       
@@ -250,6 +256,8 @@ public class DataSeeder implements CommandLineRunner {
         job5.setJobTitle("Kỹ sư Kiểm thử Tự động (Automation Tester)");
         job5.setJobDescription("Phát triển và duy trì các kịch bản kiểm thử tự động để đảm bảo chất lượng phần mềm. Làm việc chặt chẽ với đội ngũ phát triển để tích hợp kiểm thử vào quy trình CI/CD.");
         job5.setJobRequirement("- Tối thiểu 3 năm kinh nghiệm kiểm thử tự động\n- Thành thạo Selenium, JUnit/TestNG\n- Kinh nghiệm với CI/CD (Jenkins, GitLab CI)\n- Có khả năng viết kịch bản kiểm thử hiệu quả");
+        job5.setJobResponsibilities("- Phát triển và maintain các test automation frameworks\n- Viết và thực thi các test cases tự động\n- Tích hợp automation tests vào CI/CD pipeline\n- Phân tích kết quả test và báo cáo bugs\n- Training và hỗ trợ team về automation testing");
+        job5.setJobBenefits("- Lương cạnh tranh + thưởng performance\n- Được đào tạo các công cụ testing hiện đại\n- Làm việc với các dự án automation lớn\n- Môi trường làm việc chuyên nghiệp\n- Chế độ bảo hiểm đầy đủ");
         job5.setJobSalary(19000000.0);
         job5.setJobLocation("TP. Hồ Chí Minh");
         job5.setStartDate(LocalDate.now());
@@ -302,6 +310,8 @@ public class DataSeeder implements CommandLineRunner {
         job6.setJobTitle("Trưởng phòng Digital Marketing");
         job6.setJobDescription("Lãnh đạo các chiến dịch marketing kỹ thuật số và xây dựng chiến lược phát triển thương hiệu. Quản lý đội ngũ 5-7 nhân viên, điều phối các kênh Facebook, Google, TikTok Ads với ngân sách hàng tỷ đồng/tháng.");
         job6.setJobRequirement("- Tối thiểu 4 năm kinh nghiệm Digital Marketing\n- Thành thạo SEO, SEM, Social Media Marketing\n- Có kinh nghiệm quản lý đội ngũ\n- Có khả năng phân tích dữ liệu và báo cáo ROI\n- Ưu tiên có kinh nghiệm làm việc tại agency hoặc tập đoàn lớn");
+        job6.setJobResponsibilities("- Xây dựng và triển khai chiến lược digital marketing\n- Quản lý đội ngũ 5-7 nhân viên marketing\n- Điều phối các chiến dịch quảng cáo đa kênh\n- Phân tích metrics và báo cáo ROI định kỳ\n- Tối ưu hóa ngân sách marketing để đạt hiệu quả tốt nhất");
+        job6.setJobBenefits("- Lương thỏa thuận hấp dẫn + bonus theo KPI\n- Được làm việc với các chiến dịch marketing lớn\n- Môi trường sáng tạo và năng động\n- Đào tạo chuyên sâu về digital marketing\n- Package phúc lợi cạnh tranh");
         job6.setJobSalary(22000000.0);
         job6.setJobLocation("Hà Nội");
         job6.setStartDate(LocalDate.now().minusDays(7));
@@ -318,6 +328,8 @@ public class DataSeeder implements CommandLineRunner {
         job7.setJobTitle("Chuyên viên Phát triển Kinh doanh (B2B)");
         job7.setJobDescription("Mở rộng danh mục khách hàng doanh nghiệp và xây dựng các mối quan hệ đối tác chiến lược. Làm việc với các tập đoàn lớn trong lĩnh vực bất động sản, tài chính, FMCG.");
         job7.setJobRequirement("- Tối thiểu 2 năm kinh nghiệm bán hàng B2B\n- Có kỹ năng giao tiếp và thuyết phục tốt\n- Có thành tích bán hàng xuất sắc\n- Có mạng lưới quan hệ rộng là lợi thế\n- Chủ động, năng động và có tinh thần trách nhiệm cao");
+        job7.setJobResponsibilities("- Tìm kiếm và phát triển khách hàng doanh nghiệp mới\n- Xây dựng và duy trì quan hệ với các tập đoàn lớn\n- Thuyết trình các giải pháp marketing cho clients\n- Đàm phán hợp đồng và chốt deals\n- Hoàn thành chỉ tiêu doanh số hàng tháng/quý");
+        job7.setJobBenefits("- Lương cơ bản + hoa hồng hấp dẫn\n- Thưởng theo doanh số không giới hạn\n- Đào tạo kỹ năng bán hàng chuyên nghiệp\n- Cơ hội networking với các tập đoàn lớn\n- Thăng tiến rõ ràng dựa trên năng lực");
         job7.setJobSalary(18000000.0);
         job7.setJobLocation("Hà Nội");
         job7.setStartDate(LocalDate.now().minusDays(2));
@@ -334,6 +346,8 @@ public class DataSeeder implements CommandLineRunner {
         job8.setJobTitle("Chuyên viên Nội dung & SEO");
         job8.setJobDescription("Phát triển chiến lược nội dung và tối ưu hóa SEO cho các trang web và kênh truyền thông xã hội. Tạo nội dung hấp dẫn để thu hút và giữ chân khách hàng.");
         job8.setJobRequirement("- Tối thiểu 2 năm kinh nghiệm viết nội dung và SEO\n- Kỹ năng viết lách và biên tập tốt\n- Hiểu biết về công cụ SEO (Google Analytics, Ahrefs, SEMrush)\n- Có khả năng làm việc độc lập và theo nhóm\n- Sáng tạo và cập nhật xu hướng mới trong lĩnh vực nội dung số");
+        job8.setJobResponsibilities("- Viết và biên tập nội dung cho website, blog, social media\n- Nghiên cứu từ khóa và xây dựng chiến lược SEO\n- Tối ưu hóa nội dung theo chuẩn SEO\n- Phân tích traffic và đề xuất cải tiến nội dung\n- Cập nhật xu hướng content marketing và SEO mới nhất");
+        job8.setJobBenefits("- Thu nhập ổn định + bonus theo KPI\n- Được training về SEO và content marketing\n- Làm việc với các thương hiệu lớn\n- Môi trường sáng tạo, trẻ trung\n- Bảo hiểm và các phúc lợi theo luật");
         job8.setJobSalary(15000000.0);
         job8.setJobLocation("Hà Nội");
         job8.setStartDate(LocalDate.now().minusDays(1));       
@@ -350,6 +364,8 @@ public class DataSeeder implements CommandLineRunner {
         job9.setJobTitle("Nhân viên Kinh doanh Trực tiếp");
         job9.setJobDescription("Tiếp cận và tư vấn khách hàng tiềm năng về các giải pháp truyền thông và marketing của công ty. Tham gia các sự kiện, hội thảo để mở rộng mạng lưới khách hàng.");
         job9.setJobRequirement("- Tối thiểu 1 năm kinh nghiệm kinh doanh trực tiếp\n- Kỹ năng giao tiếp và thuyết phục tốt\n- Nhiệt huyết và có tinh thần cầu tiến\n- Có khả năng làm việc dưới áp lực cao\n- Ưu tiên có kinh nghiệm trong lĩnh vực truyền thông hoặc quảng cáo");
+        job9.setJobResponsibilities("- Tiếp cận và tư vấn khách hàng tiềm năng\n- Giới thiệu các giải pháp truyền thông của công ty\n- Tham gia các sự kiện, hội thảo ngành\n- Xây dựng và mở rộng mạng lưới khách hàng\n- Hoàn thành chỉ tiêu doanh số được giao");
+        job9.setJobBenefits("- Lương cơ bản + hoa hồng hấp dẫn\n- Chế độ thưởng theo doanh số\n- Được đào tạo kỹ năng bán hàng\n- Môi trường trẻ, năng động\n- Cơ hội thăng tiến nhanh cho người có năng lực");
         job9.setJobSalary(13000000.0); 
         job9.setJobLocation("Hà Nội");
         job9.setStartDate(LocalDate.now());
@@ -366,6 +382,8 @@ public class DataSeeder implements CommandLineRunner {
         job10.setJobTitle("Chuyên viên Quảng cáo Trực tuyến");
         job10.setJobDescription("Quản lý và tối ưu hóa các chiến dịch quảng cáo trực tuyến trên Google, Facebook và các nền tảng khác. Phân tích hiệu quả chiến dịch và đề xuất cải tiến để đạt được mục tiêu kinh doanh.");
         job10.setJobRequirement("- Tối thiểu 2 năm kinh nghiệm quảng cáo trực tuyến\n- Thành thạo Google Ads, Facebook Ads\n- Kỹ năng phân tích dữ liệu và tối ưu hóa chiến dịch\n- Có khả năng làm việc độc lập và theo nhóm\n- Cập nhật xu hướng mới trong lĩnh vực quảng cáo số");
+        job10.setJobResponsibilities("- Lên kế hoạch và thực thi chiến dịch quảng cáo\n- Quản lý ngân sách và tối ưu hóa chi phí quảng cáo\n- Phân tích hiệu quả chiến dịch và báo cáo KPI\n- A/B testing để cải thiện conversion rate\n- Phối hợp với team creative để tạo content quảng cáo");
+        job10.setJobBenefits("- Lương ổn định + KPI rõ ràng\n- Được làm việc với ngân sách quảng cáo lớn\n- Đào tạo về các nền tảng quảng cáo mới\n- Môi trường sáng tạo, chuyên nghiệp\n- Chế độ phúc lợi cạnh tranh");
         job10.setJobSalary(16000000.0);
         job10.setJobLocation("Hà Nội");
         job10.setStartDate(LocalDate.now());
@@ -408,6 +426,8 @@ public class DataSeeder implements CommandLineRunner {
         job11.setJobTitle("Embedded Software Engineer");
         job11.setJobDescription("Develop and maintain embedded software for automotive applications. Work with cross-functional teams to deliver high-quality solutions.");
         job11.setJobRequirement("- Minimum 3 years experience in embedded software development\n- Proficient in C/C++ programming\n- Experience with real-time operating systems\n- Strong problem-solving skills");
+        job11.setJobResponsibilities("- Develop embedded software for automotive systems\n- Write efficient and optimized C/C++ code for microcontrollers\n- Debug and test embedded software using JTAG and oscilloscopes\n- Collaborate with hardware engineers for system integration\n- Maintain documentation for software modules");
+        job11.setJobBenefits("- Competitive salary with 13th month bonus\n- Premium health insurance for family\n- Technical training on automotive standards (ISO 26262)\n- Work with cutting-edge automotive technology\n- International work environment");
         job11.setJobSalary(24000000.0);
         job11.setJobLocation("TP. Hồ Chí Minh");
         job11.setStartDate(LocalDate.now().minusDays(4));      
@@ -424,6 +444,8 @@ public class DataSeeder implements CommandLineRunner {
         job12.setJobTitle("Data Scientist");
         job12.setJobDescription("Analyze large datasets to extract insights and build predictive models. Collaborate with engineering teams to implement data-driven solutions.");
         job12.setJobRequirement("- Strong background in statistics and machine learning\n- Proficient in Python and R\n- Experience with big data technologies\n- Excellent communication skills");
+        job12.setJobResponsibilities("- Analyze large datasets to extract business insights\n- Build and deploy machine learning models\n- Develop predictive analytics for business forecasting\n- Create data visualizations and dashboards\n- Present findings to stakeholders and management");
+        job12.setJobBenefits("- Attractive salary with performance bonus\n- Access to high-performance computing resources\n- Training on latest ML/AI technologies\n- Collaborate with global data science team\n- Flexible working arrangements");
         job12.setJobSalary(22000000.0);
         job12.setJobLocation("TP. Hồ Chí Minh");
         job12.setStartDate(LocalDate.now().minusDays(3));      
@@ -440,6 +462,8 @@ public class DataSeeder implements CommandLineRunner {
         job13.setJobTitle("Cloud Solutions Architect");
         job13.setJobDescription("Design and implement cloud-based solutions for enterprise clients. Provide technical leadership and guidance on cloud architecture best practices.");
         job13.setJobRequirement("- Extensive experience with cloud platforms (AWS, Azure, GCP)\n- Strong understanding of cloud architecture and design patterns\n- Excellent problem-solving and communication skills\n- Ability to lead technical teams");
+        job13.setJobResponsibilities("- Design scalable cloud architecture for enterprise clients\n- Lead cloud migration projects\n- Implement security and compliance best practices\n- Provide technical guidance to development teams\n- Optimize cloud infrastructure costs");
+        job13.setJobBenefits("- Premium compensation package\n- AWS/Azure/GCP certification sponsorship\n- Work on large-scale cloud projects\n- International exposure and travel opportunities\n- Comprehensive benefits package");
         job13.setJobSalary(26000000.0);
         job13.setJobLocation("TP. Hồ Chí Minh");
         job13.setStartDate(LocalDate.now().minusDays(2));
@@ -456,6 +480,8 @@ public class DataSeeder implements CommandLineRunner {
         job14.setJobTitle("AI Research Engineer");
         job14.setJobDescription("Conduct research and development in artificial intelligence and machine learning. Collaborate with academic and industry partners to advance AI technologies.");
         job14.setJobRequirement("- Strong research background in AI/ML\n- Proficient in Python and deep learning frameworks\n- Excellent analytical and problem-solving skills\n- Ability to publish research findings");
+        job14.setJobResponsibilities("- Conduct cutting-edge AI/ML research\n- Develop novel algorithms for computer vision and NLP\n- Collaborate with academic research institutions\n- Publish papers in top-tier conferences\n- Mentor junior engineers on AI technologies");
+        job14.setJobBenefits("- Top-tier compensation with research bonus\n- Access to high-end GPU clusters\n- Attend international AI conferences\n- Work with world-class AI researchers\n- Patent and publication incentives");
         job14.setJobSalary(28000000.0);
         job14.setJobLocation("TP. Hồ Chí Minh");
         job14.setStartDate(LocalDate.now().minusDays(1));
@@ -472,6 +498,8 @@ public class DataSeeder implements CommandLineRunner {
         job15.setJobTitle("Cybersecurity Specialist");
         job15.setJobDescription("Implement and manage cybersecurity measures to protect company assets. Monitor security systems and respond to incidents.");
         job15.setJobRequirement("- Strong knowledge of cybersecurity principles and practices\n- Experience with security tools and technologies\n- Excellent problem-solving and communication skills\n- Ability to work under pressure");
+        job15.setJobResponsibilities("- Monitor and respond to security incidents\n- Implement security controls and policies\n- Conduct vulnerability assessments and penetration testing\n- Maintain security systems and tools\n- Provide security training and awareness programs");
+        job15.setJobBenefits("- Competitive salary with on-call bonus\n- Security certification sponsorship (CISSP, CEH)\n- Work with enterprise security tools\n- 24/7 security operations training\n- Health and life insurance");
         job15.setJobSalary(23000000.0);
         job15.setJobLocation("TP. Hồ Chí Minh");
         job15.setStartDate(LocalDate.now());
@@ -514,6 +542,8 @@ public class DataSeeder implements CommandLineRunner {
         job16.setJobTitle("Mobile App Developer (iOS/Android)");
         job16.setJobDescription("Phát triển và duy trì ứng dụng di động BEAT trên cả hai nền tảng iOS và Android. Hợp tác với đội ngũ thiết kế và backend để tạo ra trải nghiệm người dùng mượt mà và hiệu quả.");
         job16.setJobRequirement("- Tối thiểu 3 năm kinh nghiệm phát triển ứng dụng di động\n- Thành thạo Swift (iOS) và Kotlin/Java (Android)\n- Kinh nghiệm với RESTful APIs và tích hợp SDK\n- Có khả năng làm việc nhóm và giải quyết vấn đề");
+        job16.setJobResponsibilities("- Phát triển tính năng mới cho app iOS/Android\n- Tối ưu hóa hiệu suất và trải nghiệm người dùng\n- Tích hợp các SDK và thư viện bên thứ ba\n- Sửa lỗi và cải thiện chất lượng code\n- Phối hợp với team backend và designer");
+        job16.setJobBenefits("- Lương cạnh tranh + thưởng dự án\n- Được làm việc với app có hàng triệu người dùng\n- Môi trường startup năng động\n- Hỗ trợ thiết bị iPhone/Android cho dev\n- Bảo hiểm và phúc lợi đầy đủ");
         job16.setJobSalary(21000000.0);
         job16.setJobLocation("TP. Hồ Chí Minh");
         job16.setStartDate(LocalDate.now().minusDays(4));      
@@ -529,8 +559,8 @@ public class DataSeeder implements CommandLineRunner {
                 jobRepository.findByJobCode(code).isPresent()));
         job17.setJobTitle("Backend Developer (Node.js)");
         job17.setJobDescription("Xây dựng và tối ưu hóa các dịch vụ backend cho nền tảng BEAT. Làm việc với cơ sở dữ liệu lớn và hệ thống phân tán để đảm bảo hiệu suất và khả năng mở rộng.");
-        job17.setJobRequirement("- Tối thiểu 3 năm kinh nghiệm phát triển backend với Node.js\n- Thành thạo MongoDB, Redis, RabbitMQ\n- Kinh nghiệm xây dựng API RESTful và GraphQL\n- Hiểu biết về kiến trúc microservices");
-        job17.setJobSalary(22000000.0);
+        job17.setJobRequirement("- Tối thiểu 3 năm kinh nghiệm phát triển backend với Node.js\n- Thành thạo MongoDB, Redis, RabbitMQ\n- Kinh nghiệm xây dựng API RESTful và GraphQL\n- Hiểu biết về kiến trúc microservices");        job17.setJobResponsibilities("- Xây dựng các RESTful API cho mobile app\n- Tối ưu hóa hiệu suất và khả năng mở rộng hệ thống\n- Thiết kế và triển khai microservices\n- Làm việc với database phân tán và cache\n- Đảm bảo bảo mật và hiệu suất API");
+        job17.setJobBenefits("- Mức lương hấp dẫn + thưởng performance\n- Làm việc với tech stack hiện đại\n- Được đào tạo kiến trúc hệ thống lớn\n- Flexible working time\n- Chế độ phúc lợi cạnh tranh");        job17.setJobSalary(22000000.0);
         job17.setJobLocation("TP. Hồ Chí Minh");
         job17.setStartDate(LocalDate.now().minusDays(3));       
         job17.setEndDate(LocalDate.now().plusDays(27));
@@ -546,6 +576,8 @@ public class DataSeeder implements CommandLineRunner {
         job18.setJobTitle("QA Engineer");
         job18.setJobDescription("Đảm bảo chất lượng phần mềm của nền tảng BEAT thông qua việc thiết kế và thực hiện các kịch bản kiểm thử. Hợp tác với đội ngũ phát triển để phát hiện và khắc phục lỗi.");
         job18.setJobRequirement("- Tối thiểu 2 năm kinh nghiệm kiểm thử phần mềm\n- Kinh nghiệm với các công cụ kiểm thử tự động (Selenium, JUnit)\n- Hiểu biết về quy trình phát triển phần mềm Agile\n- Kỹ năng phân tích và giải quyết vấn đề tốt");
+        job18.setJobResponsibilities("- Thiết kế và thực hiện test cases\n- Kiểm thử tính năng mới trước khi release\n- Tự động hóa các kịch bản kiểm thử\n- Báo cáo bugs và theo dõi việc sửa chữa\n- Đảm bảo chất lượng ứng dụng trước khi deploy");
+        job18.setJobBenefits("- Thu nhập ổn định + KPI rõ ràng\n- Được training automation testing\n- Làm việc trong môi trường Agile/Scrum\n- Cơ hội phát triển kỹ năng QA chuyên sâu\n- Bảo hiểm và các phúc lợi theo luật");
         job18.setJobSalary(17000000.0);
         job18.setJobLocation("TP. Hồ Chí Minh");
         job18.setStartDate(LocalDate.now().minusDays(2));
@@ -562,6 +594,8 @@ public class DataSeeder implements CommandLineRunner {
         job19.setJobTitle("UI/UX Designer");
         job19.setJobDescription("Thiết kế giao diện người dùng và trải nghiệm người dùng cho ứng dụng BEAT. Hợp tác với đội ngũ phát triển để tạo ra các thiết kế hấp dẫn và dễ sử dụng.");
         job19.setJobRequirement("- Tối thiểu 2 năm kinh nghiệm thiết kế UI/UX\n- Thành thạo các công cụ thiết kế (Figma, Adobe XD, Sketch)\n- Hiểu biết về nguyên tắc thiết kế và trải nghiệm người dùng\n- Kỹ năng giao tiếp và làm việc nhóm tốt");
+        job19.setJobResponsibilities("- Thiết kế giao diện cho mobile app iOS/Android\n- Tạo wireframes, mockups và prototypes\n- Nghiên cứu hành vi người dùng và cải thiện UX\n- Xây dựng design system và style guide\n- Phối hợp với developers để implement design");
+        job19.setJobBenefits("- Mức lương hấp dẫn cho designer\n- Làm việc với ứng dụng có hàng triệu users\n- Môi trường sáng tạo, đổi mới\n- Được training về UX research\n- Package benefits cạnh tranh");
         job19.setJobSalary(18000000.0);
         job19.setJobLocation("TP. Hồ Chí Minh");
         job19.setStartDate(LocalDate.now());
@@ -604,6 +638,8 @@ public class DataSeeder implements CommandLineRunner {
         job20.setJobTitle("Chuyên viên Phát triển Ứng dụng Ngân hàng Số");
         job20.setJobDescription("Phát triển và duy trì các ứng dụng ngân hàng số của MB Bank. Hợp tác với các đội ngũ kỹ thuật và kinh doanh để cung cấp trải nghiệm người dùng tốt nhất.");
         job20.setJobRequirement("- Tối thiểu 3 năm kinh nghiệm phát triển ứng dụng\n- Thành thạo Java, Spring Boot, React\n- Kinh nghiệm với cơ sở dữ liệu quan hệ và NoSQL\n- Hiểu biết về bảo mật ứng dụng ngân hàng");
+        job20.setJobResponsibilities("- Phát triển các tính năng cho app MB Bank\n- Tích hợp các dịch vụ ngân hàng và thanh toán\n- Đảm bảo bảo mật và tuân thủ chuẩn mực ngân hàng\n- Tối ưu hóa hiệu suất giao dịch\n- Hỗ trợ triển khai và bảo trì hệ thống");
+        job20.setJobBenefits("- Lương cạnh tranh ngành ngân hàng + thưởng\n- Chế độ BHYT, BHXH đầy đủ\n- Làm việc tại ngân hàng lớn, ổn định\n- Được đào tảo về fintech và bảo mật\n- Nhiều cơ hội thăng tiến");
         job20.setJobSalary(23000000.0);
         job20.setJobLocation("TP. Hồ Chí Minh");
         job20.setStartDate(LocalDate.now().minusDays(5));

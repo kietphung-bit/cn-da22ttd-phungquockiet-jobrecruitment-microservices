@@ -1,15 +1,15 @@
 import { Outlet, NavLink } from 'react-router-dom';
-import { LayoutDashboard, Building2, Briefcase, FileText, LogOut } from 'lucide-react';
+import { LayoutDashboard, Building2, Briefcase, FileText, LogOut, Users } from 'lucide-react';
 import { useAuth } from '../../contexts/AuthContext';
 
 /**
  * CompanyLayout Component
- * Layout specifically for Employer (Doanh nghiệp) with sidebar navigation
+ * Layout cho Nhà tuyển dụng (Doanh nghiệp) với thanh điều hướng bên
  * 
- * Features:
- * - Sidebar with company navigation links
- * - Protected layout for employers only (role: DN)
- * - Responsive sidebar
+ * Tính năng:
+ * - Thanh điều hướng bên với các liên kết điều hướng của công ty
+ * - Layout bảo vệ chỉ dành cho nhà tuyển dụng (vai trò: DN)
+ * - Thanh điều hướng đáp ứng
  * - Active link highlighting
  * 
  * Routes:
@@ -26,7 +26,7 @@ const CompanyLayout = () => {
       to: '/employer/dashboard',
       icon: LayoutDashboard,
       label: 'Tổng quan',
-      description: 'Dashboard và thống kê'
+      description: 'Bảng điều khiển chính'
     },
     {
       to: '/employer/profile',
@@ -38,13 +38,19 @@ const CompanyLayout = () => {
       to: '/employer/jobs',
       icon: Briefcase,
       label: 'Quản lý tin đăng',
-      description: 'Tạo và quản lý tin tuyển dụng'
+      description: 'Quản lý tin tuyển dụng'
     },
     {
       to: '/employer/applications',
       icon: FileText,
       label: 'Hồ sơ ứng tuyển',
       description: 'Xem và duyệt hồ sơ'
+    },
+    {
+      to: '/employer/talents',
+      icon: Users,
+      label: 'Tìm kiếm nhân tài',
+      description: 'Tìm ứng viên phù hợp'
     }
   ];
 
@@ -113,6 +119,13 @@ const CompanyLayout = () => {
       {/* Main Content */}
       <div className="ml-64 flex-1">
         <Outlet />
+        
+        {/* Footer */}
+        <footer className="border-t border-neutral-200 bg-white py-4 px-8">
+          <div className="text-center text-sm text-neutral-600">
+            © 2026 JobRecruitment. All rights reserved.
+          </div>
+        </footer>
       </div>
     </div>
   );

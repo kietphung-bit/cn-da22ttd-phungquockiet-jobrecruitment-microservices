@@ -27,23 +27,30 @@ import {
   User,
   Briefcase,
   Calendar,
-  ExternalLink
+  ExternalLink,
+  Search,
+  Copy,
+  FileSpreadsheet,
+  FileText as FilePDF
 } from 'lucide-react';
 import { format } from 'date-fns';
 import { toast } from 'react-toastify';
 import applicationService from '../../services/application.service';
 import jobService from '../../services/job.service';
+import { copyToClipboard, exportToExcel, exportToPDF } from '../../utils/tableExport';
 
 const EmployerApplications = () => {
   const navigate = useNavigate();
 
-  // State management
+  // Quản lý trạng thái
   const [applications, setApplications] = useState([]);
+  const [filteredApplications, setFilteredApplications] = useState([]);
   const [myJobs, setMyJobs] = useState([]);
   const [loading, setLoading] = useState(true);
   const [updatingId, setUpdatingId] = useState(null);
+  const [searchTerm, setSearchTerm] = useState('');
 
-  // Pagination state
+  // Quản lý phân trang
   const [pagination, setPagination] = useState({
     currentPage: 0,
     totalPages: 0,
@@ -51,18 +58,33 @@ const EmployerApplications = () => {
     pageSize: 10
   });
 
-  // Filter state
+  // Quản lý trạng thái bộ lọc
   const [filters, setFilters] = useState({
     jobId: '',
     status: ''
   });
 
-  // Candidate detail modal state
+  // Quản lý trạng thái modal chi tiết ứng viên
   const [selectedCandidate, setSelectedCandidate] = useState(null);
   const [showCandidateModal, setShowCandidateModal] = useState(false);
 
+  useEffect(() => {
+    // Áp dụng bộ lọc tìm kiếm
+    if (searchTerm.trim()) {
+      const term = searchTerm.toLowerCase();
+      const filtered = applications.filter(app =>
+        app.candidate?.candidateName?.toLowerCase().includes(term) ||
+        app.candidate?.candidateEmail?.toLowerCase().includes(term) ||
+        app.job?.jobTitle?.toLowerCase().includes(term)
+      );
+      setFilteredApplications(filtered);
+    } else {
+      setFilteredApplications(applications);
+    }
+  }, [applications, searchTerm]);
+
   /**
-   * Fetch applications with filters and pagination
+   * Lấy danh sách đơn ứng tuyển với bộ lọc và phân trang
    */
   const fetchApplications = async (page = 0) => {
     try {
@@ -73,7 +95,7 @@ const EmployerApplications = () => {
         sort: 'applyTime,desc'
       };
 
-      // Add filters if set
+      // Thêm bộ lọc nếu được đặt
       if (filters.jobId) {
         params.jobId = filters.jobId;
       }
@@ -99,13 +121,13 @@ const EmployerApplications = () => {
   };
 
   /**
-   * Fetch employer's jobs for filter dropdown
+   * Lấy danh sách công việc của nhà tuyển dụng cho dropdown bộ lọc
    */
   const fetchMyJobs = async () => {
     try {
       const params = {
         page: 0,
-        size: 1000, // Get all jobs for dropdown
+        size: 1000, // Lấy tất cả công việc cho dropdown
         sort: 'createdAt,desc'
       };
 
@@ -118,7 +140,7 @@ const EmployerApplications = () => {
   };
 
   /**
-   * Handle status update (Approve/Reject)
+   * Xử lý cập nhật trạng thái (Duyệt/Từ chối) đơn ứng tuyển
    */
   const handleStatusUpdate = async (applicationId, newStatus, candidateName) => {
     const statusText = newStatus === 'APPROVED' ? 'duyệt' : 'từ chối';
@@ -133,7 +155,6 @@ const EmployerApplications = () => {
 
       await applicationService.updateApplicationStatus(applicationId, newStatus);
 
-      // Optimistic UI update - handle both field name patterns
       setApplications(prev =>
         prev.map(app => {
           const appId = app.appId || app.applicationId;
@@ -141,7 +162,7 @@ const EmployerApplications = () => {
             return { 
               ...app, 
               appStatus: newStatus,
-              applicationStatus: newStatus // Update both fields
+              applicationStatus: newStatus 
             };
           }
           return app;
@@ -158,7 +179,7 @@ const EmployerApplications = () => {
   };
 
   /**
-   * Handle filter change
+   * Xử lý thay đổi bộ lọc
    */
   const handleFilterChange = (e) => {
     const { name, value } = e.target;
@@ -169,28 +190,75 @@ const EmployerApplications = () => {
   };
 
   /**
-   * Apply filters
+   * Áp dụng bộ lọc
    */
   const applyFilters = () => {
     fetchApplications(0); // Reset to first page
   };
 
   /**
-   * Reset filters
+   * Xử lý xuất dữ liệu sang các định dạng khác nhau
+   */
+  const handleExport = async (type) => {
+    const columns = [
+      { header: 'Ứng viên', accessor: (row) => row.candidate?.candidateName || 'N/A' },
+      { header: 'Email', accessor: (row) => row.candidate?.candidateEmail || 'N/A' },
+      { header: 'Công việc', accessor: (row) => row.job?.jobTitle || 'N/A' },
+      { header: 'CV', accessor: (row) => row.cvPath || 'Chưa có' },
+      { header: 'Ngày nộp', accessor: (row) => row.applyTime ? format(new Date(row.applyTime), 'dd/MM/yyyy HH:mm') : 'N/A' },
+      { header: 'Trạng thái', accessor: (row) => {
+        const statusMap = { 
+          PENDING: 'Chờ duyệt', 
+          APPROVED: 'Đã duyệt', 
+          REJECTED: 'Từ chối' 
+        };
+        return statusMap[row.apStatus] || row.apStatus;
+      }}
+    ];
+
+    const dataToExport = filteredApplications.length > 0 ? filteredApplications : applications;
+
+    try {
+      switch (type) {
+        case 'copy':
+          await copyToClipboard(dataToExport, columns);
+          toast.success('Đã sao chép vào clipboard!');
+          break;
+        case 'excel':
+          exportToExcel(dataToExport, columns, 'danh-sach-ung-tuyen.csv');
+          toast.success('Đã xuất file Excel!');
+          break;
+        case 'pdf':
+          await exportToPDF(dataToExport, columns, 'danh-sach-ung-tuyen.pdf', {
+            title: 'Danh Sách Ứng Tuyển'
+          });
+          toast.success('Đã xuất file PDF!');
+          break;
+        default:
+          break;
+      }
+    } catch (error) {
+      console.error('Export failed:', error);
+      toast.error('Xuất dữ liệu thất bại. Vui lòng thử lại!');
+    }
+  };
+
+  /**
+   * Đặt lại bộ lọc
    */
   const resetFilters = () => {
     setFilters({
       jobId: '',
       status: ''
     });
-    // Fetch without filters
+    // Lấy dữ liệu không có bộ lọc
     setTimeout(() => {
       fetchApplications(0);
     }, 0);
   };
 
   /**
-   * Get status badge
+   * Lấy badge trạng thái ứng tuyển
    */
   const getStatusBadge = (status) => {
     const statusConfig = {
@@ -222,7 +290,7 @@ const EmployerApplications = () => {
   };
 
   /**
-   * Format date to DD/MM/YYYY HH:mm
+   * Định dạng ngày tháng thành DD/MM/YYYY HH:mm
    */
   const formatDateTime = (dateString) => {
     try {
@@ -233,7 +301,7 @@ const EmployerApplications = () => {
   };
 
   /**
-   * Pagination controls
+   * Điều khiển phân trang
    */
   const renderPagination = () => {
     if (pagination.totalPages <= 1) return null;
@@ -284,7 +352,7 @@ const EmployerApplications = () => {
     );
   };
 
-  // Initial data fetch
+  // Lấy dữ liệu ban đầu
   useEffect(() => {
     fetchApplications();
     fetchMyJobs();
@@ -300,7 +368,7 @@ const EmployerApplications = () => {
   }
 
   return (
-    <div className="p-6">
+    <div className="p-6 min-h-[calc(100vh-200px)]">
       {/* Header */}
       <div className="mb-6">
         <h1 className="text-2xl font-bold text-neutral-800 mb-2">
@@ -309,6 +377,62 @@ const EmployerApplications = () => {
         <p className="text-neutral-600">
           Xem và quản lý tất cả đơn ứng tuyển cho các tin tuyển dụng của bạn
         </p>
+      </div>
+
+      {/* Search and Export Bar */}
+      <div className="bg-white rounded-lg shadow-sm p-4 mb-4 border border-neutral-200">
+        <div className="flex flex-col lg:flex-row gap-4">
+          {/* Search Input */}
+          <div className="flex-1">
+            <div className="relative">
+              <Search className="absolute left-3 top-1/2 transform -translate-y-1/2 text-neutral-400 w-5 h-5" />
+              <input
+                type="text"
+                placeholder="Tìm kiếm theo tên ứng viên, email, công việc..."
+                value={searchTerm}
+                onChange={(e) => setSearchTerm(e.target.value)}
+                className="w-full pl-10 pr-4 py-2.5 border border-neutral-300 rounded-lg focus:ring-2 focus:ring-primary focus:border-transparent"
+              />
+            </div>
+          </div>
+
+          {/* Export Buttons */}
+          <div className="flex gap-2">
+            <button
+              onClick={() => handleExport('copy')}
+              className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-neutral-700 bg-white border border-neutral-300 rounded-lg hover:bg-neutral-50 transition-colors"
+              title="Sao chép vào clipboard"
+            >
+              <Copy className="w-4 h-4" />
+              <span className="hidden sm:inline">Copy</span>
+            </button>
+            
+            <button
+              onClick={() => handleExport('excel')}
+              className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-green-600 rounded-lg hover:bg-green-700 transition-colors"
+              title="Xuất ra Excel"
+            >
+              <FileSpreadsheet className="w-4 h-4" />
+              <span className="hidden sm:inline">Excel</span>
+            </button>
+            
+            <button
+              onClick={() => handleExport('pdf')}
+              className="inline-flex items-center gap-2 px-4 py-2.5 text-sm font-medium text-white bg-red-600 rounded-lg hover:bg-red-700 transition-colors"
+              title="Xuất ra PDF"
+            >
+              <FilePDF className="w-4 h-4" />
+              <span className="hidden sm:inline">PDF</span>
+            </button>
+          </div>
+        </div>
+
+        {/* Search Results Info */}
+        {searchTerm && (
+          <div className="mt-3 pt-3 border-t text-sm text-neutral-600">
+            Tìm thấy {filteredApplications.length} kết quả cho "{searchTerm}"
+          </div>
+        )}
       </div>
 
       {/* Filters */}
@@ -416,7 +540,18 @@ const EmployerApplications = () => {
               </thead>
 
               <tbody className="divide-y divide-neutral-200">
-                {applications.map(application => {
+                {filteredApplications.length === 0 ? (
+                  <tr>
+                    <td colSpan="6" className="px-6 py-12 text-center">
+                      <Search className="w-12 h-12 mx-auto text-neutral-300 mb-3" />
+                      <p className="text-neutral-600 font-medium">Không tìm thấy đơn ứng tuyển nào</p>
+                      <p className="text-sm text-neutral-500 mt-1">
+                        Thử thay đổi từ khóa tìm kiếm hoặc bộ lọc
+                      </p>
+                    </td>
+                  </tr>
+                ) : (
+                  filteredApplications.map(application => {
                   // Handle both nested and flattened response structures
                   const appId = application.appId || application.applicationId;
                   const appStatus = application.appStatus || application.applicationStatus;
@@ -538,7 +673,8 @@ const EmployerApplications = () => {
                       </td>
                     </tr>
                   );
-                })}
+                })
+                )}
               </tbody>
             </table>
           </div>

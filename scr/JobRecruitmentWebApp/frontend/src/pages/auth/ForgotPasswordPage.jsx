@@ -4,15 +4,15 @@ import { Mail, ArrowLeft, CheckCircle, AlertCircle } from 'lucide-react';
 
 /**
  * ForgotPasswordPage Component
- * Handles password reset request
+ * Xử lý yêu cầu đặt lại mật khẩu
  * 
- * Features:
- * - Email input for password reset
- * - Validation
- * - Success/error messages
+ * Tính năng:
+ * - Nhập email để đặt lại mật khẩu
+ * - Xác thực
+ * - Thông báo thành công/lỗi
  * 
- * Note: This is a UI-only implementation
- * Backend endpoint needs to be created for actual password reset
+ * Lưu ý: Đây chỉ là phần giao diện, chưa có chức năng backend thực sự
+ * Cần tạo endpoint backend để thực hiện đặt lại mật khẩu thực tế
  */
 const ForgotPasswordPage = () => {
   const [email, setEmail] = useState('');
@@ -25,18 +25,15 @@ const ForgotPasswordPage = () => {
     setError('');
     setLoading(true);
 
-    try {
-      // TODO: Implement backend API call for password reset
-      // Example: await authService.forgotPassword(email);
-      
-      // Simulate API call
+    try {      
+      // Gọi API gửi email đặt lại mật khẩu
+      // await authService.forgotPassword(email);
       await new Promise(resolve => setTimeout(resolve, 1500));
 
-      // For now, always show success
+      // Hiện tại, luôn hiển thị thành công
       setSuccess(true);
       
     } catch (err) {
-      console.error('Forgot password error:', err);
       setError(
         err.response?.data?.message || 
         'Không thể gửi email đặt lại mật khẩu. Vui lòng thử lại.'
@@ -47,13 +44,13 @@ const ForgotPasswordPage = () => {
   };
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-primary-50 to-primary-100 flex items-center justify-center py-12 px-4 sm:px-6 lg:px-8">
-      <div className="max-w-md w-full space-y-8">
+    <div className="container-custom py-16">
+      <div className="max-w-md mx-auto space-y-8">
         {/* Back to Login Link */}
         <div>
           <Link
             to="/login"
-            className="inline-flex items-center text-sm text-primary-600 hover:text-primary-700 font-medium"
+            className="inline-flex items-center text-sm text-primary hover:text-primary-600 font-medium"
           >
             <ArrowLeft className="w-4 h-4 mr-2" />
             Quay lại đăng nhập
@@ -62,66 +59,76 @@ const ForgotPasswordPage = () => {
 
         {/* Header */}
         <div className="text-center">
-          <h2 className="text-3xl font-bold text-gray-900">
+          <div className="mx-auto h-16 w-16 bg-primary rounded-full flex items-center justify-center">
+            <Mail className="h-8 w-8 text-white" />
+          </div>
+          <h2 className="mt-6 text-3xl font-bold text-neutral-900">
             Quên Mật Khẩu?
           </h2>
-          <p className="mt-2 text-sm text-gray-600">
+          <p className="mt-2 text-sm text-neutral-600">
             Nhập email của bạn và chúng tôi sẽ gửi hướng dẫn đặt lại mật khẩu
           </p>
         </div>
 
         {/* Form Card */}
-        <div className="bg-white shadow-xl rounded-lg p-8">
+        <div className="bg-white rounded-xl shadow-lg p-8">
           {!success ? (
             <form onSubmit={handleSubmit} className="space-y-6">
+              {/* Error Message */}
+              {error && (
+                <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded-r-lg">
+                  <div className="flex">
+                    <AlertCircle className="h-5 w-5 text-red-400 mr-3 flex-shrink-0" />
+                    <p className="text-sm text-red-600">{error}</p>
+                  </div>
+                </div>
+              )}
+
               {/* Email Input */}
               <div>
-                <label htmlFor="email" className="block text-sm font-medium text-gray-700 mb-2">
+                <label htmlFor="email" className="block text-sm font-semibold text-neutral-700 mb-2">
                   Địa chỉ email
                 </label>
                 <div className="relative">
-                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-gray-400" />
+                  <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-5 h-5 text-neutral-400" />
                   <input
                     id="email"
                     type="email"
                     value={email}
                     onChange={(e) => setEmail(e.target.value)}
-                    className="w-full pl-10 pr-4 py-3 border border-gray-300 rounded-lg focus:ring-2 focus:ring-primary-500 focus:border-primary-500 transition-colors"
-                    placeholder="email@example.com"
+                    className="w-full pl-11 pr-4 py-3 border border-neutral-300 rounded-lg focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent"
+                    placeholder="example@email.com"
                     required
                     autoComplete="email"
                   />
                 </div>
               </div>
 
-              {/* Error Message */}
-              {error && (
-                <div className="bg-red-50 border-l-4 border-red-400 p-4 rounded-r-lg">
-                  <div className="flex">
-                    <AlertCircle className="h-5 w-5 text-red-400 mr-3 flex-shrink-0" />
-                    <p className="text-sm text-red-700">{error}</p>
-                  </div>
-                </div>
-              )}
-
               {/* Submit Button */}
               <button
                 type="submit"
                 disabled={loading}
-                className="w-full bg-primary text-white py-3 px-4 rounded-lg font-medium hover:bg-primary-700 focus:outline-none focus:ring-2 focus:ring-primary-500 focus:ring-offset-2 disabled:opacity-50 disabled:cursor-not-allowed transition-all transform hover:scale-[1.02] active:scale-[0.98]"
+                className="w-full px-6 py-3 bg-primary text-white rounded-lg font-semibold hover:bg-primary-600 shadow-md hover:shadow-lg transition-all duration-200 disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center gap-2"
               >
                 {loading ? (
-                  <span className="flex items-center justify-center">
-                    <svg className="animate-spin -ml-1 mr-3 h-5 w-5 text-white" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
-                      <circle className="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="4"></circle>
-                      <path className="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
-                    </svg>
+                  <>
+                    <div className="w-5 h-5 border-2 border-white border-t-transparent rounded-full animate-spin"></div>
                     Đang gửi...
-                  </span>
+                  </>
                 ) : (
                   'Gửi link đặt lại mật khẩu'
                 )}
               </button>
+
+              {/* Back to Login */}
+              <div className="text-center">
+                <p className="text-sm text-neutral-600">
+                  Nhớ mật khẩu?{' '}
+                  <Link to="/login" className="text-primary font-semibold hover:text-primary-600">
+                    Đăng nhập ngay
+                  </Link>
+                </p>
+              </div>
             </form>
           ) : (
             // Success Message
@@ -130,47 +137,38 @@ const ForgotPasswordPage = () => {
                 <CheckCircle className="w-10 h-10 text-green-600" />
               </div>
               <div>
-                <h3 className="text-xl font-semibold text-gray-900 mb-2">
+                <h3 className="text-xl font-semibold text-neutral-900 mb-2">
                   Email đã được gửi!
                 </h3>
-                <p className="text-gray-600">
+                <p className="text-neutral-600">
                   Chúng tôi đã gửi hướng dẫn đặt lại mật khẩu đến email <strong>{email}</strong>
                 </p>
-                <p className="text-sm text-gray-500 mt-2">
+                <p className="text-sm text-neutral-500 mt-2">
                   Vui lòng kiểm tra hộp thư đến (hoặc thư rác) và làm theo hướng dẫn.
                 </p>
               </div>
+
+              {/* Additional Help */}
+              <div className="pt-4 border-t border-neutral-200">
+                <p className="text-sm text-neutral-600">
+                  Không nhận được email?{' '}
+                  <button
+                    onClick={() => setSuccess(false)}
+                    className="text-primary hover:text-primary-600 font-medium"
+                  >
+                    Gửi lại
+                  </button>
+                </p>
+              </div>
+
               <Link
                 to="/login"
-                className="inline-block mt-4 text-primary-600 hover:text-primary-700 font-medium"
+                className="inline-block mt-4 text-primary hover:text-primary-600 font-semibold"
               >
                 Quay lại đăng nhập
               </Link>
             </div>
           )}
-        </div>
-
-        {/* Additional Help */}
-        <div className="text-center text-sm text-gray-600">
-          <p>
-            Không nhận được email?{' '}
-            <button
-              onClick={() => setSuccess(false)}
-              className="text-primary-600 hover:text-primary-700 font-medium"
-            >
-              Gửi lại
-            </button>
-          </p>
-        </div>
-
-        {/* Back to Home */}
-        <div className="text-center">
-          <Link
-            to="/"
-            className="text-sm text-gray-500 hover:text-gray-700"
-          >
-            ← Quay lại trang chủ
-          </Link>
         </div>
       </div>
     </div>

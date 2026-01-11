@@ -1,11 +1,12 @@
 import React from 'react';
 import { Link } from 'react-router-dom';
 import { Facebook, Twitter, Linkedin, Mail, Phone, MapPin } from 'lucide-react';
+import logo from '../../assets/images/logo/logo.png';
 
 /**
  * Footer Component
- * 4 Columns: Website Info/Logo, Contact Links, For Candidates, For Employers
- * Bottom: Copyright text
+ * 4 cột: Thông tin Website/Logo, Liên hệ, Dành cho Ứng viên, Dành cho Nhà tuyển dụng
+ * Dưới cùng: Văn bản bản quyền
  */
 const Footer = () => {
   const currentYear = new Date().getFullYear();
@@ -17,9 +18,11 @@ const Footer = () => {
           {/* Column 1: Website Info/Logo */}
           <div>
             <div className="flex items-center space-x-2 mb-4">
-              <div className="w-10 h-10 bg-primary rounded-full flex items-center justify-center">
-                <span className="text-white font-bold text-xl">JR</span>
-              </div>
+              <img 
+                src={logo} 
+                alt="Logo" 
+                className="h-10 w-auto"
+              />
               <span className="text-xl font-bold">Tuyển Dụng Việc Làm</span>
             </div>
             <p className="text-neutral-400 mb-4 text-sm">
@@ -78,7 +81,7 @@ const Footer = () => {
                   className="text-neutral-400 hover:text-white transition-colors flex items-start text-sm"
                 >
                   <MapPin className="w-4 h-4 mr-2 mt-1 flex-shrink-0" />
-                  <span>123 Business Street, Suite 100<br />City, State 12345</span>
+                  <span>Số nhà 123, tên đường<br />Thành phố, Tỉnh 12345</span>
                 </a>
               </li>
             </ul>
@@ -106,7 +109,7 @@ const Footer = () => {
               </li>
               <li>
                 <Link
-                  to="/profile"
+                  to="/candidate/profile"
                   className="text-neutral-400 hover:text-white transition-colors text-sm"
                 >
                   Hồ sơ của tôi
@@ -114,7 +117,7 @@ const Footer = () => {
               </li>
               <li>
                 <Link
-                  to="/applied-jobs"
+                  to="/register"
                   className="text-neutral-400 hover:text-white transition-colors text-sm"
                 >
                   Đăng ký tài khoản
@@ -145,7 +148,7 @@ const Footer = () => {
               </li>
               <li>
                 <Link
-                  to="/employer/candidates"
+                  to="/employer/talents"
                   className="text-neutral-400 hover:text-white transition-colors text-sm"
                 >
                   Tìm ứng viên
@@ -153,7 +156,7 @@ const Footer = () => {
               </li>
               <li>
                 <Link
-                  to="/pricing"
+                  to="/register"
                   className="text-neutral-400 hover:text-white transition-colors text-sm"
                 >
                   Đăng ký doanh nghiệp
@@ -166,20 +169,20 @@ const Footer = () => {
         {/* Bottom: Copyright */}
         <div className="border-t border-neutral-800 mt-8 pt-8 flex flex-col md:flex-row justify-between items-center">
           <p className="text-neutral-400 text-sm">
-            © {currentYear} Nền Tảng Tuyển Dụng Việc Làm. Bảo lưu mọi quyền.
+            © {currentYear} Phùng Quốc Kiệt
           </p>
           <div className="flex space-x-6 mt-4 md:mt-0">
             <Link
               to="/privacy"
               className="text-neutral-400 hover:text-white text-sm transition-colors"
             >
-              Chính Sách Bảo Mật
+              Chính sách bảo mật
             </Link>
             <Link
               to="/terms"
               className="text-neutral-400 hover:text-white text-sm transition-colors"
             >
-              Điều Khoản Dịch Vụ
+              Điều khoản dịch vụ
             </Link>
           </div>
         </div>

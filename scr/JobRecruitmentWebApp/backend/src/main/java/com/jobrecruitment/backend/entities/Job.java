@@ -112,6 +112,22 @@ public class Job {
     private String jobRequirement;
 
     /**
+     * Trách nhiệm công việc
+     * - Column Type: TEXT (cho phép nội dung dài)
+     * - Ví dụ: Các công việc chính, trách nhiệm hàng ngày...
+     */
+    @Column(columnDefinition = "TEXT")
+    private String jobResponsibilities;
+
+    /**
+     * Quyền lợi
+     * - Column Type: TEXT (cho phép nội dung dài)
+     * - Ví dụ: Bảo hiểm, thưởng, nghỉ phép...
+     */
+    @Column(columnDefinition = "TEXT")
+    private String jobBenefits;
+
+    /**
      * Mức lương
      * - Validation: @Positive
      * - Quy tắc: RBGTN - Phải > 0

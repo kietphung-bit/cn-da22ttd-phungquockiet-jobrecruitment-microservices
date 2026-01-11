@@ -2,21 +2,21 @@ import axiosClient from '../api/axiosClient';
 
 /**
  * Saved Job Service
- * API calls for managing saved/bookmarked jobs
+ * Gọi API quản lý các công việc đã lưu/đánh dấu
  * 
  * Endpoints:
- * - POST /saved-jobs - Save/bookmark a job
- * - GET /saved-jobs/me - Get my saved jobs (paginated)
- * - DELETE /saved-jobs/{jobId} - Unsave/unbookmark a job
- * - GET /saved-jobs/check/{jobId} - Check if job is saved (optional)
+ * - POST /saved-jobs - Lưu/đánh dấu một công việc
+ * - GET /saved-jobs/me - Lấy các công việc đã lưu của tôi (có phân trang)
+ * - DELETE /saved-jobs/{jobId} - Bỏ lưu/bỏ đánh dấu một công việc
+ * - GET /saved-jobs/check/{jobId} - Kiểm tra xem công việc đã được lưu chưa (tùy chọn)
  * 
  * Backend: SavedJobControllerV1.java
  */
 const savedJobService = {
   /**
-   * Save/bookmark a job
-   * @param {number} jobId - Job ID to save
-   * @returns {Promise} Response with SavedJobResponse
+   * Lưu/đánh dấu một công việc
+   * @param {number} jobId - ID công việc cần lưu
+   * @returns {Promise} Promise với SavedJobResponse
    */
   saveJob: async (jobId) => {
     try {
@@ -28,9 +28,9 @@ const savedJobService = {
   },
 
   /**
-   * Get my saved jobs with pagination
-   * @param {Object} params - Query parameters { page, size, sort }
-   * @returns {Promise} Response with Page<SavedJobResponse>
+   * Lấy các công việc đã lưu của tôi (có phân trang)
+   * @param {Object} params - Tham số truy vấn { page, size, sort }
+   * @returns {Promise} Promise với Page<SavedJobResponse>
    */
   getMySavedJobs: async (params = {}) => {
     try {
@@ -42,9 +42,9 @@ const savedJobService = {
   },
 
   /**
-   * Unsave/unbookmark a job
-   * @param {number} jobId - Job ID to unsave
-   * @returns {Promise} Response with success message
+   * Bỏ lưu/bỏ đánh dấu một công việc
+   * @param {number} jobId - ID công việc cần bỏ lưu
+   * @returns {Promise} Promise với phản hồi thành công
    */
   unsaveJob: async (jobId) => {
     try {
@@ -56,37 +56,33 @@ const savedJobService = {
   },
 
   /**
-   * Check if a job is saved
-   * Note: This is a helper method that checks against the saved jobs list
-   * For better performance, you might want to add a dedicated endpoint in backend
-   * @param {number} jobId - Job ID to check
-   * @returns {Promise<boolean>} True if saved, false otherwise
+   * Kiểm tra xem một công việc đã được lưu chưa
+   * Lưu ý: Đây là phương thức trợ giúp kiểm tra dựa trên danh sách công việc đã lưu
+   * Để hiệu suất tốt hơn, bạn có thể muốn thêm một endpoint riêng trong backend
+   * @param {number} jobId - ID công việc cần kiểm tra
+   * @returns {Promise<boolean>} True nếu đã lưu, false nếu chưa
    */
   checkIsSaved: async (jobId) => {
     try {
-      // Fetch first page only to check
+      // Lấy trang đầu tiên để kiểm tra
       const response = await axiosClient.get('/saved-jobs/me', {
         params: { page: 0, size: 100 } // Get enough to check
       });
       
-      console.log('checkIsSaved response:', response);
-      
-      // Handle different response structures
+      // Xử lý các cấu trúc phản hồi khác nhau
       let savedJobs = [];
       if (response.data?.data?.content) {
         // ApiResponse wrapper
         savedJobs = response.data.data.content;
       } else if (response.data?.content) {
-        // Direct Page
+        // Trang trực tiếp
         savedJobs = response.data.content;
       } else if (Array.isArray(response.data)) {
-        // Direct array
+        // Mảng trực tiếp
         savedJobs = response.data;
       }
       
-      console.log('Checking if job is saved:', { jobId, savedJobs });
-      
-      // Convert jobId to number for comparison
+      // Chuyển jobId sang số để so sánh
       const jobIdNum = typeof jobId === 'string' ? parseInt(jobId, 10) : jobId;
       
       return savedJobs.some(saved => {
@@ -94,22 +90,21 @@ const savedJobService = {
         return savedJobId === jobIdNum || savedJobId === jobId;
       });
     } catch (error) {
-      console.error('Error checking if job is saved:', error);
       return false;
     }
   },
 
   /**
-   * Get all saved job IDs (for checking multiple jobs at once)
-   * @returns {Promise<Array<number>>} Array of saved job IDs
+   * Lấy tất cả ID công việc đã lưu (để kiểm tra nhiều công việc cùng lúc)
+   * @returns {Promise<Array<number>>} Mảng các ID công việc đã lưu
    */
   getSavedJobIds: async () => {
     try {
       const response = await axiosClient.get('/saved-jobs/me', {
-        params: { page: 0, size: 1000 } // Get all saved jobs
+        params: { page: 0, size: 1000 } // Lấy tất cả công việc đã lưu
       });
       
-      // Handle different response structures
+      // Xử lý các cấu trúc phản hồi khác nhau
       let savedJobs = [];
       if (response.data?.data?.content) {
         savedJobs = response.data.data.content;
@@ -121,7 +116,6 @@ const savedJobService = {
       
       return savedJobs.map(saved => saved.jobId || saved.job?.jobId).filter(Boolean);
     } catch (error) {
-      console.error('Error fetching saved job IDs:', error);
       return [];
     }
   }

@@ -1,7 +1,7 @@
 /**
  * CandidateDetail.jsx - Chi tiết ứng viên (Employer view)
  * 
- * Features:
+ * Tinh năng:
  * - Xem thông tin chi tiết ứng viên
  * - Hiển thị hồ sơ, kỹ năng, kinh nghiệm
  * - Quay lại danh sách ứng tuyển
@@ -36,27 +36,27 @@ const CandidateDetail = () => {
   const [loading, setLoading] = useState(true);
 
   /**
-   * Fetch candidate details
+   * Lấy chi tiết ứng viên
    */
   const fetchCandidateDetail = async () => {
     try {
       setLoading(true);
       const response = await axiosClient.get(`/candidates/${candidateId}`);
       
-      // Handle ApiResponse wrapper
+      // Xử lý ApiResponse wrapper
       const data = response.data?.data || response.data;
       setCandidate(data);
     } catch (error) {
       console.error('Failed to fetch candidate:', error);
       toast.error('Không thể tải thông tin ứng viên!');
-      navigate(-1); // Go back on error
+      navigate(-1); // Quay lại khi có lỗi
     } finally {
       setLoading(false);
     }
   };
 
   /**
-   * Format date
+   * Định dạng ngày tháng
    */
   const formatDate = (dateString) => {
     if (!dateString) return 'N/A';
@@ -68,7 +68,7 @@ const CandidateDetail = () => {
   };
 
   /**
-   * Get gender label
+   * Lấy nhãn giới tính
    */
   const getGenderLabel = (gender) => {
     const genderMap = {

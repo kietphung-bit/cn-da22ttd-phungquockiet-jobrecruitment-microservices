@@ -5,16 +5,16 @@ import companyService from '../../services/company.service';
 
 /**
  * CompanySearchPage Component
- * Allows users to search and browse companies
+ * Cho phép người dùng tìm kiếm và duyệt các công ty
  * 
- * Features:
- * - Search by company name
- * - Grid display of companies
- * - Pagination
- * - Vietnamese localization
+ * Tính năng:
+ * - Tìm kiếm theo tên công ty
+ * - Hiển thị lưới các công ty
+ * - Phân trang
+ * - Hỗ trợ tiếng Việt
  */
 const CompanySearchPage = () => {
-  // State management
+  // Quản lý trạng thái
   const [companies, setCompanies] = useState([]);
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState(null);
@@ -23,28 +23,28 @@ const CompanySearchPage = () => {
   const [totalPages, setTotalPages] = useState(1);
   const [totalElements, setTotalElements] = useState(0);
 
-  const pageSize = 12; // Number of companies per page
+  const pageSize = 12; // Số công ty trên mỗi trang
 
-  // Fetch companies
+  // Lấy danh sách công ty từ API
   const fetchCompanies = async () => {
     try {
       setLoading(true);
       setError(null);
 
       const params = {
-        page: currentPage - 1, // API uses 0-based indexing
+        page: currentPage - 1, // API sử dụng đánh số trang bắt đầu từ 0
         size: pageSize,
         sort: 'companyName,asc',
       };
 
-      // Add keyword if provided
+      // Thêm từ khóa nếu có
       if (searchKeyword) {
         params.keyword = searchKeyword;
       }
 
       const response = await companyService.searchCompanies(params);
       
-      // Map API response to component format
+      // Chuyển đổi phản hồi API sang định dạng component
       const mappedCompanies = response.data.content.map(company => ({
         companyId: company.companyId,
         name: company.companyName || 'Tên công ty',
@@ -65,26 +65,26 @@ const CompanySearchPage = () => {
     }
   };
 
-  // Fetch companies when component mounts or dependencies change
+  // Lấy danh sách công ty khi component được tải hoặc khi dependencies thay đổi
   useEffect(() => {
     fetchCompanies();
   }, [currentPage, searchKeyword]);
 
-  // Handle search form submission
+  // Xử lý khi người dùng gửi form tìm kiếm
   const handleSearch = (e) => {
     e.preventDefault();
-    setCurrentPage(1); // Reset to first page on new search
+    setCurrentPage(1); // Đặt lại về trang đầu tiên khi tìm kiếm mới
     fetchCompanies();
   };
 
-  // Handle search input change with debounce effect
+  // Xử lý khi người dùng thay đổi input tìm kiếm với hiệu ứng debounce
   const handleSearchChange = (e) => {
     const value = e.target.value;
     setSearchKeyword(value);
-    setCurrentPage(1); // Reset to first page
+    setCurrentPage(1); // Đặt lại về trang đầu tiên khi tìm kiếm mới
   };
 
-  // Handle pagination
+  // Xử lý phân trang
   const handlePageChange = (newPage) => {
     if (newPage >= 1 && newPage <= totalPages) {
       setCurrentPage(newPage);
@@ -92,13 +92,13 @@ const CompanySearchPage = () => {
     }
   };
 
-  // Clear search
+  // Xóa tìm kiếm
   const handleClearSearch = () => {
     setSearchKeyword('');
     setCurrentPage(1);
   };
 
-  // Pagination component
+  // Thành phần phân trang
   const Pagination = () => {
     if (totalPages <= 1) return null;
 

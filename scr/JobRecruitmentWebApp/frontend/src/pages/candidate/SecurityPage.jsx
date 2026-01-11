@@ -5,6 +5,7 @@ import * as yup from 'yup';
 import { toast } from 'react-toastify';
 import { useNavigate } from 'react-router-dom';
 import authService from '../../services/auth.service';
+import { useAuth } from '../../contexts/AuthContext';
 import { Lock, LogOut, AlertTriangle, Eye, EyeOff } from 'lucide-react';
 
 /**
@@ -23,7 +24,7 @@ import { Lock, LogOut, AlertTriangle, Eye, EyeOff } from 'lucide-react';
  * Route: /candidate/security
  */
 
-// Yup validation schema
+// Xác thực schema
 const changePasswordSchema = yup.object().shape({
   oldPassword: yup
     .string()
@@ -41,6 +42,7 @@ const changePasswordSchema = yup.object().shape({
 
 const SecurityPage = () => {
   const navigate = useNavigate();
+  const { logout } = useAuth();
   const [isChangingPassword, setIsChangingPassword] = useState(false);
   const [isLoggingOut, setIsLoggingOut] = useState(false);
   const [showOldPassword, setShowOldPassword] = useState(false);
@@ -57,7 +59,7 @@ const SecurityPage = () => {
   });
 
   /**
-   * Handle change password form submission
+   * Xử lý gửi biểu mẫu đổi mật khẩu
    */
   const onChangePassword = async (data) => {
     try {
@@ -69,19 +71,26 @@ const SecurityPage = () => {
         confirmPassword: data.confirmPassword,
       });
 
-      toast.success('Đổi mật khẩu thành công! Vui lòng đăng nhập lại.', {
-        position: 'top-right',
-        autoClose: 3000,
-      });
-
-      // Reset form
+      // Đặt lại form
       reset();
 
-      // Clear localStorage and redirect to login after 2 seconds
-      setTimeout(() => {
-        authService.logout();
-        navigate('/login');
-      }, 2000);
+      // Hiển thị thông báo thành công
+      toast.success('Thành công! Vui lòng đăng nhập lại.', {
+        position: 'top-right',
+        autoClose: 2000,
+      });
+
+      // Đăng xuất ngay lập tức
+      // Xóa tất cả dữ liệu xác thực khỏi localStorage
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_user');
+      localStorage.removeItem('auth_redirect');
+      
+      // Điều hướng đến trang đăng nhập (trạng thái sẽ được xóa bởi context khi render lại)
+      navigate('/login', { replace: true });
+      
+      // Tải lại trang để đảm bảo trạng thái được đặt lại hoàn toàn
+      window.location.reload();
     } catch (error) {
       console.error('Change password error:', error);
       
@@ -99,7 +108,7 @@ const SecurityPage = () => {
   };
 
   /**
-   * Handle logout all sessions
+   * Xử lý đăng xuất khỏi tất cả thiết bị
    */
   const handleLogoutAllSessions = async () => {
     if (!window.confirm(
@@ -114,16 +123,23 @@ const SecurityPage = () => {
       
       await authService.logoutAllSessions();
 
-      toast.success('Đã đăng xuất khỏi tất cả thiết bị thành công!', {
+      // Hiển thị thông báo thành công
+      toast.success('Thành công! Vui lòng đăng nhập lại.', {
         position: 'top-right',
-        autoClose: 3000,
+        autoClose: 2000,
       });
 
-      // Clear localStorage and redirect to login
-      setTimeout(() => {
-        authService.logout();
-        navigate('/login');
-      }, 2000);
+      // Đăng xuất ngay lập tức
+      // Xóa tất cả dữ liệu xác thực khỏi localStorage
+      localStorage.removeItem('auth_token');
+      localStorage.removeItem('auth_user');
+      localStorage.removeItem('auth_redirect');
+      
+      // Điều hướng đến trang đăng nhập (trạng thái sẽ được xóa bởi context khi render lại)
+      navigate('/login', { replace: true });
+      
+      // Tải lại trang để đảm bảo trạng thái được đặt lại hoàn toàn
+      window.location.reload();
     } catch (error) {
       console.error('Logout all sessions error:', error);
       
